@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 
 import 'common/app_theme.dart';
+import 'features/single_day_plan_page.dart';
 import 'features/welcome_page.dart';
 
 void main() {
@@ -16,7 +17,7 @@ class MyApp extends StatelessWidget {
     return MaterialApp(
       title: 'Flutter Demo',
       theme: appTheme,
-      home: const WelcomePage(),
+      home: const SingleDayPlan(),
     );
   }
 }

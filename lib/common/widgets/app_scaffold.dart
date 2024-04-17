@@ -10,12 +10,12 @@ class AppScaffold extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return SafeArea(child: Scaffold(
+    return Scaffold(
       appBar: appbar,
       body: Padding(
         padding: const EdgeInsets.symmetric(horizontal: 20),
         child: body,
       ),
-    ));
+    );
   }
 }

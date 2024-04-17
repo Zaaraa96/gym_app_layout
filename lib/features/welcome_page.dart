@@ -17,9 +17,9 @@ class WelcomePage extends StatelessWidget {
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
             Lottie.asset('assets/json/gym.json'),
-             AppText(data: 'Welcome To the Amazing Gym app', style: titleTextStyle, textAlign: TextAlign.center,),
+             AppText('Welcome To the Amazing Gym app', style: titleTextStyle, textAlign: TextAlign.center,),
             const SizedBox(height: 10,),
-            const AppText(data: 'this app is going to make your gym experience more fun', style: subtitleTextStyle,
+            const AppText('this app is going to make your gym experience more fun', style: subtitleTextStyle,
             textAlign: TextAlign.center,),
             const SizedBox(height: 10,),
             AppElevatedButton(onPressed: () {  }, data: 'Let\'s get started!',)
