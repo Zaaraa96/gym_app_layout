@@ -5,6 +5,13 @@ import '../common/widgets/app_scaffold.dart';
 import '../common/widgets/app_text.dart';
 
 
+class SingleDayPlanModel{
+  final String title;
+  final List<SingleExerciseWithRound> exercises;
+
+  SingleDayPlanModel({required this.title, required this.exercises});
+}
+
 class SingleExerciseWithRound{
   final  List<ExerciseWithRepetitionModel> exerciseWithRepetitionModels;
   final int roundNum;
@@ -22,14 +29,15 @@ class ExerciseWithRepetitionModel{
 
 
 class SingleDayPlan extends StatelessWidget {
-  const SingleDayPlan({super.key});
+  const SingleDayPlan({super.key, required this.singleDayPlanModel});
+  final SingleDayPlanModel singleDayPlanModel;
 
   @override
   Widget build(BuildContext context) {
     final ThemeData theme = Theme.of(context);
     return AppScaffold(
       appbar: AppBar(
-        title: const Text('Day 1'),
+        title:  Text(singleDayPlanModel.title),
       ),
       body: ListView.builder(
         padding: EdgeInsets.zero,
@@ -40,19 +48,13 @@ class SingleDayPlan extends StatelessWidget {
                   ? theme.colorScheme.surfaceVariant
                   : theme.cardColor,
               borderColor: theme.colorScheme.primaryContainer,
-              singleExerciseWithRound: SingleExerciseWithRound(
-                exerciseWithRepetitionModels: [
-                  ExerciseWithRepetitionModel(repetition: 12, title: 'Dead lift'),
-                  ExerciseWithRepetitionModel(repetition: 12, title: 'Dead lift')
-                ], roundNum: 3, svgPath: 'assets/image/upper-body.svg'
-
-            ),
+              singleExerciseWithRound: singleDayPlanModel.exercises[item],
             );
           },
           //     separatorBuilder: (context, int item){
           //   return const Divider(height: 6, thickness: 1,);
           // },
-          itemCount: 5),
+          itemCount: singleDayPlanModel.exercises.length),
     );
   }
 }

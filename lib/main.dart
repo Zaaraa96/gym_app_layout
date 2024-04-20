@@ -17,7 +17,22 @@ class MyApp extends StatelessWidget {
     return MaterialApp(
       title: 'Flutter Demo',
       theme: appTheme,
-      home: const SingleDayPlan(),
+      home:  SingleDayPlan(singleDayPlanModel: SingleDayPlanModel(title: 'Day 1', exercises: [
+        SingleExerciseWithRound(
+          exerciseWithRepetitionModels: [
+            ExerciseWithRepetitionModel(repetition: 12, title: 'Dead lift'),
+            ExerciseWithRepetitionModel(repetition: 12, title: 'Dead lift')
+          ], roundNum: 3, svgPath: 'assets/image/upper-body.svg'
+      ),
+        SingleExerciseWithRound(
+          exerciseWithRepetitionModels: [
+            ExerciseWithRepetitionModel(repetition: 15, title: 'Dead lift'),
+            ExerciseWithRepetitionModel(repetition: 15, title: 'Dead lift')
+          ], roundNum: 4, svgPath: 'assets/image/upper-body.svg'
+      ),
+      ]
+
+      ), ),
     );
   }
 }
