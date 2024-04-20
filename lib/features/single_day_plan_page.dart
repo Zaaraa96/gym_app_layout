@@ -4,8 +4,20 @@ import 'package:flutter_svg/svg.dart';
 import '../common/widgets/app_scaffold.dart';
 import '../common/widgets/app_text.dart';
 
-class SingleExerciseModel{
 
+class SingleExerciseWithRound{
+  final  List<ExerciseWithRepetitionModel> exerciseWithRepetitionModels;
+  final int roundNum;
+  final String svgPath;
+
+  SingleExerciseWithRound({required this.exerciseWithRepetitionModels, required this.roundNum, required this.svgPath});
+}
+
+class ExerciseWithRepetitionModel{
+  final int repetition;
+  final String title;
+
+  ExerciseWithRepetitionModel({required this.repetition, required this.title});
 }
 
 
@@ -28,6 +40,13 @@ class SingleDayPlan extends StatelessWidget {
                   ? theme.colorScheme.surfaceVariant
                   : theme.cardColor,
               borderColor: theme.colorScheme.primaryContainer,
+              singleExerciseWithRound: SingleExerciseWithRound(
+                exerciseWithRepetitionModels: [
+                  ExerciseWithRepetitionModel(repetition: 12, title: 'Dead lift'),
+                  ExerciseWithRepetitionModel(repetition: 12, title: 'Dead lift')
+                ], roundNum: 3, svgPath: 'assets/image/upper-body.svg'
+
+            ),
             );
           },
           //     separatorBuilder: (context, int item){
@@ -42,12 +61,14 @@ class SingleExerciseSummeryItem extends StatelessWidget {
   const SingleExerciseSummeryItem({
     super.key,
     required this.backgroundColor,
-    required this.borderColor,
+    required this.borderColor, required this.singleExerciseWithRound,
   });
 
-  final roundNum = 3;
+  final SingleExerciseWithRound singleExerciseWithRound;
+
   final Color backgroundColor;
   final Color borderColor;
+
 
   @override
   Widget build(BuildContext context) {
@@ -64,19 +85,19 @@ class SingleExerciseSummeryItem extends StatelessWidget {
           children: [
             ///svg that determines
             SvgPicture.asset(
-              'assets/image/upper-body.svg',
+              singleExerciseWithRound.svgPath,
               width: 40,
             ),
-            Column(
+             Column(
               mainAxisSize: MainAxisSize.min,
               children: [
-                ExerciseWithRepetition(),
-                ExerciseWithRepetition(),
+                for (var exerciseWithRepetitionModel in singleExerciseWithRound.exerciseWithRepetitionModels)
+                   ExerciseWithRepetition(exerciseWithRepetitionModel: exerciseWithRepetitionModel,),
               ],
             ),
 
             ///round
-            RoundNumberWidget(roundNum: roundNum),
+            RoundNumberWidget(roundNum: singleExerciseWithRound.roundNum),
           ],
         ),
       ),
@@ -114,24 +135,25 @@ class RoundNumberWidget extends StatelessWidget {
 
 class ExerciseWithRepetition extends StatelessWidget {
   const ExerciseWithRepetition({
-    super.key,
+    super.key, required this.exerciseWithRepetitionModel,
   });
-
-  final repetition = 12;
-  final title = 'Dead lift';
+  //
+  // final repetition = 12;
+  // final title = 'Dead lift';
+  final ExerciseWithRepetitionModel exerciseWithRepetitionModel;
   @override
   Widget build(BuildContext context) {
     return Row(
       children: [
         AppText(
-          title,
+          exerciseWithRepetitionModel.title,
           style: dataTextStyle,
         ),
-        SizedBox(
+        const SizedBox(
           width: 6,
         ),
         AppText(
-          'x$repetition',
+          'x${exerciseWithRepetitionModel.repetition}',
           style: dataTextStyle.copyWith(fontWeight: FontWeight.w700),
         )
       ],
