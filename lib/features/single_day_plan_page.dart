@@ -7,9 +7,10 @@ import '../common/widgets/app_text.dart';
 
 class SingleDayPlanModel{
   final String title;
+  final String summary;
   final List<SingleExerciseWithRound> exercises;
 
-  SingleDayPlanModel({required this.title, required this.exercises});
+  SingleDayPlanModel({required this.title, required this.exercises, required this.summary});
 }
 
 class SingleExerciseWithRound{
@@ -51,9 +52,6 @@ class SingleDayPlan extends StatelessWidget {
               singleExerciseWithRound: singleDayPlanModel.exercises[item],
             );
           },
-          //     separatorBuilder: (context, int item){
-          //   return const Divider(height: 6, thickness: 1,);
-          // },
           itemCount: singleDayPlanModel.exercises.length),
     );
   }
