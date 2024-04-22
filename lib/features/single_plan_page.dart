@@ -1,5 +1,6 @@
 
 import 'package:flutter/material.dart';
+import 'package:get/get.dart';
 import 'package:gym_app/common/widgets/app_scaffold.dart';
 import 'package:gym_app/common/widgets/app_text.dart';
 import 'package:gym_app/features/single_day_plan_page.dart';
@@ -60,7 +61,9 @@ class SinglePlanPage extends StatelessWidget {
                               const Spacer(),
                               Align(
                                   alignment: Alignment.bottomLeft,
-                                  child: IconButton(onPressed: (){}, icon: Icon(Icons.arrow_forward, color: appTheme.colorScheme.tertiary,))),
+                                  child: IconButton(onPressed: (){
+                                    Get.toNamed("/day", arguments: dayPlan);
+                                  }, icon: Icon(Icons.arrow_forward, color: appTheme.colorScheme.tertiary,))),
                               const SizedBox(height: 8,),
                             ],
                           ),

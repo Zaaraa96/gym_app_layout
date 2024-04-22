@@ -1,5 +1,6 @@
 
 import 'package:flutter/material.dart';
+import 'package:get/get.dart';
 import 'package:lottie/lottie.dart';
 
 import '../common/widgets/app_elevated_button.dart';
@@ -22,7 +23,9 @@ class WelcomePage extends StatelessWidget {
             const AppText('this app is going to make your gym experience more fun', style: subtitleTextStyle,
             textAlign: TextAlign.center,),
             const SizedBox(height: 10,),
-            AppElevatedButton(onPressed: () {  }, data: 'Let\'s get started!',)
+            AppElevatedButton(onPressed: () {
+              Get.toNamed("/plan");
+            }, data: 'Let\'s get started!',)
           ],
         ),
       ),

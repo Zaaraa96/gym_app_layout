@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_svg/svg.dart';
+import 'package:get/get.dart';
 
 import '../common/widgets/app_scaffold.dart';
 import '../common/widgets/app_text.dart';
@@ -30,11 +31,10 @@ class ExerciseWithRepetitionModel{
 
 
 class SingleDayPlan extends StatelessWidget {
-  const SingleDayPlan({super.key, required this.singleDayPlanModel});
-  final SingleDayPlanModel singleDayPlanModel;
 
   @override
   Widget build(BuildContext context) {
+    SingleDayPlanModel singleDayPlanModel = Get.arguments as SingleDayPlanModel;
     final ThemeData theme = Theme.of(context);
     return AppScaffold(
       appbar: AppBar(
