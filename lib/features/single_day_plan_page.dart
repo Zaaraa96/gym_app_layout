@@ -1,36 +1,16 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_svg/svg.dart';
 import 'package:get/get.dart';
+import 'package:gym_app/features/single_plan/single_plan_model.dart';
 
 import '../common/widgets/app_scaffold.dart';
 import '../common/widgets/app_text.dart';
 
 
-class SingleDayPlanModel{
-  final String title;
-  final String summary;
-  final List<SingleExerciseWithRound> exercises;
-
-  SingleDayPlanModel({required this.title, required this.exercises, required this.summary});
-}
-
-class SingleExerciseWithRound{
-  final  List<ExerciseWithRepetitionModel> exerciseWithRepetitionModels;
-  final int roundNum;
-  final String svgPath;
-
-  SingleExerciseWithRound({required this.exerciseWithRepetitionModels, required this.roundNum, required this.svgPath});
-}
-
-class ExerciseWithRepetitionModel{
-  final int repetition;
-  final String title;
-
-  ExerciseWithRepetitionModel({required this.repetition, required this.title});
-}
-
 
 class SingleDayPlan extends StatelessWidget {
+  const SingleDayPlan({super.key});
+
 
   @override
   Widget build(BuildContext context) {
@@ -49,10 +29,10 @@ class SingleDayPlan extends StatelessWidget {
                   ? theme.colorScheme.surfaceVariant
                   : theme.cardColor,
               borderColor: theme.colorScheme.primaryContainer,
-              singleExerciseWithRound: singleDayPlanModel.exercises[item],
+              singleExerciseWithRound: singleDayPlanModel.exercises![item],
             );
           },
-          itemCount: singleDayPlanModel.exercises.length),
+          itemCount: singleDayPlanModel.exercises?.length ??0),
     );
   }
 }
@@ -91,7 +71,7 @@ class SingleExerciseSummeryItem extends StatelessWidget {
              Column(
               mainAxisSize: MainAxisSize.min,
               children: [
-                for (var exerciseWithRepetitionModel in singleExerciseWithRound.exerciseWithRepetitionModels)
+                for (var exerciseWithRepetitionModel in singleExerciseWithRound.exerciseWithRepetitionModels??[])
                    ExerciseWithRepetition(exerciseWithRepetitionModel: exerciseWithRepetitionModel,),
               ],
             ),

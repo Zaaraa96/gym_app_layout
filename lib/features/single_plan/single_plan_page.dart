@@ -3,17 +3,12 @@ import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import 'package:gym_app/common/widgets/app_scaffold.dart';
 import 'package:gym_app/common/widgets/app_text.dart';
-import 'package:gym_app/features/single_day_plan_page.dart';
+import 'package:gym_app/features/single_plan/single_plan_model.dart';
 
-import '../common/app_theme.dart';
+import '../../common/app_theme.dart';
 
 
-class SinglePlanModel{
-  final String title;
-  final List<SingleDayPlanModel> dayPlans;
 
-  SinglePlanModel({required this.title, required this.dayPlans});
-}
 
 class SinglePlanPage extends StatelessWidget {
   final SinglePlanModel plan;

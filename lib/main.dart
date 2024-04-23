@@ -1,18 +1,24 @@
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
+import 'package:isar/isar.dart';
+import 'package:path_provider/path_provider.dart';
 
 import 'common/app_theme.dart';
 import 'features/add_plan_page.dart';
 import 'features/single_day_plan_page.dart';
-import 'features/single_plan_page.dart';
+import 'features/single_plan/single_plan_model.dart';
+import 'features/single_plan/single_plan_page.dart';
 import 'features/welcome_page.dart';
+void main() async{
+  WidgetsFlutterBinding.ensureInitialized();
 
-void main() {
   runApp( MyApp());
 }
 
 class MyApp extends StatelessWidget {
    MyApp({super.key});
+
+
 
   final SingleExerciseWithRound exerciseWithRound = SingleExerciseWithRound(
       exerciseWithRepetitionModels: [
