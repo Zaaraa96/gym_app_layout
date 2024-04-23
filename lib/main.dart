@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 
 import 'common/app_theme.dart';
+import 'features/add_plan_page.dart';
 import 'features/single_day_plan_page.dart';
 import 'features/single_plan_page.dart';
 import 'features/welcome_page.dart';
@@ -25,8 +26,10 @@ class MyApp extends StatelessWidget {
     return GetMaterialApp(
       title: 'My Awesome Gym App',
       theme: appTheme,
-      initialRoute: '/',
+      initialRoute: '/new-plan',
       getPages: [
+
+        GetPage(name: '/new-plan', page: () => const AddNewPlanPage()),
         GetPage(name: '/', page: () => const WelcomePage()),
         GetPage(name: '/plan', page: () => SinglePlanPage(plan: SinglePlanModel(title: 'your amazing plan',
             dayPlans: [
