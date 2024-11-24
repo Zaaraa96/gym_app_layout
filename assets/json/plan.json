@@ -1,0 +1,65 @@
+{
+  "name" : "plan 1",
+  "days": 3,
+  "basic-plan" : [
+    {
+      "name": "day 1- 4sar",
+      "exercises": [
+        {
+          "type": "super-set",
+          "exercise": [{
+            "title" : "kang squat",
+            "sets": 3,
+            "times": 12,
+            "duration" : null
+          },{
+            "title" : "leg extension",
+            "sets": 3,
+            "times": 12,
+            "duration" : null
+          }
+          ]
+        },
+        {
+          "type": "single",
+          "exercise": {
+            "title" : "reverse lunges+ Press",
+            "sets": 3,
+            "times": 12,
+            "duration" : null
+          }
+        }
+      ]
+    }
+  ],
+  "common-plan": [
+    {
+      "name": "abs",
+      "exercises": [
+        {
+          "type": "single",
+          "exercise": {
+            "title" : "shoot out",
+            "sets": 1,
+            "times": null,
+            "duration" : 30
+          }
+        }
+      ]
+    },
+    {
+      "name": "corrective",
+      "exercises": [
+        {
+          "type": "single",
+          "exercise": {
+            "title" : "step lunge stretch",
+            "sets": 3,
+            "times": null,
+            "duration" : 30
+          }
+        }
+      ]
+    },
+  ]
+}
