@@ -1,6 +1,5 @@
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
-import 'package:isar/isar.dart';
 import 'package:path_provider/path_provider.dart';
 
 import 'common/app_theme.dart';
