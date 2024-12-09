@@ -5,6 +5,7 @@ import 'package:path_provider/path_provider.dart';
 import 'common/app_theme.dart';
 import 'features/add_plan_page.dart';
 import 'features/single_day_plan_page.dart';
+import 'features/single_exercise_page.dart';
 import 'features/single_plan/single_plan_model.dart';
 import 'features/single_plan/single_plan_page.dart';
 import 'features/welcome_page.dart';
@@ -31,7 +32,7 @@ class MyApp extends StatelessWidget {
     return GetMaterialApp(
       title: 'My Awesome Gym App',
       theme: appTheme,
-      initialRoute: '/new-plan',
+      initialRoute: '/plan',
       getPages: [
 
         GetPage(name: '/new-plan', page: () => const AddNewPlanPage()),
@@ -69,6 +70,7 @@ class MyApp extends StatelessWidget {
 
             ]),)),
         GetPage(name: '/day', page: ()=> SingleDayPlan()),
+        GetPage(name: '/exercise', page: ()=> SingleExercisePage()),
       ],
 
 
