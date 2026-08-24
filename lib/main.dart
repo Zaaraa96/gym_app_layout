@@ -13,11 +13,12 @@ Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
   final isarService = Get.put(await IsarService.init());
   final plans = Get.put(PlanRepository(isarService.isar));
-  final hasPlans = await plans.count() > 0;
-  runApp(MyApp(
-    initialRoute: hasPlans ? AppRoutes.home : AppRoutes.welcome,
-  ));
+  runApp(MyApp(initialRoute: await resolveInitialRoute(plans)));
 }
+
+/// Welcome is a first-run screen: skip it once any plan is stored.
+Future<String> resolveInitialRoute(PlanRepository plans) async =>
+    await plans.count() > 0 ? AppRoutes.home : AppRoutes.welcome;
 
 class MyApp extends StatelessWidget {
   const MyApp({super.key, this.initialRoute = AppRoutes.welcome});
