@@ -148,6 +148,13 @@ class _DayEditorPageState extends State<DayEditorPage> {
           ),
         ],
       ),
+      floatingActionButton: day == null || day.blocks.isEmpty
+          ? null
+          : FloatingActionButton.extended(
+              onPressed: () => _addOrEditBlock(),
+              icon: const Icon(Icons.add),
+              label: const Text('Add exercise'),
+            ),
       body: _loading
           ? const Center(child: CircularProgressIndicator())
           : day == null

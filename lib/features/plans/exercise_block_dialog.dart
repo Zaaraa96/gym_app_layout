@@ -34,6 +34,7 @@ class _ExerciseBlockDialogState extends State<ExerciseBlockDialog> {
   late bool _useDuration;
   late bool _superset;
   late bool _secondUseDuration;
+  String? _error;
 
   ExercisePrescription? get _first {
     final exercises = widget.existing?.exercises;
@@ -107,15 +108,11 @@ class _ExerciseBlockDialogState extends State<ExerciseBlockDialog> {
   void _submit() {
     final title = _title.text.trim();
     if (title.isEmpty) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Add an exercise name')),
-      );
+      setState(() => _error = 'Add an exercise name');
       return;
     }
     if (_superset && _secondTitle.text.trim().isEmpty) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Add a name for the second exercise')),
-      );
+      setState(() => _error = 'Add a name for the second exercise');
       return;
     }
     final sets = _parsePositive(_sets.text, 3);
@@ -159,6 +156,14 @@ class _ExerciseBlockDialogState extends State<ExerciseBlockDialog> {
           child: Column(
             mainAxisSize: MainAxisSize.min,
             children: [
+              if (_error != null)
+                Padding(
+                  padding: const EdgeInsets.only(bottom: 8),
+                  child: Text(
+                    _error!,
+                    style: TextStyle(color: Theme.of(context).colorScheme.error),
+                  ),
+                ),
               AppTextField(
                 label: 'exercise name',
                 controller: _title,

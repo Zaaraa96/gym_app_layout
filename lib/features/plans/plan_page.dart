@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 
@@ -7,6 +9,7 @@ import '../../common/widgets/app_text_field.dart';
 import '../../data/models/models.dart';
 import '../../data/new_id.dart';
 import '../../data/plan_repository.dart';
+import 'block_summary.dart';
 import 'day_editor_page.dart';
 
 /// One plan: rename it, add days, open a day to edit its workout.
@@ -23,11 +26,19 @@ class _PlanPageState extends State<PlanPage> {
   final PlanRepository _plans = Get.find<PlanRepository>();
   WorkoutPlan? _plan;
   bool _loading = true;
+  StreamSubscription<void>? _watch;
 
   @override
   void initState() {
     super.initState();
     _load();
+    _watch = _plans.watch().listen((_) => _load());
+  }
+
+  @override
+  void dispose() {
+    _watch?.cancel();
+    super.dispose();
   }
 
   Future<void> _load() async {
@@ -77,6 +88,7 @@ class _PlanPageState extends State<PlanPage> {
         ],
       ),
     );
+    controller.dispose();
     if (next == null || next.isEmpty) return;
     plan.title = next;
     await _save(plan);
@@ -120,19 +132,21 @@ class _PlanPageState extends State<PlanPage> {
         ],
       ),
     );
-    if (created != true) return;
     final title = titleController.text.trim().isEmpty
         ? 'Day ${plan.days.length + 1}'
         : titleController.text.trim();
-    plan.days = [
-      ...plan.days,
-      PlanDay.create(
-        dayId: newId(),
-        title: title,
-        summary: summaryController.text.trim(),
-      ),
-    ];
+    final summary = summaryController.text.trim();
+    titleController.dispose();
+    summaryController.dispose();
+    if (created != true) return;
+    final day = PlanDay.create(
+      dayId: newId(),
+      title: title,
+      summary: summary,
+    );
+    plan.days = [...plan.days, day];
     await _save(plan);
+    await _openDay(day);
   }
 
   Future<void> _deleteDay(PlanDay day) async {
@@ -195,6 +209,13 @@ class _PlanPageState extends State<PlanPage> {
           ),
         ],
       ),
+      floatingActionButton: plan == null || plan.days.isEmpty
+          ? null
+          : FloatingActionButton.extended(
+              onPressed: _addDay,
+              icon: const Icon(Icons.add),
+              label: const Text('Add day'),
+            ),
       body: _loading
           ? const Center(child: CircularProgressIndicator())
           : plan == null
@@ -227,58 +248,128 @@ class _PlanPageState extends State<PlanPage> {
         ),
       );
     }
-    final theme = Theme.of(context);
-    return ListView.separated(
+    return ListView.builder(
       padding: const EdgeInsets.fromLTRB(20, 12, 20, 88),
       itemCount: plan.days.length,
-      separatorBuilder: (_, __) => const SizedBox(height: 12),
       itemBuilder: (context, index) {
         final day = plan.days[index];
-        final tint = [
-          theme.colorScheme.primaryContainer,
-          theme.colorScheme.secondaryContainer,
-          theme.colorScheme.tertiaryContainer,
-        ][index % 3];
-        return Material(
-          color: tint,
-          borderRadius: BorderRadius.circular(20),
-          child: InkWell(
-            borderRadius: BorderRadius.circular(20),
-            onTap: () => _openDay(day),
-            child: SizedBox(
-              height: 160,
-              child: Padding(
-                padding: const EdgeInsets.all(16),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Row(
-                      children: [
-                        Expanded(
-                          child: AppText(day.title, style: titleTextStyle),
-                        ),
-                        IconButton(
-                          tooltip: 'Delete day',
-                          onPressed: () => _deleteDay(day),
-                          icon: const Icon(Icons.delete_outline),
-                        ),
-                      ],
+        return _DayCard(
+          day: day,
+          index: index,
+          onOpen: () => _openDay(day),
+          onDelete: () => _deleteDay(day),
+        );
+      },
+    );
+  }
+}
+
+class _DayCard extends StatelessWidget {
+  const _DayCard({
+    required this.day,
+    required this.index,
+    required this.onOpen,
+    required this.onDelete,
+  });
+
+  final PlanDay day;
+  final int index;
+  final VoidCallback onOpen;
+  final VoidCallback onDelete;
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    return Padding(
+      padding: const EdgeInsets.symmetric(vertical: 8),
+      child: SizedBox(
+        height: 200,
+        width: double.infinity,
+        child: Stack(
+          children: [
+            Positioned.fill(
+              child: ClipRRect(
+                borderRadius: BorderRadius.circular(20),
+                child: Transform.flip(
+                  flipX: index == 1,
+                  child: Opacity(
+                    opacity: 0.8,
+                    child: Image.asset(
+                      'assets/image/${index % 3}.png',
+                      fit: BoxFit.cover,
+                      width: double.infinity,
+                      errorBuilder: (_, __, ___) => ColoredBox(
+                        color: [
+                          theme.colorScheme.primaryContainer,
+                          theme.colorScheme.secondaryContainer,
+                          theme.colorScheme.tertiaryContainer,
+                        ][index % 3],
+                      ),
                     ),
-                    if (day.summary.isNotEmpty)
-                      AppText(day.summary, style: dataTextStyle),
-                    const Spacer(),
-                    AppText(
-                      '${day.blocks.length} '
-                      '${day.blocks.length == 1 ? 'exercise' : 'exercises'}',
-                      style: subtitleTextStyle,
-                    ),
-                  ],
+                  ),
                 ),
               ),
             ),
-          ),
-        );
-      },
+            Material(
+              color: Colors.transparent,
+              child: InkWell(
+                borderRadius: BorderRadius.circular(20),
+                onTap: onOpen,
+                child: Padding(
+                  padding: const EdgeInsets.all(12),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Row(
+                        children: [
+                          Expanded(
+                            child: AppText(day.title, style: titleTextStyle),
+                          ),
+                          IconButton(
+                            tooltip: 'Delete day',
+                            onPressed: onDelete,
+                            icon: const Icon(Icons.delete_outline),
+                          ),
+                        ],
+                      ),
+                      if (day.summary.isNotEmpty)
+                        Padding(
+                          padding: EdgeInsets.only(
+                            right: MediaQuery.of(context).size.width / 3,
+                          ),
+                          child: AppText(day.summary, style: dataTextStyle),
+                        ),
+                      if (day.blocks.isNotEmpty) ...[
+                        const SizedBox(height: 8),
+                        AppText(
+                          formatBlock(day.blocks.first),
+                          style: dataTextStyle,
+                        ),
+                      ],
+                      const Spacer(),
+                      Row(
+                        children: [
+                          Expanded(
+                            child: AppText(
+                              '${day.blocks.length} '
+                              '${day.blocks.length == 1 ? 'exercise' : 'exercises'}',
+                              style: subtitleTextStyle,
+                            ),
+                          ),
+                          Icon(
+                            Icons.arrow_forward,
+                            color: theme.colorScheme.tertiary,
+                          ),
+                        ],
+                      ),
+                    ],
+                  ),
+                ),
+              ),
+            ),
+          ],
+        ),
+      ),
     );
   }
 }

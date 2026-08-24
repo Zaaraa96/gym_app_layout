@@ -10,7 +10,7 @@ import 'package:gym_app/data/plan_repository.dart';
 import 'package:gym_app/main.dart';
 import 'package:isar/isar.dart';
 
-/// Saving a new plan must write a [WorkoutPlan] and land on the plans list.
+/// Saving a new plan must write a [WorkoutPlan] and open it for day-by-day editing.
 void main() {
   Directory? tempDir;
   var instanceSeq = 0;
