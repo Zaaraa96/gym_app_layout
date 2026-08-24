@@ -1,8 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:gym_app/common/app_theme.dart';
+import 'package:gym_app/data/isar_service.dart';
 import 'package:gym_app/features/single_plan/single_plan_model.dart';
-import 'package:isar/isar.dart';
-import 'package:path_provider/path_provider.dart';
 
 import '../common/widgets/app_scaffold.dart';
 import '../common/widgets/app_text.dart';
@@ -53,18 +52,14 @@ class AddNewPlanPage extends StatelessWidget {
                       ElevatedButton(
                           onPressed: () async {
                             final newPlan = SinglePlanModel(title: 'test', dayPlans: []);
-                            final dir = await getApplicationDocumentsDirectory();
-                            final isar = await Isar.open(
-                              [SinglePlanModelSchema],
-                              directory: dir.path,
-                            );
+                            final isar = IsarService.to.isar;
                             await isar.writeTxn(() async {
-                              await isar.singlePlanModels.put(newPlan); // insert & update
+                              await isar.singlePlanModels.put(newPlan);
                             });
 
-                            final existingEmail = await isar.singlePlanModels.get(newPlan.id); // get
-                            print(existingEmail?.title);
-
+                            final existing = await isar.singlePlanModels.get(newPlan.id);
+                            // ignore: avoid_print
+                            print(existing?.title);
                           },
                           child: Padding(
                             padding: const EdgeInsets.all(8.0),

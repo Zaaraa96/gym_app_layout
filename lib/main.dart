@@ -1,18 +1,19 @@
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
-import 'package:path_provider/path_provider.dart';
 
 import 'common/app_theme.dart';
+import 'data/isar_service.dart';
 import 'features/add_plan_page.dart';
 import 'features/single_day_plan_page.dart';
 import 'features/single_exercise_page.dart';
 import 'features/single_plan/single_plan_model.dart';
 import 'features/single_plan/single_plan_page.dart';
 import 'features/welcome_page.dart';
-void main() async{
-  WidgetsFlutterBinding.ensureInitialized();
 
-  runApp( MyApp());
+void main() async {
+  WidgetsFlutterBinding.ensureInitialized();
+  Get.put(await IsarService.init());
+  runApp(MyApp());
 }
 
 class MyApp extends StatelessWidget {
