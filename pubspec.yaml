@@ -50,6 +50,8 @@ dependencies:
 dev_dependencies:
   flutter_test:
     sdk: flutter
+  integration_test:
+    sdk: flutter
   isar_generator: *isar_version
   build_runner: any
 

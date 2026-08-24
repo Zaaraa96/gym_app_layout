@@ -14,17 +14,27 @@ class IsarService extends GetxService {
 
   static IsarService get to => Get.find<IsarService>();
 
-  static Future<IsarService> init() async {
-    final dir = await getApplicationDocumentsDirectory();
+  /// Production collections. Tests open the same set in a temp directory.
+  static final schemas = [
+    WorkoutPlanSchema,
+    WorkoutSessionSchema,
+    // Kept until later slices drop the demo create-plan path.
+    SinglePlanModelSchema,
+  ];
+
+  static Future<IsarService> init({
+    String? directory,
+    String name = Isar.defaultName,
+  }) async {
+    final dir = directory ?? (await getApplicationDocumentsDirectory()).path;
     final isar = await Isar.open(
-      [
-        WorkoutPlanSchema,
-        WorkoutSessionSchema,
-        // Kept until later slices drop the demo create-plan path.
-        SinglePlanModelSchema,
-      ],
-      directory: dir.path,
+      schemas,
+      directory: dir,
+      name: name,
     );
     return IsarService(isar);
   }
+
+  Future<bool> close({bool deleteFromDisk = false}) =>
+      isar.close(deleteFromDisk: deleteFromDisk);
 }
