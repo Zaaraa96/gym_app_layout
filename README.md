@@ -2,6 +2,8 @@
 
 Flutter app for browsing a gym workout plan: days, exercise groups (supersets), reps, and rounds. It is a UI-first prototype with a hardcoded demo plan, GetX navigation, and an unfinished Isar persistence path for creating plans.
 
+**Intended product** (not built yet): import or create a plan, log a live workout offline, rate each exercise 1–5, and see a monthly progress view. The locked plan is [docs/product-plan.md](docs/product-plan.md).
+
 Package name: `gym_app`  
 Application ID: `com.zahra.gym_app`
 
