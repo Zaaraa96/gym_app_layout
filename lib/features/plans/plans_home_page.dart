@@ -103,6 +103,10 @@ class _PlansHomePageState extends State<PlansHomePage> {
                           style: subtitleTextStyle,
                         ),
                         trailing: const Icon(Icons.arrow_forward),
+                        onTap: () => Get.toNamed(
+                          AppRoutes.plan,
+                          arguments: plan.id,
+                        ),
                       );
                     },
                   ),

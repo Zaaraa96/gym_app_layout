@@ -27,7 +27,7 @@ class IsarService extends GetxService {
     String name = Isar.defaultName,
   }) async {
     final dir = directory ?? (await getApplicationDocumentsDirectory()).path;
-    final isar = await Isar.open(
+    final isar = Isar.getInstance(name) ?? await Isar.open(
       schemas,
       directory: dir,
       name: name,

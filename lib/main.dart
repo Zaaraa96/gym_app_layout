@@ -6,6 +6,8 @@ import 'common/app_theme.dart';
 import 'data/isar_service.dart';
 import 'data/plan_repository.dart';
 import 'features/add_plan_page.dart';
+import 'features/plans/day_editor_page.dart';
+import 'features/plans/plan_page.dart';
 import 'features/plans/plans_home_page.dart';
 import 'features/welcome/welcome_page.dart';
 
@@ -35,6 +37,17 @@ class MyApp extends StatelessWidget {
         GetPage(name: AppRoutes.welcome, page: () => const WelcomePage()),
         GetPage(name: AppRoutes.home, page: () => const PlansHomePage()),
         GetPage(name: AppRoutes.newPlan, page: () => const AddNewPlanPage()),
+        GetPage(
+          name: AppRoutes.plan,
+          page: () => PlanPage(planId: Get.arguments as int),
+        ),
+        GetPage(
+          name: AppRoutes.editDay,
+          page: () {
+            final args = Get.arguments as DayEditorArgs;
+            return DayEditorPage(planId: args.planId, dayId: args.dayId);
+          },
+        ),
       ],
     );
   }
