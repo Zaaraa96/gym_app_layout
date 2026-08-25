@@ -178,9 +178,11 @@ class _PlanPageState extends State<PlanPage> {
   }
 
   Future<void> _openDay(PlanDay day) async {
-    await Get.toNamed(
-      AppRoutes.editDay,
-      arguments: DayEditorArgs(planId: widget.planId, dayId: day.dayId),
+    // Push the editor widget directly. GetX treats `/plan/day` as a nested
+    // child of `/plan`, so `Get.toNamed` from this screen is a no-op.
+    await Get.to(
+      () => DayEditorPage(planId: widget.planId, dayId: day.dayId),
+      routeName: AppRoutes.editDay,
     );
     await _load();
   }
@@ -254,6 +256,7 @@ class _PlanPageState extends State<PlanPage> {
       itemBuilder: (context, index) {
         final day = plan.days[index];
         return _DayCard(
+          key: Key('day-card-${day.dayId}'),
           day: day,
           index: index,
           onOpen: () => _openDay(day),
@@ -266,6 +269,7 @@ class _PlanPageState extends State<PlanPage> {
 
 class _DayCard extends StatelessWidget {
   const _DayCard({
+    super.key,
     required this.day,
     required this.index,
     required this.onOpen,
@@ -285,89 +289,91 @@ class _DayCard extends StatelessWidget {
       child: SizedBox(
         height: 200,
         width: double.infinity,
-        child: Stack(
-          children: [
-            Positioned.fill(
-              child: ClipRRect(
-                borderRadius: BorderRadius.circular(20),
-                child: Transform.flip(
-                  flipX: index == 1,
-                  child: Opacity(
-                    opacity: 0.8,
-                    child: Image.asset(
-                      'assets/image/${index % 3}.png',
-                      fit: BoxFit.cover,
-                      width: double.infinity,
-                      errorBuilder: (_, __, ___) => ColoredBox(
-                        color: [
-                          theme.colorScheme.primaryContainer,
-                          theme.colorScheme.secondaryContainer,
-                          theme.colorScheme.tertiaryContainer,
-                        ][index % 3],
+        child: Material(
+          color: Colors.transparent,
+          clipBehavior: Clip.antiAlias,
+          borderRadius: BorderRadius.circular(20),
+          child: InkWell(
+            onTap: onOpen,
+            child: ColoredBox(
+              color: Colors.transparent,
+              child: Stack(
+                fit: StackFit.expand,
+                children: [
+                  IgnorePointer(
+                    child: Transform.flip(
+                      flipX: index == 1,
+                      child: Opacity(
+                        opacity: 0.8,
+                        child: Image.asset(
+                          'assets/image/${index % 3}.png',
+                          fit: BoxFit.cover,
+                          width: double.infinity,
+                          errorBuilder: (_, __, ___) => ColoredBox(
+                            color: [
+                              theme.colorScheme.primaryContainer,
+                              theme.colorScheme.secondaryContainer,
+                              theme.colorScheme.tertiaryContainer,
+                            ][index % 3],
+                          ),
+                        ),
                       ),
                     ),
                   ),
-                ),
-              ),
-            ),
-            Material(
-              color: Colors.transparent,
-              child: InkWell(
-                borderRadius: BorderRadius.circular(20),
-                onTap: onOpen,
-                child: Padding(
-                  padding: const EdgeInsets.all(12),
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Row(
-                        children: [
-                          Expanded(
-                            child: AppText(day.title, style: titleTextStyle),
+                  Padding(
+                    padding: const EdgeInsets.all(12),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Row(
+                          children: [
+                            Expanded(
+                              child: AppText(day.title, style: titleTextStyle),
+                            ),
+                            IconButton(
+                              tooltip: 'Delete day',
+                              onPressed: onDelete,
+                              icon: const Icon(Icons.delete_outline),
+                            ),
+                          ],
+                        ),
+                        if (day.summary.isNotEmpty)
+                          Padding(
+                            padding: EdgeInsets.only(
+                              right: MediaQuery.of(context).size.width / 3,
+                            ),
+                            child: AppText(day.summary, style: dataTextStyle),
                           ),
-                          IconButton(
-                            tooltip: 'Delete day',
-                            onPressed: onDelete,
-                            icon: const Icon(Icons.delete_outline),
+                        if (day.blocks.isNotEmpty) ...[
+                          const SizedBox(height: 8),
+                          AppText(
+                            formatBlock(day.blocks.first),
+                            style: dataTextStyle,
                           ),
                         ],
-                      ),
-                      if (day.summary.isNotEmpty)
-                        Padding(
-                          padding: EdgeInsets.only(
-                            right: MediaQuery.of(context).size.width / 3,
-                          ),
-                          child: AppText(day.summary, style: dataTextStyle),
-                        ),
-                      if (day.blocks.isNotEmpty) ...[
-                        const SizedBox(height: 8),
-                        AppText(
-                          formatBlock(day.blocks.first),
-                          style: dataTextStyle,
+                        const Spacer(),
+                        Row(
+                          children: [
+                            Expanded(
+                              child: AppText(
+                                '${day.blocks.length} '
+                                '${day.blocks.length == 1 ? 'exercise' : 'exercises'}',
+                                style: subtitleTextStyle,
+                              ),
+                            ),
+                            Icon(
+                              Icons.arrow_forward,
+                              color: theme.colorScheme.tertiary,
+                            ),
+                          ],
                         ),
                       ],
-                      const Spacer(),
-                      Row(
-                        children: [
-                          Expanded(
-                            child: AppText(
-                              '${day.blocks.length} '
-                              '${day.blocks.length == 1 ? 'exercise' : 'exercises'}',
-                              style: subtitleTextStyle,
-                            ),
-                          ),
-                          Icon(
-                            Icons.arrow_forward,
-                            color: theme.colorScheme.tertiary,
-                          ),
-                        ],
-                      ),
-                    ],
+                    ),
                   ),
-                ),
+                ],
               ),
             ),
-          ],
+          ),
         ),
       ),
     );

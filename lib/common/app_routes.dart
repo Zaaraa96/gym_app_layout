@@ -4,5 +4,7 @@ abstract final class AppRoutes {
   static const home = '/home';
   static const newPlan = '/new-plan';
   static const plan = '/plan';
-  static const editDay = '/plan/day';
+  /// Not nested under `/plan` — GetX treats `/plan/day` as a child of `/plan`
+  /// and `Get.toNamed` from the plan screen would no-op.
+  static const editDay = '/edit-day';
 }

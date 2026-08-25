@@ -151,7 +151,7 @@ void main() {
     await tester.pump();
     await settle(tester);
 
-    await tester.tap(find.text('Day 1'));
+    await tester.tap(find.byKey(const Key('day-card-day-1')));
     await tester.pump();
     await settle(tester);
 
@@ -247,7 +247,7 @@ void main() {
     await tester.tap(find.text('Push week'));
     await tester.pump();
     await settle(tester);
-    await tester.tap(find.text('Day 1'));
+    await tester.tap(find.byKey(const Key('day-card-day-1')));
     await tester.pump();
     await settle(tester);
 
