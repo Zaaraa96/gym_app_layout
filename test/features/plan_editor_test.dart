@@ -7,6 +7,7 @@ import 'package:gym_app/common/app_routes.dart';
 import 'package:gym_app/data/isar_service.dart';
 import 'package:gym_app/data/models/models.dart';
 import 'package:gym_app/data/plan_repository.dart';
+import 'package:gym_app/features/plans/day_editor_page.dart';
 import 'package:gym_app/main.dart';
 
 import '../helpers/isar_core.dart';
@@ -102,7 +103,7 @@ void main() {
     expect(find.text('Day 1'), findsOneWidget);
     expect(find.text('chest'), findsOneWidget);
 
-    await tester.tap(find.text('Add day'));
+    await tester.tap(find.byKey(const Key('add-day')));
     await tester.pump();
     await tester.enterText(
       find.descendant(
@@ -171,7 +172,13 @@ void main() {
     await tester.pump();
     await settle(tester);
 
-    expect(find.text('3 × 12 kang squat'), findsOneWidget);
+    expect(
+      find.descendant(
+        of: find.byType(DayEditorPage),
+        matching: find.text('3 × 12 kang squat'),
+      ),
+      findsOneWidget,
+    );
 
     await tester.tap(find.byKey(const Key('add-exercise')));
     await tester.pump();
@@ -209,7 +216,7 @@ void main() {
     await tester.pump();
     await settle(tester);
 
-    await tester.tap(find.byIcon(Icons.edit_outlined).first);
+    await tester.tap(find.byTooltip('Rename plan'));
     await tester.pump();
     await tester.enterText(
       find.descendant(
@@ -276,7 +283,10 @@ void main() {
     await settle(tester);
 
     expect(
-      find.text('3 × 12 bench press + 3 × 12 bent over row'),
+      find.descendant(
+        of: find.byType(DayEditorPage),
+        matching: find.text('3 × 12 bench press + 3 × 12 bent over row'),
+      ),
       findsOneWidget,
     );
 

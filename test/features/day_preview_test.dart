@@ -43,11 +43,6 @@ void main() {
     await tester.pumpWidget(const SizedBox.shrink());
     await tester.pump();
 
-    tester.view.physicalSize = const Size(1200, 800);
-    tester.view.devicePixelRatio = 1.0;
-    addTearDown(tester.view.resetPhysicalSize);
-    addTearDown(tester.view.resetDevicePixelRatio);
-
     instanceSeq += 1;
     final service = await db(
       tester,
@@ -191,6 +186,76 @@ void main() {
     await tester.tap(find.text('Start workout'));
     await tester.pump();
     expect(find.text('Starting a workout comes next'), findsWidgets);
+  });
+
+  testWidgets('Start is disabled when the day is empty and there are no commons',
+      (tester) async {
+    final plans = await bootstrap(tester);
+    final now = DateTime.utc(2026, 8, 26, 12);
+    await db(
+      tester,
+      () => plans.save(
+        WorkoutPlan.create(
+          title: 'empty day plan',
+          source: PlanSource.created,
+          createdAt: now,
+          updatedAt: now,
+          days: [
+            PlanDay.create(dayId: 'day-empty', title: 'empty day'),
+          ],
+        ),
+      ),
+    );
+
+    await launch(tester, AppRoutes.home);
+    await tester.tap(find.text('empty day plan'));
+    await tester.pump();
+    await settle(tester);
+    await tester.tap(find.byKey(const Key('day-card-day-empty')));
+    await tester.pump();
+    await settle(tester);
+
+    final start = tester.widget<ElevatedButton>(
+      find.widgetWithText(ElevatedButton, 'Start workout'),
+    );
+    expect(start.onPressed, isNull);
+  });
+
+  testWidgets(
+      'Start stays enabled when the day is empty but the plan has commons',
+      (tester) async {
+    final plans = await bootstrap(tester);
+    final now = DateTime.utc(2026, 8, 26, 12);
+    await db(
+      tester,
+      () => plans.save(
+        WorkoutPlan.create(
+          title: 'commons only',
+          source: PlanSource.created,
+          createdAt: now,
+          updatedAt: now,
+          days: [
+            PlanDay.create(dayId: 'day-empty', title: 'empty day'),
+          ],
+          commonSections: [
+            CommonSection.create(sectionId: 'sec-abs', title: 'abs'),
+          ],
+        ),
+      ),
+    );
+
+    await launch(tester, AppRoutes.home);
+    await tester.tap(find.text('commons only'));
+    await tester.pump();
+    await settle(tester);
+    await tester.tap(find.byKey(const Key('day-card-day-empty')));
+    await tester.pump();
+    await settle(tester);
+
+    final start = tester.widget<ElevatedButton>(
+      find.widgetWithText(ElevatedButton, 'Start workout'),
+    );
+    expect(start.onPressed, isNotNull);
   });
 
   testWidgets('edit day from preview opens the day editor', (tester) async {
