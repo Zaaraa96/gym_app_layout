@@ -15,3 +15,19 @@ Future<void> ensureIsarCore() async {
     fail('Could not load the Isar native library: $error\n$stack');
   }
 }
+
+/// Finish a GetX page transition and let a real Isar read land.
+///
+/// `pumpAndSettle` is unusable on Welcome: the Lottie never stops.
+/// One frame of `pump()` only advances ~16ms, so 12 frames leave the
+/// incoming route mid-slide and AppBar actions sit past the 800px view.
+Future<void> settleApp(WidgetTester tester) async {
+  await tester.pump();
+  await tester.pump(const Duration(milliseconds: 400));
+  for (var i = 0; i < 12; i++) {
+    await tester.runAsync(
+      () => Future<void>.delayed(const Duration(milliseconds: 20)),
+    );
+    await tester.pump();
+  }
+}

@@ -12,7 +12,7 @@ Slice numbers below are from Step 5. Steps 1–4 are product, data, UX, and arch
 | Step 2 — Data model | Matches. Two Isar collections, embeds, import mapping, session snapshot, progress fold. |
 | Step 3 — UX (screens that exist) | Mostly matches slices 2–4. Gaps are almost all Step 5 slices 5–9. One slice-4 miss (Start enablement) is now fixed. |
 | Step 4 — Architecture | Matches. Layout, bootstrap, repositories, importer, live controller, progress service, `file_picker`. Live route is named but not registered yet (slice 7). |
-| Tests after this review | `flutter test` should be green (see test log). |
+| Tests after this review | **47 passed** (`flutter test`, Flutter 3.44.9). |
 
 `README.md` still describes the old hardcoded demo (`SinglePlanModel`, launch at `/plan`, counter `widget_test.dart`). That file is stale; the product plan and `lib/` are the real picture.
 
@@ -122,9 +122,8 @@ No HTTP. Android/iOS (and Linux desktop for this environment). Web is documented
 
 47 cases ran. 4 failed, all in `test/features/plan_editor_test.dart`:
 
-1. **Add day** — tapped the FAB label `Add day`. Default surface is 800×600; the extended FAB sat off-screen. Concurrent files that resized the test window made AppBar taps miss as well.
-2. **Rename** — `Icons.edit_outlined.first` used a stale off-screen position after a window resize.
-3. **Reps + duration / superset** — `findsOneWidget` on the block summary. After slice 4, the plan page stays under the editor and shows the same `formatBlock` string, so two matches.
+1. **Add day / Rename / Add exercise** — GetX page transitions take ~300ms. The old `settle` only advanced ~12 frames (~200ms), so the incoming screen was still sliding. AppBar actions sat past the 800px test view. `settleApp` now pumps 400ms, then waits for Isar.
+2. **Reps + duration / superset** — `findsOneWidget` on the block summary. After slice 4, the plan page stays under the editor and shows the same `formatBlock` string, so two matches.
 
 Data, import, welcome-fork, day-preview, workout-controller, and progress tests passed on that run.
 
@@ -132,7 +131,8 @@ Data, import, welcome-fork, day-preview, workout-controller, and progress tests 
 
 - Tap `Key('add-day')` (app bar) and `tooltip: Rename plan`.
 - Assert summaries **inside** `DayEditorPage`.
-- Stop resizing the test window in `day_preview_test.dart` so parallel files do not steal hit-test coordinates.
+- `settleApp` pumps 400ms so GetX route transitions finish (AppBar actions were still off-screen).
+- Clear the invalid-JSON snackbar before opening import preview so it cannot cover **Save plan**.
 - Disable Start when the day has no blocks and the plan has no common sections; cover both sides with widget tests.
 - Allow `AppElevatedButton.onPressed` to be null so Start can disable.
 
