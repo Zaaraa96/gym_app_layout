@@ -12,6 +12,7 @@ import '../../data/new_id.dart';
 import '../../data/plan_repository.dart';
 import 'block_summary.dart';
 import 'day_editor_page.dart';
+import 'day_preview_page.dart';
 
 /// One plan: rename it, add days, open a day to edit its workout.
 class PlanPage extends StatefulWidget {
@@ -169,7 +170,7 @@ class _PlanPageState extends State<PlanPage> {
     );
     plan.days = [...plan.days, day];
     await _save(plan);
-    await _openDay(day);
+    await _openEditor(day);
   }
 
   Future<void> _deleteDay(PlanDay day) async {
@@ -201,8 +202,14 @@ class _PlanPageState extends State<PlanPage> {
   }
 
   Future<void> _openDay(PlanDay day) async {
-    // Push the editor widget directly. GetX treats `/plan/day` as a nested
-    // child of `/plan`, so `Get.toNamed` from this screen is a no-op.
+    await Get.to(
+      () => DayPreviewPage(planId: widget.planId, dayId: day.dayId),
+      routeName: AppRoutes.day,
+    );
+    await _load();
+  }
+
+  Future<void> _openEditor(PlanDay day) async {
     await Get.to(
       () => DayEditorPage(planId: widget.planId, dayId: day.dayId),
       routeName: AppRoutes.editDay,

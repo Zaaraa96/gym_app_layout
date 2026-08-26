@@ -102,7 +102,7 @@ void main() {
     expect(find.text('Day 1'), findsOneWidget);
     expect(find.text('chest'), findsOneWidget);
 
-    await tester.tap(find.byKey(const Key('add-day')));
+    await tester.tap(find.text('Add day'));
     await tester.pump();
     await tester.enterText(
       find.descendant(
@@ -149,6 +149,11 @@ void main() {
     await settle(tester);
 
     await tester.tap(find.byKey(const Key('day-card-day-1')));
+    await tester.pump();
+    await settle(tester);
+
+    expect(Get.currentRoute, AppRoutes.day);
+    await tester.tap(find.text('Edit day'));
     await tester.pump();
     await settle(tester);
 
@@ -204,7 +209,7 @@ void main() {
     await tester.pump();
     await settle(tester);
 
-    await tester.tap(find.byTooltip('Rename plan'));
+    await tester.tap(find.byIcon(Icons.edit_outlined).first);
     await tester.pump();
     await tester.enterText(
       find.descendant(
@@ -245,6 +250,10 @@ void main() {
     await tester.pump();
     await settle(tester);
     await tester.tap(find.byKey(const Key('day-card-day-1')));
+    await tester.pump();
+    await settle(tester);
+
+    await tester.tap(find.text('Edit day'));
     await tester.pump();
     await settle(tester);
 

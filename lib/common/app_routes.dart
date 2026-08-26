@@ -7,5 +7,6 @@ abstract final class AppRoutes {
   static const plan = '/plan';
   /// Not nested under `/plan` — GetX treats `/plan/day` as a child of `/plan`
   /// and `Get.toNamed` from the plan screen would no-op.
+  static const day = '/day';
   static const editDay = '/edit-day';
 }

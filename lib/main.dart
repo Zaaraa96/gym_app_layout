@@ -7,6 +7,7 @@ import 'data/isar_service.dart';
 import 'data/plan_repository.dart';
 import 'features/add_plan_page.dart';
 import 'features/plans/day_editor_page.dart';
+import 'features/plans/day_preview_page.dart';
 import 'features/plans/import_preview_page.dart';
 import 'features/plans/plan_import_picker.dart';
 import 'features/plans/plan_page.dart';
@@ -50,6 +51,13 @@ class MyApp extends StatelessWidget {
         GetPage(
           name: AppRoutes.plan,
           page: () => PlanPage(planId: Get.arguments as int),
+        ),
+        GetPage(
+          name: AppRoutes.day,
+          page: () {
+            final args = Get.arguments as DayPreviewArgs;
+            return DayPreviewPage(planId: args.planId, dayId: args.dayId);
+          },
         ),
         GetPage(
           name: AppRoutes.editDay,
