@@ -57,14 +57,7 @@ void main() {
     );
   }
 
-  Future<void> settle(WidgetTester tester) async {
-    for (var i = 0; i < 10; i++) {
-      await tester.runAsync(
-        () => Future<void>.delayed(const Duration(milliseconds: 20)),
-      );
-      await tester.pump();
-    }
-  }
+  Future<void> settle(WidgetTester tester) => settleApp(tester);
 
   Future<void> launch(WidgetTester tester, String route) async {
     await tester.pumpWidget(MyApp(initialRoute: route));

@@ -3,7 +3,7 @@ import 'package:flutter/material.dart';
 
 class AppElevatedButton extends StatelessWidget {
   final String data;
-  final VoidCallback onPressed;
+  final VoidCallback? onPressed;
   final bool outlined;
 
   const AppElevatedButton({
