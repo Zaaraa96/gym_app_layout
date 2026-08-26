@@ -4,6 +4,7 @@ import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 
 import '../../common/app_routes.dart';
+import '../../common/widgets/app_load_error.dart';
 import '../../common/widgets/app_text.dart';
 import '../../common/widgets/app_text_field.dart';
 import '../../data/models/models.dart';
@@ -26,6 +27,8 @@ class _PlanPageState extends State<PlanPage> {
   final PlanRepository _plans = Get.find<PlanRepository>();
   WorkoutPlan? _plan;
   bool _loading = true;
+  String? _error;
+  int _loadId = 0;
   StreamSubscription<void>? _watch;
 
   @override
@@ -42,12 +45,32 @@ class _PlanPageState extends State<PlanPage> {
   }
 
   Future<void> _load() async {
-    final plan = await _plans.byId(widget.planId);
-    if (!mounted) return;
+    final id = ++_loadId;
+    try {
+      final plan = await _plans.byId(widget.planId);
+      if (!mounted || id != _loadId) return;
+      setState(() {
+        _plan = plan;
+        _loading = false;
+        _error = null;
+      });
+    } catch (_) {
+      if (!mounted || id != _loadId) return;
+      setState(() {
+        _loading = false;
+        if (_plan == null) {
+          _error = 'Could not load this plan.';
+        }
+      });
+    }
+  }
+
+  void _retry() {
     setState(() {
-      _plan = plan;
-      _loading = false;
+      _loading = true;
+      _error = null;
     });
+    _load();
   }
 
   Future<void> _save(WorkoutPlan plan) async {
@@ -218,11 +241,13 @@ class _PlanPageState extends State<PlanPage> {
               icon: const Icon(Icons.add),
               label: const Text('Add day'),
             ),
-      body: _loading
-          ? const Center(child: CircularProgressIndicator())
-          : plan == null
-              ? const Center(child: AppText('This plan is no longer here.'))
-              : _daysBody(context, plan),
+      body: _error != null && plan == null
+          ? AppLoadError(message: _error!, onRetry: _retry)
+          : _loading && plan == null
+              ? const Center(child: CircularProgressIndicator())
+              : plan == null
+                  ? const Center(child: AppText('This plan is no longer here.'))
+                  : _daysBody(context, plan),
     );
   }
 

@@ -8,7 +8,8 @@ import 'package:gym_app/data/isar_service.dart';
 import 'package:gym_app/data/models/models.dart';
 import 'package:gym_app/data/plan_repository.dart';
 import 'package:gym_app/main.dart';
-import 'package:isar/isar.dart';
+
+import '../helpers/isar_core.dart';
 
 /// Saving a new plan must write a [WorkoutPlan] and open it for day-by-day editing.
 void main() {
@@ -16,11 +17,7 @@ void main() {
   var instanceSeq = 0;
 
   setUpAll(() async {
-    try {
-      await Isar.initializeIsarCore(download: true);
-    } on IsarError {
-      // Continue; Isar.open will fail loudly if the native lib is missing.
-    }
+    await ensureIsarCore();
     tempDir = await Directory.systemTemp.createTemp('gym_app_add_plan_');
   });
 
@@ -95,6 +92,15 @@ void main() {
     expect(stored.single.title, 'Push');
     expect(stored.single.source, PlanSource.created);
     expect(stored.single.days.single.summary, 'chest and triceps');
+    final now = DateTime.now().toUtc();
+    expect(
+      stored.single.createdAt.toUtc().difference(now).abs(),
+      lessThan(const Duration(seconds: 5)),
+    );
+    expect(
+      stored.single.updatedAt.toUtc().difference(now).abs(),
+      lessThan(const Duration(seconds: 5)),
+    );
   });
 
   testWidgets('save without a title stays on the form', (tester) async {

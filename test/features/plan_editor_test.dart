@@ -8,7 +8,8 @@ import 'package:gym_app/data/isar_service.dart';
 import 'package:gym_app/data/models/models.dart';
 import 'package:gym_app/data/plan_repository.dart';
 import 'package:gym_app/main.dart';
-import 'package:isar/isar.dart';
+
+import '../helpers/isar_core.dart';
 
 /// A stored plan can be opened, given more days, and filled with exercises.
 void main() {
@@ -16,11 +17,7 @@ void main() {
   var instanceSeq = 0;
 
   setUpAll(() async {
-    try {
-      await Isar.initializeIsarCore(download: true);
-    } on IsarError {
-      // Continue; Isar.open will fail loudly if the native lib is missing.
-    }
+    await ensureIsarCore();
     tempDir = await Directory.systemTemp.createTemp('gym_app_plan_editor_');
   });
 

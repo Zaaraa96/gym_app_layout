@@ -3,6 +3,7 @@ import 'package:get/get.dart';
 import 'package:lottie/lottie.dart';
 
 import '../../common/app_routes.dart';
+import '../../common/widgets/app_elevated_button.dart';
 import '../../common/widgets/app_scaffold.dart';
 import '../../common/widgets/app_text.dart';
 
@@ -33,17 +34,18 @@ class WelcomePage extends StatelessWidget {
               const SizedBox(height: 24),
               SizedBox(
                 width: double.infinity,
-                child: FilledButton(
+                child: AppElevatedButton(
+                  data: 'Import a plan',
                   onPressed: () => showImportComingSoon(context),
-                  child: const Text('Import a plan'),
                 ),
               ),
               const SizedBox(height: 12),
               SizedBox(
                 width: double.infinity,
-                child: OutlinedButton(
+                child: AppElevatedButton(
+                  outlined: true,
+                  data: 'Create a plan',
                   onPressed: () => Get.toNamed(AppRoutes.newPlan),
-                  child: const Text('Create a plan'),
                 ),
               ),
             ],

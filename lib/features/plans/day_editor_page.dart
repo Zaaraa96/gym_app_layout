@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 
+import '../../common/widgets/app_load_error.dart';
 import '../../common/widgets/app_text.dart';
 import '../../common/widgets/app_text_field.dart';
 import '../../data/models/models.dart';
@@ -37,6 +38,8 @@ class _DayEditorPageState extends State<DayEditorPage> {
   WorkoutPlan? _plan;
   PlanDay? _day;
   bool _loading = true;
+  String? _error;
+  int _loadId = 0;
 
   @override
   void initState() {
@@ -52,26 +55,46 @@ class _DayEditorPageState extends State<DayEditorPage> {
   }
 
   Future<void> _load() async {
-    final plan = await _plans.byId(widget.planId);
-    PlanDay? day;
-    if (plan != null) {
-      for (final item in plan.days) {
-        if (item.dayId == widget.dayId) {
-          day = item;
-          break;
+    final id = ++_loadId;
+    try {
+      final plan = await _plans.byId(widget.planId);
+      PlanDay? day;
+      if (plan != null) {
+        for (final item in plan.days) {
+          if (item.dayId == widget.dayId) {
+            day = item;
+            break;
+          }
         }
       }
+      if (!mounted || id != _loadId) return;
+      if (day != null) {
+        _titleController.text = day.title;
+        _summaryController.text = day.summary;
+      }
+      setState(() {
+        _plan = plan;
+        _day = day;
+        _loading = false;
+        _error = null;
+      });
+    } catch (_) {
+      if (!mounted || id != _loadId) return;
+      setState(() {
+        _loading = false;
+        if (_day == null) {
+          _error = 'Could not load this day.';
+        }
+      });
     }
-    if (!mounted) return;
-    if (day != null) {
-      _titleController.text = day.title;
-      _summaryController.text = day.summary;
-    }
+  }
+
+  void _retry() {
     setState(() {
-      _plan = plan;
-      _day = day;
-      _loading = false;
+      _loading = true;
+      _error = null;
     });
+    _load();
   }
 
   PlanDay _dayFromFields(PlanDay day, {List<ExerciseBlock>? blocks}) {
@@ -155,51 +178,52 @@ class _DayEditorPageState extends State<DayEditorPage> {
               icon: const Icon(Icons.add),
               label: const Text('Add exercise'),
             ),
-      body: _loading
-          ? const Center(child: CircularProgressIndicator())
-          : day == null
-              ? const Center(child: AppText('This day is no longer here.'))
-              : ListView(
-                  padding: const EdgeInsets.fromLTRB(20, 12, 20, 88),
-                  children: [
-                    AppTextField(
-                      label: 'day title',
-                      controller: _titleController,
-                    ),
-                    AppTextField(
-                      label: 'day summary',
-                      hint: 'which muscles this day trains…',
-                      maxLines: 2,
-                      controller: _summaryController,
-                    ),
-                    const SizedBox(height: 8),
-                    if (day.blocks.isEmpty) ...[
-                      const Padding(
-                        padding: EdgeInsets.symmetric(vertical: 24),
-                        child: AppText(
-                          'No exercises yet. Add the first movement for this day.',
-                          style: subtitleTextStyle,
-                          textAlign: TextAlign.center,
+      body: _error != null && day == null
+          ? AppLoadError(message: _error!, onRetry: _retry)
+          : _loading && day == null
+              ? const Center(child: CircularProgressIndicator())
+              : day == null
+                  ? const Center(child: AppText('This day is no longer here.'))
+                  : ListView(
+                      padding: const EdgeInsets.fromLTRB(20, 12, 20, 88),
+                      children: [
+                        AppTextField(
+                          label: 'day title',
+                          controller: _titleController,
                         ),
-                      ),
-                      FilledButton.icon(
-                        onPressed: () => _addOrEditBlock(),
-                        icon: const Icon(Icons.add),
-                        label: const Text('Add exercise'),
-                      ),
-                    ]
-                    else
-                      for (var i = 0; i < day.blocks.length; i++)
-                        _BlockTile(
-                          block: day.blocks[i],
-                          onEdit: () => _addOrEditBlock(
-                            existing: day.blocks[i],
-                            index: i,
+                        AppTextField(
+                          label: 'day summary',
+                          hint: 'which muscles this day trains…',
+                          maxLines: 2,
+                          controller: _summaryController,
+                        ),
+                        const SizedBox(height: 8),
+                        if (day.blocks.isEmpty) ...[
+                          const Padding(
+                            padding: EdgeInsets.symmetric(vertical: 24),
+                            child: AppText(
+                              'No exercises yet. Add the first movement for this day.',
+                              style: subtitleTextStyle,
+                              textAlign: TextAlign.center,
+                            ),
                           ),
-                          onDelete: () => _deleteBlock(i),
-                        ),
-                  ],
-                ),
+                          FilledButton.icon(
+                            onPressed: () => _addOrEditBlock(),
+                            icon: const Icon(Icons.add),
+                            label: const Text('Add exercise'),
+                          ),
+                        ] else
+                          for (var i = 0; i < day.blocks.length; i++)
+                            _BlockTile(
+                              block: day.blocks[i],
+                              onEdit: () => _addOrEditBlock(
+                                existing: day.blocks[i],
+                                index: i,
+                              ),
+                              onDelete: () => _deleteBlock(i),
+                            ),
+                      ],
+                    ),
     );
   }
 }

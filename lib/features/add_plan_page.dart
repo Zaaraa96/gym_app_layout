@@ -35,7 +35,7 @@ class _AddNewPlanPageState extends State<AddNewPlanPage> {
 
     setState(() => _saving = true);
     try {
-      final now = DateTime.now();
+      final now = DateTime.now().toUtc();
       final summary = _summaryController.text.trim();
       final id = await Get.find<PlanRepository>().save(
         WorkoutPlan.create(
