@@ -98,10 +98,6 @@ void main() {
     expect(find.text('Import a plan'), findsOneWidget);
     expect(find.text('Create a plan'), findsOneWidget);
 
-    await tester.tap(find.text('Import a plan'));
-    await tester.pump(const Duration(milliseconds: 300));
-    expect(find.text('JSON import is coming next'), findsOneWidget);
-
     await tester.tap(find.text('Create a plan'));
     await tester.pump(const Duration(milliseconds: 500));
     expect(Get.currentRoute, AppRoutes.newPlan);

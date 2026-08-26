@@ -2,6 +2,7 @@
 abstract final class AppRoutes {
   static const welcome = '/';
   static const home = '/home';
+  static const import = '/import';
   static const newPlan = '/new-plan';
   static const plan = '/plan';
   /// Not nested under `/plan` — GetX treats `/plan/day` as a child of `/plan`

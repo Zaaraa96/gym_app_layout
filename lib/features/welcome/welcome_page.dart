@@ -6,6 +6,7 @@ import '../../common/app_routes.dart';
 import '../../common/widgets/app_elevated_button.dart';
 import '../../common/widgets/app_scaffold.dart';
 import '../../common/widgets/app_text.dart';
+import '../plans/plan_import_flow.dart';
 
 /// First-run fork: get a plan in by import or by creating one.
 class WelcomePage extends StatelessWidget {
@@ -36,7 +37,7 @@ class WelcomePage extends StatelessWidget {
                 width: double.infinity,
                 child: AppElevatedButton(
                   data: 'Import a plan',
-                  onPressed: () => showImportComingSoon(context),
+                  onPressed: () => startPlanImport(context),
                 ),
               ),
               const SizedBox(height: 12),
@@ -54,11 +55,4 @@ class WelcomePage extends StatelessWidget {
       ),
     );
   }
-}
-
-/// JSON import lands in the next slice; until then say so instead of dead-ending.
-void showImportComingSoon(BuildContext context) {
-  ScaffoldMessenger.of(context).showSnackBar(
-    const SnackBar(content: Text('JSON import is coming next')),
-  );
 }

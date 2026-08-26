@@ -7,6 +7,8 @@ import 'data/isar_service.dart';
 import 'data/plan_repository.dart';
 import 'features/add_plan_page.dart';
 import 'features/plans/day_editor_page.dart';
+import 'features/plans/import_preview_page.dart';
+import 'features/plans/plan_import_picker.dart';
 import 'features/plans/plan_page.dart';
 import 'features/plans/plans_home_page.dart';
 import 'features/welcome/welcome_page.dart';
@@ -15,6 +17,7 @@ Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
   final isarService = Get.put(await IsarService.init());
   final plans = Get.put(PlanRepository(isarService.isar));
+  Get.put<PlanImportPicker>(FilePickerPlanImportPicker());
   runApp(MyApp(initialRoute: await resolveInitialRoute(plans)));
 }
 
@@ -36,6 +39,13 @@ class MyApp extends StatelessWidget {
       getPages: [
         GetPage(name: AppRoutes.welcome, page: () => const WelcomePage()),
         GetPage(name: AppRoutes.home, page: () => const PlansHomePage()),
+        GetPage(
+          name: AppRoutes.import,
+          page: () {
+            final args = Get.arguments as ImportPreviewArgs;
+            return ImportPreviewPage(fileName: args.fileName, plan: args.plan);
+          },
+        ),
         GetPage(name: AppRoutes.newPlan, page: () => const AddNewPlanPage()),
         GetPage(
           name: AppRoutes.plan,
