@@ -1,32 +1,34 @@
 {
-  "name" : "plan 1",
+  "name": "plan 1",
   "days": 3,
-  "basic-plan" : [
+  "basic-plan": [
     {
       "name": "day 1- 4sar",
       "exercises": [
         {
           "type": "super-set",
-          "exercise": [{
-            "title" : "kang squat",
-            "sets": 3,
-            "times": 12,
-            "duration" : null
-          },{
-            "title" : "leg extension",
-            "sets": 3,
-            "times": 12,
-            "duration" : null
-          }
+          "exercise": [
+            {
+              "title": "kang squat",
+              "sets": 3,
+              "times": 12,
+              "duration": null
+            },
+            {
+              "title": "leg extension",
+              "sets": 3,
+              "times": 12,
+              "duration": null
+            }
           ]
         },
         {
           "type": "single",
           "exercise": {
-            "title" : "reverse lunges+ Press",
+            "title": "reverse lunges+ Press",
             "sets": 3,
             "times": 12,
-            "duration" : null
+            "duration": null
           }
         }
       ]
@@ -39,10 +41,10 @@
         {
           "type": "single",
           "exercise": {
-            "title" : "shoot out",
+            "title": "shoot out",
             "sets": 1,
             "times": null,
-            "duration" : 30
+            "duration": 30
           }
         }
       ]
@@ -53,13 +55,13 @@
         {
           "type": "single",
           "exercise": {
-            "title" : "step lunge stretch",
+            "title": "step lunge stretch",
             "sets": 3,
             "times": null,
-            "duration" : 30
+            "duration": 30
           }
         }
       ]
-    },
+    }
   ]
 }

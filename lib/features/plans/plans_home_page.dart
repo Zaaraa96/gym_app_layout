@@ -10,7 +10,7 @@ import '../../common/widgets/app_scaffold.dart';
 import '../../common/widgets/app_text.dart';
 import '../../data/models/workout_plan.dart';
 import '../../data/plan_repository.dart';
-import '../welcome/welcome_page.dart';
+import 'plan_import_flow.dart';
 
 /// Landing screen for returning users: the plan list plus the Plans | Month bar.
 class PlansHomePage extends StatefulWidget {
@@ -144,7 +144,7 @@ class _PlansHomePageState extends State<PlansHomePage> {
               Expanded(
                 child: AppElevatedButton(
                   data: 'Import',
-                  onPressed: () => showImportComingSoon(context),
+                  onPressed: () => startPlanImport(context),
                 ),
               ),
               const SizedBox(width: 12),
