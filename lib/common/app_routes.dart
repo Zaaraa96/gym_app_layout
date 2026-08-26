@@ -9,6 +9,7 @@ abstract final class AppRoutes {
   /// and `Get.toNamed` from the plan screen would no-op.
   static const day = '/day';
   static const editDay = '/edit-day';
+  static const editSection = '/edit-section';
   /// Live workout. Month stays a tab on [home], not its own route.
   static const session = '/session';
 }
