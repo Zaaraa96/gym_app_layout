@@ -1,0 +1,9 @@
+{
+  "name": "gym_app (Flutter)",
+  "user": "ubuntu",
+  "build": {
+    "dockerfile": "Dockerfile",
+    "context": ".."
+  },
+  "install": "flutter pub get && flutter config --enable-linux-desktop && xdg-user-dirs-update"
+}
