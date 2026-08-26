@@ -318,11 +318,18 @@ class WorkoutController extends GetxController {
   }
 
   int? _firstNeedingPrescribedSets(String blockId) {
-    for (final i in _indicesFor(blockId)) {
+    final indices = _indicesFor(blockId);
+    var bestIndex = -1;
+    var bestCount = 1 << 30;
+    for (final i in indices) {
       final log = _session!.exerciseLogs[i];
-      if (log.sets.length < log.prescribedSets) return i;
+      if (log.sets.length >= log.prescribedSets) continue;
+      if (log.sets.length < bestCount) {
+        bestCount = log.sets.length;
+        bestIndex = i;
+      }
     }
-    return null;
+    return bestIndex < 0 ? null : bestIndex;
   }
 
   int? _firstUnratedIndex(String blockId) {
