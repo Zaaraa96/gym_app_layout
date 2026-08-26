@@ -3,11 +3,12 @@ import 'package:get/get.dart';
 import 'package:gym_app/common/app_routes.dart';
 import 'package:gym_app/common/app_theme.dart';
 import 'package:gym_app/data/models/models.dart';
+import 'package:gym_app/data/new_id.dart';
 import 'package:gym_app/data/plan_repository.dart';
 
-import '../common/widgets/app_scaffold.dart';
-import '../common/widgets/app_text.dart';
-import '../common/widgets/app_text_field.dart';
+import '../../common/widgets/app_scaffold.dart';
+import '../../common/widgets/app_text.dart';
+import '../../common/widgets/app_text_field.dart';
 
 class AddNewPlanPage extends StatefulWidget {
   const AddNewPlanPage({super.key});
@@ -45,7 +46,7 @@ class _AddNewPlanPageState extends State<AddNewPlanPage> {
           updatedAt: now,
           days: [
             PlanDay.create(
-              dayId: now.microsecondsSinceEpoch.toString(),
+              dayId: newId(),
               title: 'Day 1',
               summary: summary,
             ),
@@ -75,9 +76,9 @@ class _AddNewPlanPageState extends State<AddNewPlanPage> {
           ),
         )),
         AppScaffold(
-          backgroundColor: appTheme.colorScheme.background.withOpacity(0.7),
+          backgroundColor: appTheme.colorScheme.surface.withValues(alpha: 0.7),
           appbar: AppBar(
-            backgroundColor: appTheme.colorScheme.background.withOpacity(0.9),
+            backgroundColor: appTheme.colorScheme.surface.withValues(alpha: 0.9),
             title: AppText(
               "New Plan",
               style: titleTextStyle,

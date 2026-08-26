@@ -64,6 +64,7 @@ void main() {
       );
       await tester.pump();
     }
+    await tester.pump(const Duration(milliseconds: 400));
   }
 
   Future<void> launch(WidgetTester tester, String route) async {
@@ -171,9 +172,9 @@ void main() {
     await tester.pump();
     await settle(tester);
 
-    expect(find.text('3 × 12 kang squat'), findsOneWidget);
+    expect(find.text('3 × 12 kang squat'), findsWidgets);
 
-    await tester.tap(find.byKey(const Key('add-exercise')));
+    await tester.tap(find.widgetWithText(FloatingActionButton, 'Add exercise'));
     await tester.pump();
     await tester.enterText(dialogField().first, 'plank');
     await tester.tap(find.widgetWithText(ChoiceChip, 'Duration').first);
@@ -189,7 +190,7 @@ void main() {
     await tester.pump();
     await settle(tester);
 
-    expect(find.text('3 × 45s plank'), findsOneWidget);
+    expect(find.text('3 × 45s plank'), findsWidgets);
 
     final stored = await db(tester, plans.all);
     final day = stored.single.days.single;
@@ -209,7 +210,7 @@ void main() {
     await tester.pump();
     await settle(tester);
 
-    await tester.tap(find.byIcon(Icons.edit_outlined).first);
+    await tester.tap(find.byTooltip('Rename plan'));
     await tester.pump();
     await tester.enterText(
       find.descendant(
@@ -239,6 +240,10 @@ void main() {
     final stored = await db(tester, plans.all);
     expect(stored.single.title, 'Pull week');
     expect(stored.single.days, isEmpty);
+    expect(
+      stored.single.updatedAt.toUtc().difference(DateTime.now().toUtc()).abs(),
+      lessThan(const Duration(seconds: 5)),
+    );
   });
 
   testWidgets('a day can gain a superset of two movements', (tester) async {
@@ -277,7 +282,7 @@ void main() {
 
     expect(
       find.text('3 × 12 bench press + 3 × 12 bent over row'),
-      findsOneWidget,
+      findsWidgets,
     );
 
     final stored = await db(tester, plans.all);
@@ -285,5 +290,131 @@ void main() {
     expect(block.kind, BlockKind.superset);
     expect(block.exercises.map((item) => item.title).toList(),
         ['bench press', 'bent over row']);
+  });
+
+  testWidgets('a superset can hold more than two movements', (tester) async {
+    final plans = await bootstrap(tester);
+    await db(tester, () => plans.save(samplePlan()));
+    await launch(tester, AppRoutes.home);
+
+    await tester.tap(find.text('Push week'));
+    await tester.pump();
+    await settle(tester);
+    await tester.tap(find.byKey(const Key('day-card-day-1')));
+    await tester.pump();
+    await settle(tester);
+    await tester.tap(find.text('Edit day'));
+    await tester.pump();
+    await settle(tester);
+
+    Finder dialogField() => find.descendant(
+          of: find.byType(AlertDialog),
+          matching: find.byType(TextFormField),
+        );
+
+    await tester.tap(find.text('Add exercise'));
+    await tester.pump();
+    await tester.enterText(dialogField().first, 'bench press');
+    await tester.tap(find.byType(Switch));
+    await tester.pump();
+    await tester.enterText(
+      find.widgetWithText(TextFormField, 'second exercise name'),
+      'bent over row',
+    );
+    await tester.ensureVisible(find.byKey(const Key('add-movement')));
+    await tester.tap(find.byKey(const Key('add-movement')));
+    await tester.pump();
+    await tester.enterText(
+      find.widgetWithText(TextFormField, 'exercise 3 name'),
+      'face pull',
+    );
+    await tester.tap(find.text('Save exercise'));
+    await tester.pump();
+    await settle(tester);
+
+    expect(
+      find.text(
+        '3 × 12 bench press + 3 × 12 bent over row + 3 × 12 face pull',
+      ),
+      findsWidgets,
+    );
+
+    final stored = await db(tester, plans.all);
+    final block = stored.single.days.single.blocks.single;
+    expect(block.kind, BlockKind.superset);
+    expect(
+      block.exercises.map((item) => item.title).toList(),
+      ['bench press', 'bent over row', 'face pull'],
+    );
+  });
+
+  testWidgets('a plan can gain a common section with a duration exercise',
+      (tester) async {
+    final plans = await bootstrap(tester);
+    await db(tester, () => plans.save(samplePlan()));
+    await launch(tester, AppRoutes.home);
+
+    await tester.tap(find.text('Push week'));
+    await tester.pump();
+    await settle(tester);
+
+    await tester.tap(find.text('Add section'));
+    await tester.pump();
+    await tester.enterText(
+      find.descendant(
+        of: find.byType(AlertDialog),
+        matching: find.byType(TextFormField),
+      ),
+      'abs',
+    );
+    await tester.tap(find.text('Save section'));
+    await tester.pump();
+    await settle(tester);
+
+    expect(Get.currentRoute, AppRoutes.editSection);
+    expect(find.text('abs'), findsWidgets);
+
+    Finder dialogField() => find.descendant(
+          of: find.byType(AlertDialog),
+          matching: find.byType(TextFormField),
+        );
+
+    await tester.tap(find.text('Add exercise'));
+    await tester.pump();
+    await tester.enterText(dialogField().first, 'shoot out');
+    await tester.tap(find.widgetWithText(ChoiceChip, 'Duration').first);
+    await tester.pump();
+    await tester.enterText(
+      find.descendant(
+        of: find.byType(AlertDialog),
+        matching: find.widgetWithText(TextFormField, 'seconds'),
+      ),
+      '30',
+    );
+    await tester.tap(find.text('Save exercise'));
+    await tester.pump();
+    await settle(tester);
+
+    expect(find.text('3 × 30s shoot out'), findsWidgets);
+
+    await tester.pageBack();
+    await tester.pump();
+    await settle(tester);
+
+    expect(Get.currentRoute, AppRoutes.plan);
+    expect(find.text('abs'), findsWidgets);
+
+    final stored = await db(tester, plans.all);
+    expect(stored.single.commonSections, hasLength(1));
+    expect(stored.single.commonSections.single.title, 'abs');
+    expect(
+      stored.single.commonSections.single.blocks.single.exercises.single.title,
+      'shoot out',
+    );
+    expect(
+      stored.single.commonSections.single.blocks.single.exercises.single
+          .prescribedDurationSeconds,
+      30,
+    );
   });
 }

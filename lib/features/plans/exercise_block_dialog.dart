@@ -23,61 +23,73 @@ class ExerciseBlockDialog extends StatefulWidget {
   State<ExerciseBlockDialog> createState() => _ExerciseBlockDialogState();
 }
 
+class _MovementDraft {
+  _MovementDraft({
+    required this.title,
+    required this.reps,
+    required this.duration,
+    required this.useDuration,
+    this.previous,
+  });
+
+  factory _MovementDraft.from(ExercisePrescription? previous) {
+    return _MovementDraft(
+      title: TextEditingController(text: previous?.title ?? ''),
+      reps: TextEditingController(text: '${previous?.prescribedReps ?? 12}'),
+      duration: TextEditingController(
+        text: '${previous?.prescribedDurationSeconds ?? 30}',
+      ),
+      useDuration: previous?.prescribedDurationSeconds != null,
+      previous: previous,
+    );
+  }
+
+  factory _MovementDraft.blank() => _MovementDraft.from(null);
+
+  final TextEditingController title;
+  final TextEditingController reps;
+  final TextEditingController duration;
+  bool useDuration;
+  final ExercisePrescription? previous;
+
+  void dispose() {
+    title.dispose();
+    reps.dispose();
+    duration.dispose();
+  }
+}
+
 class _ExerciseBlockDialogState extends State<ExerciseBlockDialog> {
-  late final TextEditingController _title;
   late final TextEditingController _sets;
-  late final TextEditingController _reps;
-  late final TextEditingController _duration;
-  late final TextEditingController _secondTitle;
-  late final TextEditingController _secondReps;
-  late final TextEditingController _secondDuration;
-  late bool _useDuration;
+  late final List<_MovementDraft> _movements;
   late bool _superset;
-  late bool _secondUseDuration;
   String? _error;
-
-  ExercisePrescription? get _first {
-    final exercises = widget.existing?.exercises;
-    if (exercises == null || exercises.isEmpty) return null;
-    return exercises.first;
-  }
-
-  ExercisePrescription? get _second {
-    final exercises = widget.existing?.exercises;
-    if (exercises == null || exercises.length < 2) return null;
-    return exercises[1];
-  }
 
   @override
   void initState() {
     super.initState();
-    final first = _first;
-    final second = _second;
-    _title = TextEditingController(text: first?.title ?? '');
-    _sets = TextEditingController(text: '${first?.prescribedSets ?? 3}');
-    _useDuration = first?.prescribedDurationSeconds != null;
-    _reps = TextEditingController(text: '${first?.prescribedReps ?? 12}');
-    _duration = TextEditingController(
-      text: '${first?.prescribedDurationSeconds ?? 30}',
+    final existing = widget.existing;
+    final exercises = existing?.exercises ?? const <ExercisePrescription>[];
+    _sets = TextEditingController(
+      text: '${exercises.isEmpty ? 3 : exercises.first.prescribedSets}',
     );
-    _superset = widget.existing?.kind == BlockKind.superset;
-    _secondTitle = TextEditingController(text: second?.title ?? '');
-    _secondUseDuration = second?.prescribedDurationSeconds != null;
-    _secondReps = TextEditingController(text: '${second?.prescribedReps ?? 12}');
-    _secondDuration = TextEditingController(
-      text: '${second?.prescribedDurationSeconds ?? 30}',
-    );
+    _superset = existing?.kind == BlockKind.superset;
+    _movements = [
+      if (exercises.isEmpty) _MovementDraft.blank() else ...[
+        for (final exercise in exercises) _MovementDraft.from(exercise),
+      ],
+    ];
+    if (_superset && _movements.length < 2) {
+      _movements.add(_MovementDraft.blank());
+    }
   }
 
   @override
   void dispose() {
-    _title.dispose();
     _sets.dispose();
-    _reps.dispose();
-    _duration.dispose();
-    _secondTitle.dispose();
-    _secondReps.dispose();
-    _secondDuration.dispose();
+    for (final movement in _movements) {
+      movement.dispose();
+    }
     super.dispose();
   }
 
@@ -87,61 +99,72 @@ class _ExerciseBlockDialogState extends State<ExerciseBlockDialog> {
     return value;
   }
 
-  ExercisePrescription _prescription({
-    required String title,
-    required int sets,
-    required bool useDuration,
-    required String repsText,
-    required String durationText,
-    ExercisePrescription? previous,
-  }) {
+  String _titleLabel(int index) {
+    if (index == 0) return 'exercise name';
+    if (index == 1) return 'second exercise name';
+    return 'exercise ${index + 1} name';
+  }
+
+  ExercisePrescription _prescription(_MovementDraft draft, int sets) {
+    final title = draft.title.text.trim();
     return ExercisePrescription.create(
-      prescriptionId: previous?.prescriptionId ?? newId(),
+      prescriptionId: draft.previous?.prescriptionId ?? newId(),
       title: title,
       prescribedSets: sets,
-      prescribedReps: useDuration ? null : _parsePositive(repsText, 12),
-      prescribedDurationSeconds:
-          useDuration ? _parsePositive(durationText, 30) : null,
+      prescribedReps: draft.useDuration
+          ? null
+          : _parsePositive(draft.reps.text, 12),
+      prescribedDurationSeconds: draft.useDuration
+          ? _parsePositive(draft.duration.text, 30)
+          : null,
     );
   }
 
+  void _setSuperset(bool value) {
+    setState(() {
+      _superset = value;
+      if (value && _movements.length < 2) {
+        _movements.add(_MovementDraft.blank());
+      }
+    });
+  }
+
+  void _addMovement() {
+    setState(() => _movements.add(_MovementDraft.blank()));
+  }
+
+  void _removeMovement(int index) {
+    if (_movements.length <= 2) return;
+    setState(() {
+      _movements.removeAt(index).dispose();
+    });
+  }
+
   void _submit() {
-    final title = _title.text.trim();
-    if (title.isEmpty) {
+    final firstTitle = _movements.first.title.text.trim();
+    if (firstTitle.isEmpty) {
       setState(() => _error = 'Add an exercise name');
       return;
     }
-    if (_superset && _secondTitle.text.trim().isEmpty) {
-      setState(() => _error = 'Add a name for the second exercise');
-      return;
+    if (_superset) {
+      for (var i = 1; i < _movements.length; i++) {
+        if (_movements[i].title.text.trim().isEmpty) {
+          setState(() => _error = 'Add a name for each exercise in the superset');
+          return;
+        }
+      }
     }
     final sets = _parsePositive(_sets.text, 3);
-    final exercises = [
-      _prescription(
-        title: title,
-        sets: sets,
-        useDuration: _useDuration,
-        repsText: _reps.text,
-        durationText: _duration.text,
-        previous: _first,
-      ),
-      if (_superset)
-        _prescription(
-          title: _secondTitle.text.trim(),
-          sets: sets,
-          useDuration: _secondUseDuration,
-          repsText: _secondReps.text,
-          durationText: _secondDuration.text,
-          previous: _second,
-        ),
-    ];
+    final selected = _superset ? _movements : _movements.take(1);
     Navigator.pop(
       context,
       ExerciseBlock.create(
         blockId: widget.existing?.blockId ?? newId(),
         kind: _superset ? BlockKind.superset : BlockKind.single,
         svgPath: widget.existing?.svgPath,
-        exercises: exercises,
+        exercises: [
+          for (final draft in selected) _prescription(draft, sets),
+        ],
       ),
     );
   }
@@ -165,8 +188,8 @@ class _ExerciseBlockDialogState extends State<ExerciseBlockDialog> {
                   ),
                 ),
               AppTextField(
-                label: 'exercise name',
-                controller: _title,
+                label: _titleLabel(0),
+                controller: _movements.first.title,
                 autofocus: true,
               ),
               AppTextField(
@@ -174,74 +197,25 @@ class _ExerciseBlockDialogState extends State<ExerciseBlockDialog> {
                 controller: _sets,
                 keyboardType: TextInputType.number,
               ),
-              const SizedBox(height: 4),
-              Wrap(
-                spacing: 8,
-                children: [
-                  ChoiceChip(
-                    label: const Text('Reps'),
-                    selected: !_useDuration,
-                    onSelected: (_) => setState(() => _useDuration = false),
-                  ),
-                  ChoiceChip(
-                    label: const Text('Duration'),
-                    selected: _useDuration,
-                    onSelected: (_) => setState(() => _useDuration = true),
-                  ),
-                ],
-              ),
-              if (_useDuration)
-                AppTextField(
-                  label: 'seconds',
-                  controller: _duration,
-                  keyboardType: TextInputType.number,
-                )
-              else
-                AppTextField(
-                  label: 'reps',
-                  controller: _reps,
-                  keyboardType: TextInputType.number,
-                ),
+              _loadPicker(_movements.first),
               SwitchListTile(
                 contentPadding: EdgeInsets.zero,
                 title: const Text('Superset'),
                 value: _superset,
-                onChanged: (value) => setState(() => _superset = value),
+                onChanged: _setSuperset,
               ),
               if (_superset) ...[
-                AppTextField(
-                  label: 'second exercise name',
-                  controller: _secondTitle,
-                ),
-                Wrap(
-                  spacing: 8,
-                  children: [
-                    ChoiceChip(
-                      label: const Text('Reps'),
-                      selected: !_secondUseDuration,
-                      onSelected: (_) =>
-                          setState(() => _secondUseDuration = false),
-                    ),
-                    ChoiceChip(
-                      label: const Text('Duration'),
-                      selected: _secondUseDuration,
-                      onSelected: (_) =>
-                          setState(() => _secondUseDuration = true),
-                    ),
-                  ],
-                ),
-                if (_secondUseDuration)
-                  AppTextField(
-                    label: 'seconds',
-                    controller: _secondDuration,
-                    keyboardType: TextInputType.number,
-                  )
-                else
-                  AppTextField(
-                    label: 'reps',
-                    controller: _secondReps,
-                    keyboardType: TextInputType.number,
+                for (var i = 1; i < _movements.length; i++)
+                  _extraMovement(context, i),
+                Align(
+                  alignment: Alignment.centerLeft,
+                  child: TextButton.icon(
+                    key: const Key('add-movement'),
+                    onPressed: _addMovement,
+                    icon: const Icon(Icons.add),
+                    label: const Text('Add movement'),
                   ),
+                ),
               ],
             ],
           ),
@@ -256,6 +230,70 @@ class _ExerciseBlockDialogState extends State<ExerciseBlockDialog> {
           onPressed: _submit,
           child: const Text('Save exercise'),
         ),
+      ],
+    );
+  }
+
+  Widget _extraMovement(BuildContext context, int index) {
+    final draft = _movements[index];
+    return Padding(
+      padding: const EdgeInsets.only(bottom: 8),
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Row(
+            children: [
+              Expanded(
+                child: AppTextField(
+                  label: _titleLabel(index),
+                  controller: draft.title,
+                ),
+              ),
+              if (_movements.length > 2)
+                IconButton(
+                  tooltip: 'Remove movement',
+                  onPressed: () => _removeMovement(index),
+                  icon: const Icon(Icons.remove_circle_outline),
+                ),
+            ],
+          ),
+          _loadPicker(draft),
+        ],
+      ),
+    );
+  }
+
+  Widget _loadPicker(_MovementDraft draft) {
+    return Column(
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        Wrap(
+          spacing: 8,
+          children: [
+            ChoiceChip(
+              label: const Text('Reps'),
+              selected: !draft.useDuration,
+              onSelected: (_) => setState(() => draft.useDuration = false),
+            ),
+            ChoiceChip(
+              label: const Text('Duration'),
+              selected: draft.useDuration,
+              onSelected: (_) => setState(() => draft.useDuration = true),
+            ),
+          ],
+        ),
+        if (draft.useDuration)
+          AppTextField(
+            label: 'seconds',
+            controller: draft.duration,
+            keyboardType: TextInputType.number,
+          )
+        else
+          AppTextField(
+            label: 'reps',
+            controller: draft.reps,
+            keyboardType: TextInputType.number,
+          ),
       ],
     );
   }

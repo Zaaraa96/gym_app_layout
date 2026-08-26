@@ -9,4 +9,5 @@ abstract final class AppRoutes {
   /// and `Get.toNamed` from the plan screen would no-op.
   static const day = '/day';
   static const editDay = '/edit-day';
+  static const editSection = '/edit-section';
 }
