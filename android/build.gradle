@@ -9,6 +9,32 @@ rootProject.buildDir = "../build"
 subprojects {
     project.buildDir = "${rootProject.buildDir}/${project.name}"
 }
+// isar_flutter_libs 3.1.x targets AGP 7 and declares neither a namespace nor a
+// modern compileSdk, both of which AGP 8 requires. Isar 3 is pinned for v1, so
+// patch the plugin instead of upgrading it.
+def patchLegacyAndroidPlugin = { subproject ->
+    def android = subproject.extensions.findByName("android")
+    if (android == null) {
+        return
+    }
+    if (android.namespace == null) {
+        android.namespace = subproject.group.toString()
+    }
+    def appCompileSdk = rootProject.project(":app").extensions
+            .getByName("android").compileSdk
+    if (android.compileSdk == null || android.compileSdk < appCompileSdk) {
+        android.compileSdk = appCompileSdk
+    }
+}
+
+subprojects {
+    if (state.executed) {
+        patchLegacyAndroidPlugin(project)
+    } else {
+        afterEvaluate { patchLegacyAndroidPlugin(project) }
+    }
+}
+
 subprojects {
     project.evaluationDependsOn(":app")
 }

@@ -41,3 +41,9 @@ app.*.map.json
 /android/app/debug
 /android/app/profile
 /android/app/release
+
+# Downloaded by Isar.initializeIsarCore(download: true) during tests
+isar.dll
+isar.dylib
+libisar.so
+
