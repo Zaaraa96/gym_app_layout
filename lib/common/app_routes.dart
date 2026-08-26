@@ -10,4 +10,6 @@ abstract final class AppRoutes {
   static const day = '/day';
   static const editDay = '/edit-day';
   static const editSection = '/edit-section';
+  /// Live workout. Month stays a tab on [home], not its own route.
+  static const session = '/session';
 }

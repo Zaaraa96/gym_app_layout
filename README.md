@@ -86,7 +86,9 @@ lib/
 
 ## Platforms
 
-Configured as a Flutter app with **Android**, **iOS**, and **web**. Camera/gallery usage on the exercise screen needs the usual `image_picker` platform permissions if you ship it (not yet declared in `AndroidManifest.xml` / iOS `Info.plist`).
+Configured as a Flutter app with **Android**, **iOS**, **web**, and **Linux desktop**. Camera/gallery usage on the exercise screen needs the usual `image_picker` platform permissions if you ship it (not yet declared in `AndroidManifest.xml` / iOS `Info.plist`).
+
+> **Web is not a runnable target.** The app opens Isar 3 at startup, and Isar 3 relies on `dart:ffi` plus 64-bit integer literals that `dart2js` cannot compile. Use a native target (Android, iOS, or Linux desktop) to run the app.
 
 ## Run
 
@@ -96,6 +98,21 @@ Requires Flutter 3.5+ (developed against Flutter 3.44 / Dart 3.12).
 flutter pub get
 flutter run
 ```
+
+### Linux desktop / headless environments
+
+On a headless Linux machine (e.g. the Cursor Cloud Agent dev environment), run the
+native Linux desktop target:
+
+```bash
+flutter run -d linux
+```
+
+Linux desktop needs the GTK toolchain (`clang`, `cmake`, `ninja-build`, `pkg-config`,
+`libgtk-3-dev`, `liblzma-dev`, a matching `libstdc++-*-dev`) and `xdg-user-dirs` so
+`path_provider` can resolve the documents directory at runtime. The reproducible setup
+for those dependencies and the pinned Flutter SDK lives in [`.cursor/Dockerfile`](.cursor/Dockerfile)
+and [`.cursor/environment.json`](.cursor/environment.json).
 
 Regenerate Isar code after changing the model:
 

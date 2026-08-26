@@ -14,6 +14,10 @@ Future<void> startPlanImport(BuildContext context) async {
       ? Get.find<PlanImportPicker>()
       : FilePickerPlanImportPicker();
 
+  if (context.mounted) {
+    ScaffoldMessenger.of(context).clearSnackBars();
+  }
+
   final PickedPlanFile? picked;
   try {
     picked = await picker.pick();
@@ -32,6 +36,7 @@ Future<void> startPlanImport(BuildContext context) async {
   try {
     final plan = const JsonPlanImporter().import(picked.contents);
     if (!context.mounted) return;
+    ScaffoldMessenger.of(context).clearSnackBars();
     await Get.toNamed(
       AppRoutes.import,
       arguments: ImportPreviewArgs(fileName: picked.fileName, plan: plan),

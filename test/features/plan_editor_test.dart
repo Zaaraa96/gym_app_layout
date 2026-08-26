@@ -7,6 +7,7 @@ import 'package:gym_app/common/app_routes.dart';
 import 'package:gym_app/data/isar_service.dart';
 import 'package:gym_app/data/models/models.dart';
 import 'package:gym_app/data/plan_repository.dart';
+import 'package:gym_app/features/plans/day_editor_page.dart';
 import 'package:gym_app/main.dart';
 
 import '../helpers/isar_core.dart';
@@ -57,15 +58,7 @@ void main() {
     );
   }
 
-  Future<void> settle(WidgetTester tester) async {
-    for (var i = 0; i < 12; i++) {
-      await tester.runAsync(
-        () => Future<void>.delayed(const Duration(milliseconds: 20)),
-      );
-      await tester.pump();
-    }
-    await tester.pump(const Duration(milliseconds: 400));
-  }
+  Future<void> settle(WidgetTester tester) => settleApp(tester);
 
   Future<void> launch(WidgetTester tester, String route) async {
     await tester.pumpWidget(MyApp(initialRoute: route));
@@ -103,7 +96,7 @@ void main() {
     expect(find.text('Day 1'), findsOneWidget);
     expect(find.text('chest'), findsOneWidget);
 
-    await tester.tap(find.text('Add day'));
+    await tester.tap(find.byKey(const Key('add-day')));
     await tester.pump();
     await tester.enterText(
       find.descendant(
@@ -172,9 +165,15 @@ void main() {
     await tester.pump();
     await settle(tester);
 
-    expect(find.text('3 × 12 kang squat'), findsWidgets);
+    expect(
+      find.descendant(
+        of: find.byType(DayEditorPage),
+        matching: find.text('3 × 12 kang squat'),
+      ),
+      findsOneWidget,
+    );
 
-    await tester.tap(find.widgetWithText(FloatingActionButton, 'Add exercise'));
+    await tester.tap(find.byKey(const Key('add-exercise')));
     await tester.pump();
     await tester.enterText(dialogField().first, 'plank');
     await tester.tap(find.widgetWithText(ChoiceChip, 'Duration').first);
@@ -281,8 +280,11 @@ void main() {
     await settle(tester);
 
     expect(
-      find.text('3 × 12 bench press + 3 × 12 bent over row'),
-      findsWidgets,
+      find.descendant(
+        of: find.byType(DayEditorPage),
+        matching: find.text('3 × 12 bench press + 3 × 12 bent over row'),
+      ),
+      findsOneWidget,
     );
 
     final stored = await db(tester, plans.all);
@@ -333,10 +335,13 @@ void main() {
     await settle(tester);
 
     expect(
-      find.text(
-        '3 × 12 bench press + 3 × 12 bent over row + 3 × 12 face pull',
+      find.descendant(
+        of: find.byType(DayEditorPage),
+        matching: find.text(
+          '3 × 12 bench press + 3 × 12 bent over row + 3 × 12 face pull',
+        ),
       ),
-      findsWidgets,
+      findsOneWidget,
     );
 
     final stored = await db(tester, plans.all);
@@ -395,7 +400,13 @@ void main() {
     await tester.pump();
     await settle(tester);
 
-    expect(find.text('3 × 30s shoot out'), findsWidgets);
+    expect(
+      find.descendant(
+        of: find.byType(DayEditorPage),
+        matching: find.text('3 × 30s shoot out'),
+      ),
+      findsOneWidget,
+    );
 
     await tester.pageBack();
     await tester.pump();

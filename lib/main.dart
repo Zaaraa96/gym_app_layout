@@ -5,6 +5,7 @@ import 'common/app_routes.dart';
 import 'common/app_theme.dart';
 import 'data/isar_service.dart';
 import 'data/plan_repository.dart';
+import 'data/session_repository.dart';
 import 'features/plans/add_plan_page.dart';
 import 'features/plans/day_editor_page.dart';
 import 'features/plans/day_preview_page.dart';
@@ -18,6 +19,7 @@ Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
   final isarService = Get.put(await IsarService.init());
   final plans = Get.put(PlanRepository(isarService.isar));
+  Get.put(SessionRepository(isarService.isar));
   Get.put<PlanImportPicker>(FilePickerPlanImportPicker());
   runApp(MyApp(initialRoute: await resolveInitialRoute(plans)));
 }

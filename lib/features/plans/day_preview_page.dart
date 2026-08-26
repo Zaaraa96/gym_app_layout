@@ -118,6 +118,11 @@ class _DayPreviewPageState extends State<DayPreviewPage> {
     );
   }
 
+  /// Start is enabled when this day has blocks, or the plan has common
+  /// sections the user can train without day work.
+  bool _canStart(PlanDay day) =>
+      day.blocks.isNotEmpty || (_plan?.commonSections.isNotEmpty ?? false);
+
   Widget _body(BuildContext context, PlanDay day) {
     final theme = Theme.of(context);
     final plan = _plan;
@@ -183,7 +188,7 @@ class _DayPreviewPageState extends State<DayPreviewPage> {
               width: double.infinity,
               child: AppElevatedButton(
                 data: 'Start workout',
-                onPressed: _startWorkout,
+                onPressed: _canStart(day) ? _startWorkout : null,
               ),
             ),
           ),
