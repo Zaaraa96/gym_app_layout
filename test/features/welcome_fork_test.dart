@@ -8,7 +8,8 @@ import 'package:gym_app/data/isar_service.dart';
 import 'package:gym_app/data/models/models.dart';
 import 'package:gym_app/data/plan_repository.dart';
 import 'package:gym_app/main.dart';
-import 'package:isar/isar.dart';
+
+import '../helpers/isar_core.dart';
 
 /// Step 2: stored plans decide the launch route, and both branches of the fork
 /// reach the import and create actions.
@@ -17,13 +18,7 @@ void main() {
   var instanceSeq = 0;
 
   setUpAll(() async {
-    try {
-      // Host tests download the binary. Device runs already have it from
-      // isar_flutter_libs.
-      await Isar.initializeIsarCore(download: true);
-    } on IsarError {
-      // Continue; Isar.open will fail loudly if the native lib is missing.
-    }
+    await ensureIsarCore();
     tempDir = await Directory.systemTemp.createTemp('gym_app_fork_');
   });
 

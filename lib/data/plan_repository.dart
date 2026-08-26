@@ -18,7 +18,7 @@ class PlanRepository {
   Future<WorkoutPlan?> byId(int id) => _isar.workoutPlans.get(id);
 
   Future<int> save(WorkoutPlan plan) {
-    plan.updatedAt = DateTime.now();
+    plan.updatedAt = DateTime.now().toUtc();
     return _isar.writeTxn(() => _isar.workoutPlans.put(plan));
   }
 

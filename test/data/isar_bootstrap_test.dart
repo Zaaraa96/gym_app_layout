@@ -7,6 +7,8 @@ import 'package:gym_app/data/models/models.dart';
 import 'package:gym_app/features/single_plan/single_plan_model.dart';
 import 'package:isar/isar.dart';
 
+import '../helpers/isar_core.dart';
+
 /// Step 1: one Isar instance with the v1 schemas can persist a nested plan
 /// and a session snapshot, including the indexed lookups progress will use.
 void main() {
@@ -14,13 +16,7 @@ void main() {
   var instanceSeq = 0;
 
   setUpAll(() async {
-    try {
-      // Host tests download the binary. Device runs already have it from
-      // isar_flutter_libs; flutter_test also stubs HttpClient after a binding.
-      await Isar.initializeIsarCore(download: true);
-    } on IsarError {
-      // Continue; Isar.open will fail loudly if the native lib is missing.
-    }
+    await ensureIsarCore();
     tempDir = await Directory.systemTemp.createTemp('gym_app_isar_');
   });
 
