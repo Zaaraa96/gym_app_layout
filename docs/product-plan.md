@@ -250,7 +250,7 @@ Live workout
   ├─ Current block (single, or superset with alternating sets)
   │     ├─ Log set (weight+reps) or Log time (duration countdown)
   │     ├─ Rest stopwatch (manual start/reset)
-  │     └─ Rate 1–5 after that exercise’s prescribed sets
+  │     └─ Rate 1–5 after the block’s prescribed sets (inline, extras until rated)
   ├─ Back / system back → leave `inProgress`
   └─ End → Finish (`completed`) or Discard (`abandoned`)
 ```
@@ -277,7 +277,7 @@ Starting while another session is `inProgress`:
 | Common-section sheet | Toggles before start; skip when the plan has none | New |
 | In-progress conflict | Resume vs abandon-and-start | New dialog |
 | Live workout | Current block, set logger, rest | Replaces `single_exercise_page.dart` |
-| Rate exercise | 1–5; dialog on singles, inline on the exercise row in a superset | New |
+| Rate exercise | Inline 1–5 on the exercise row after prescribed sets; not a blocking dialog | New |
 | End-workout sheet | Finish (`completed`) or Discard (`abandoned`) | New |
 | Month | Calendar + trends | New (home Month tab) |
 | Session log | Read-only history for one calendar day | New |
@@ -320,9 +320,11 @@ A **superset is alternating sets**, not “finish A then B”. Both prescription
 
 After each logged set, rest is **manual** (user starts the stopwatch). Do not auto-start rest.
 
-When `sets.length` for Kang squat reaches `prescribedSets`, show **How hard? 1 2 3 4 5** on that row (dialog is fine on a single; on a superset keep the partner visible). After A’s last prescribed set, rate A, then continue with B’s remaining sets. Extra sets are allowed **until that exercise is rated**; rating locks the log (`completedAt`). No skip.
+**Prescribed phase.** Only the active exercise accepts Log set / Log time. Keep alternating until every log in the block has `sets.length >= prescribedSets`. Do not rate yet if the partner still has prescribed sets left (A3 then B3, not A3-rate-B3).
 
-Duration exercises replace weight/reps with a countdown from `prescribedDurationSeconds`, paused until Start. **Log time** stores actual seconds: if the timer ran, `prescribed − remaining` (can be more or less if they edit remaining); if they log without starting, store the prescribed value.
+**Then extras + rating.** 1–5 appears **inline** on each unrated row in that block — never a modal that replaces logging. Log set stays on that row until they tap a digit. Extra sets are allowed only in this phase, and only on an unrated exercise. Tapping 1–5 writes `difficulty` and `completedAt` and hides Log set for that movement. No skip.
+
+Duration exercises replace weight/reps with a countdown from `prescribedDurationSeconds`, paused until Start. The countdown may run past 0 (overtime). **Log time** stores actual seconds: if the timer ran, elapsed (`prescribed − remaining`, remaining can be negative); if they log without starting, store the prescribed value. No separate control to type remaining.
 
 Header must name the **active exercise** and that exercise’s set index, not only “set 2 of 3”.
 
@@ -386,7 +388,7 @@ initialRoute: plans exist ? /home : /
 `WorkoutController` is a GetX controller created with the session id. It:
 
 - Loads the session from Isar
-- Tracks which `ExerciseLog` is **active**. On a single, that log stays active until it is rated. On a superset, after each logged set the active log becomes the next partner in the same `blockId` that still has `sets.length < prescribedSets`; after both have their prescribed sets, the unrated logs in that block are rated in order
+- Tracks which `ExerciseLog` is **active**. On a single, that log stays active through extras until it is rated. On a superset, after each logged set in the prescribed phase the active log becomes the next partner in the same `blockId` with `sets.length < prescribedSets`. After every log in the block has its prescribed sets, extras and inline 1–5 are available on each unrated log in that block; rating one does not hide the partner
 - Holds rest elapsed seconds with `Stopwatch` + `Timer.periodic` (1s). Rest is not written to Isar
 - Duration work: countdown `int` remaining, paused until Start; Log time stores `prescribed - remaining` if the timer ran, or the prescribed value if they log without starting; persist `durationSeconds`
 - Calls `sessionRepository.update` after each set and after rating so process death does not lose the log
@@ -420,7 +422,7 @@ lib/
     progress/        # month, session log
 ```
 
-Routes (names can shift slightly at implementation): `/`, `/home`, `/import`, `/plan`, `/day`, `/edit-day`, `/session`. Month is a tab on `/home`, not its own route. Live workout is `/session`.
+Routes (names can shift slightly at implementation): `/`, `/home`, `/import`, `/new-plan`, `/plan`, `/day`, `/edit-day`, `/session`. Month is a tab on `/home`, not its own route. Live workout is `/session`.
 
 ---
 
@@ -450,7 +452,7 @@ Build in this order. Each slice should be runnable. Do not start a later slice u
    Active exercise, log set (weight+reps or duration timer), rest stopwatch, persist each set. Superset **alternates** sets (A1, B1, A2, …) with both lines visible.
 
 8. **Per-exercise 1–5**  
-   After `sets.length >= prescribedSets`, require rating. Extra sets allowed until rated. Advance to the next unlogged or unrated log. All logs rated → `completed`. End → Finish (`completed`, partial OK) or Discard (`abandoned`).
+   After the block’s prescribed sets, show inline 1–5 on each unrated log. Extra sets allowed until that log is rated. All logs rated → `completed`. End → Finish (`completed`, partial OK) or Discard (`abandoned`).
 
 9. **Month overview**  
    Calendar + day session log + per-exercise primary metric and delta using `progress_service.dart`.
