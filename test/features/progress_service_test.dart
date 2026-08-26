@@ -1,0 +1,254 @@
+import 'package:flutter_test/flutter_test.dart';
+import 'package:gym_app/data/models/models.dart';
+import 'package:gym_app/features/progress/progress_service.dart';
+
+/// Step 4: [ProgressService] folds a month of sessions using the Step 2 rules.
+void main() {
+  const service = ProgressService();
+
+  test('an empty month has no dots and no exercise rows', () {
+    final progress = service.fold(
+      month: DateTime.utc(2026, 8),
+      sessions: const [],
+    );
+    expect(progress.isEmpty, isTrue);
+    expect(progress.daysWithWorkouts, isEmpty);
+    expect(progress.exercises, isEmpty);
+  });
+
+  test('abandoned sessions and other months are ignored', () {
+    final progress = service.fold(
+      month: DateTime.utc(2026, 8),
+      sessions: [
+        _session(
+          id: 1,
+          startedAt: DateTime.utc(2026, 7, 31),
+          status: SessionStatus.completed,
+          logs: [_repLog(title: 'kang squat', reps: [12], weight: 40)],
+        ),
+        _session(
+          id: 2,
+          startedAt: DateTime.utc(2026, 8, 10),
+          status: SessionStatus.abandoned,
+          logs: [_repLog(title: 'kang squat', reps: [12], weight: 50)],
+        ),
+      ],
+    );
+    expect(progress.isEmpty, isTrue);
+  });
+
+  test('weight is the primary metric when any set has a load', () {
+    final progress = service.fold(
+      month: DateTime.utc(2026, 8),
+      sessions: [
+        _session(
+          id: 1,
+          startedAt: DateTime.utc(2026, 8, 2, 9),
+          logs: [
+            _repLog(title: 'Kang Squat', reps: [12, 10], weight: 40, difficulty: 4),
+          ],
+        ),
+        _session(
+          id: 2,
+          startedAt: DateTime.utc(2026, 8, 20, 9),
+          logs: [
+            _repLog(title: 'kang squat', reps: [12], weight: 45, difficulty: 3),
+          ],
+        ),
+      ],
+    );
+
+    expect(progress.daysWithWorkouts, [
+      DateTime.utc(2026, 8, 2),
+      DateTime.utc(2026, 8, 20),
+    ]);
+    final row = progress.exercises.single;
+    expect(row.titleKey, 'kang squat');
+    expect(row.title, 'kang squat');
+    expect(row.metric, ProgressMetricKind.weight);
+    expect(row.firstValue, 40);
+    expect(row.lastValue, 45);
+    expect(row.delta, 5);
+    expect(row.feltEasier, isTrue);
+    expect(row.sessions.first.completedSets, 2);
+    expect(row.sessions.last.completedSets, 1);
+  });
+
+  test('felt easier is false when the load got worse', () {
+    final progress = service.fold(
+      month: DateTime.utc(2026, 8),
+      sessions: [
+        _session(
+          id: 1,
+          startedAt: DateTime.utc(2026, 8, 2),
+          logs: [_repLog(title: 'kang squat', reps: [12], weight: 50, difficulty: 4)],
+        ),
+        _session(
+          id: 2,
+          startedAt: DateTime.utc(2026, 8, 20),
+          logs: [_repLog(title: 'kang squat', reps: [12], weight: 40, difficulty: 2)],
+        ),
+      ],
+    );
+    expect(progress.exercises.single.feltEasier, isFalse);
+    expect(progress.exercises.single.delta, -10);
+  });
+
+  test('duration uses the longest timed set and flags meeting the prescription',
+      () {
+    final progress = service.fold(
+      month: DateTime.utc(2026, 8),
+      sessions: [
+        _session(
+          id: 1,
+          startedAt: DateTime.utc(2026, 8, 5),
+          logs: [_durationLog(seconds: [20], prescribed: 30, difficulty: 4)],
+        ),
+        _session(
+          id: 2,
+          startedAt: DateTime.utc(2026, 8, 12),
+          logs: [_durationLog(seconds: [30, 35], prescribed: 30, difficulty: 3)],
+        ),
+      ],
+    );
+    final row = progress.exercises.single;
+    expect(row.metric, ProgressMetricKind.duration);
+    expect(row.firstValue, 20);
+    expect(row.lastValue, 35);
+    expect(row.delta, 15);
+    expect(row.sessions.first.metPrescription, isFalse);
+    expect(row.sessions.last.metPrescription, isTrue);
+    expect(row.feltEasier, isTrue);
+  });
+
+  test('sets and reps are the fallback when there is no weight or duration', () {
+    final progress = service.fold(
+      month: DateTime.utc(2026, 8),
+      sessions: [
+        _session(
+          id: 1,
+          startedAt: DateTime.utc(2026, 8, 5),
+          logs: [_repLog(title: 'push up', reps: [10, 10], prescribedSets: 3)],
+        ),
+        _session(
+          id: 2,
+          startedAt: DateTime.utc(2026, 8, 12),
+          logs: [_repLog(title: 'push up', reps: [12, 12, 12], prescribedSets: 3)],
+        ),
+      ],
+    );
+    final row = progress.exercises.single;
+    expect(row.metric, ProgressMetricKind.setsReps);
+    expect(row.firstValue, 20);
+    expect(row.lastValue, 36);
+    expect(row.delta, 16);
+    expect(row.sessions.first.completedSets, 2);
+    expect(row.sessions.last.completedSets, 3);
+    expect(row.sessions.last.prescribedSets, 3);
+  });
+
+  test('same titleKey across days rolls up and in-progress sessions still count',
+      () {
+    final progress = service.fold(
+      month: DateTime.utc(2026, 8),
+      sessions: [
+        _session(
+          id: 1,
+          startedAt: DateTime.utc(2026, 8, 1, 18),
+          logs: [_repLog(title: 'kang squat', reps: [12], weight: 40)],
+        ),
+        _session(
+          id: 2,
+          startedAt: DateTime.utc(2026, 8, 1, 7),
+          status: SessionStatus.inProgress,
+          logs: [_repLog(title: 'Kang Squat', reps: [8], weight: 35)],
+        ),
+      ],
+    );
+    expect(progress.daysWithWorkouts, [DateTime.utc(2026, 8, 1)]);
+    expect(progress.exercises, hasLength(1));
+    expect(progress.exercises.single.sessions, hasLength(2));
+    expect(progress.exercises.single.sessions.first.sessionId, 2);
+    expect(progress.exercises.single.firstValue, 35);
+    expect(progress.exercises.single.lastValue, 40);
+  });
+}
+
+WorkoutSession _session({
+  required int id,
+  required DateTime startedAt,
+  required List<ExerciseLog> logs,
+  SessionStatus status = SessionStatus.completed,
+}) {
+  final session = WorkoutSession.create(
+    planId: 1,
+    planDayId: 'day-1',
+    planTitleSnapshot: 'plan 1',
+    dayTitleSnapshot: 'day 1',
+    startedAt: startedAt,
+    status: status,
+    endedAt: status == SessionStatus.inProgress ? null : startedAt,
+    exerciseLogs: logs,
+  );
+  session.id = id;
+  return session;
+}
+
+ExerciseLog _repLog({
+  required String title,
+  required List<int> reps,
+  double? weight,
+  int prescribedSets = 3,
+  int? difficulty,
+}) {
+  final started = DateTime.utc(2026, 8, 1);
+  return ExerciseLog.create(
+    prescriptionId: 'p-$title',
+    blockId: 'block-$title',
+    blockKind: BlockKind.single,
+    fromCommonSection: false,
+    exerciseTitle: title,
+    exerciseTitleKey: exerciseTitleKeyFor(title),
+    prescribedSets: prescribedSets,
+    prescribedReps: 12,
+    difficulty: difficulty,
+    completedAt: difficulty == null ? null : started,
+    sets: [
+      for (var i = 0; i < reps.length; i++)
+        SetLog.create(
+          setIndex: i + 1,
+          completedAt: started,
+          reps: reps[i],
+          weightKg: weight,
+        ),
+    ],
+  );
+}
+
+ExerciseLog _durationLog({
+  required List<int> seconds,
+  required int prescribed,
+  int? difficulty,
+}) {
+  final started = DateTime.utc(2026, 8, 1);
+  return ExerciseLog.create(
+    prescriptionId: 'p-shoot',
+    blockId: 'block-abs',
+    blockKind: BlockKind.single,
+    fromCommonSection: true,
+    exerciseTitle: 'shoot out',
+    exerciseTitleKey: 'shoot out',
+    prescribedSets: 1,
+    prescribedDurationSeconds: prescribed,
+    difficulty: difficulty,
+    completedAt: difficulty == null ? null : started,
+    sets: [
+      for (var i = 0; i < seconds.length; i++)
+        SetLog.create(
+          setIndex: i + 1,
+          completedAt: started,
+          durationSeconds: seconds[i],
+        ),
+    ],
+  );
+}

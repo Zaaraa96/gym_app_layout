@@ -2,7 +2,6 @@ import 'package:get/get.dart';
 import 'package:isar/isar.dart';
 import 'package:path_provider/path_provider.dart';
 
-import '../features/single_plan/single_plan_model.dart';
 import 'models/workout_plan.dart';
 import 'models/workout_session.dart';
 
@@ -18,8 +17,6 @@ class IsarService extends GetxService {
   static final schemas = [
     WorkoutPlanSchema,
     WorkoutSessionSchema,
-    // Kept until later slices drop the demo create-plan path.
-    SinglePlanModelSchema,
   ];
 
   static Future<IsarService> init({

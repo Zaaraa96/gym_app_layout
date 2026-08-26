@@ -5,9 +5,9 @@ import 'package:gym_app/common/app_theme.dart';
 import 'package:gym_app/data/models/models.dart';
 import 'package:gym_app/data/plan_repository.dart';
 
-import '../common/widgets/app_scaffold.dart';
-import '../common/widgets/app_text.dart';
-import '../common/widgets/app_text_field.dart';
+import '../../common/widgets/app_scaffold.dart';
+import '../../common/widgets/app_text.dart';
+import '../../common/widgets/app_text_field.dart';
 
 class AddNewPlanPage extends StatefulWidget {
   const AddNewPlanPage({super.key});
