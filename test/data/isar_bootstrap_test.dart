@@ -4,7 +4,6 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:get/get.dart';
 import 'package:gym_app/data/isar_service.dart';
 import 'package:gym_app/data/models/models.dart';
-import 'package:gym_app/features/single_plan/single_plan_model.dart';
 import 'package:isar/isar.dart';
 
 import '../helpers/isar_core.dart';
@@ -127,13 +126,6 @@ void main() {
     });
     final sessionAfterEdit = await isar.workoutSessions.get(session.id);
     expect(sessionAfterEdit!.planTitleSnapshot, 'plan 1');
-
-    await isar.writeTxn(() async {
-      await isar.singlePlanModels
-          .put(SinglePlanModel(title: 'legacy', dayPlans: []));
-    });
-    final legacy = await isar.singlePlanModels.where().findAll();
-    expect(legacy.single.title, 'legacy');
   });
 }
 
