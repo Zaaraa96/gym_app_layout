@@ -218,97 +218,125 @@ Drop `SinglePlanModel` / `SingleDayPlanModel` / `SingleExerciseWithRound` / `Exe
 
 Keep Material 3, deep purple seed, photo day cards, Lottie welcome. No new visual language before code. Full Figma is optional; this screen map is enough to build.
 
+Reviewed against Step 1–2 and the screens already in the app. Locked decisions below replace the earlier “FAB or…”, “local flag or…”, and “completed or abandoned” forks.
+
 ### Navigation
 
-After first run, a **bottom bar**: Plans | Month.
+**Bottom bar is the home shell only** (Plans | Month). Nested screens (import, plan, day, live, editors) have no bar; back returns toward home.
+
+Skip Welcome whenever `WorkoutPlan` count > 0. No extra local flag.
 
 ```
-Welcome
+Welcome (plan count == 0)
   ├─ Import JSON → preview → save → Plan preview
-  ├─ Create plan → editor → Plan preview
-  └─ (returning) → Plans home
+  ├─ Create plan → title form → Plan preview
+  └─ (returning) → Home shell
 
-Plans home
-  ├─ Plan preview (day cards)
-  │     ├─ Edit plan
-  │     └─ Day preview → Start (common-section toggles) → Live workout
-  └─ Import / Create
+Home shell
+  ├─ Plans tab
+  │     ├─ Continue banner → Live workout (resume)
+  │     ├─ Plan preview (photo day cards)
+  │     │     ├─ Rename / delete plan
+  │     │     ├─ Add / delete day
+  │     │     ├─ Common-section chips → section editor
+  │     │     └─ Day preview → Start → (sheet if commons) → Live workout
+  │     └─ Import / New  (bottom row, not a FAB)
+  └─ Month tab
+        ├─ Calendar
+        ├─ Day tap → session log (read-only; several sessions list in startedAt order)
+        └─ Exercise rows → same-screen trend numbers
 
 Live workout
-  ├─ Block (single or superset)
-  │     ├─ Log set (weight+reps or duration timer)
-  │     ├─ Rest stopwatch
-  │     └─ Rate 1–5 when that exercise’s sets are done
-  └─ End early → session completed or abandoned
-
-Month
-  ├─ Calendar
-  ├─ Day tap → session log (read-only)
-  └─ Exercise row → simple trend for that name
+  ├─ Current block (single, or superset with alternating sets)
+  │     ├─ Log set (weight+reps) or Log time (duration countdown)
+  │     ├─ Rest stopwatch (manual start/reset)
+  │     └─ Rate 1–5 after that exercise’s prescribed sets
+  ├─ Back / system back → leave `inProgress`
+  └─ End → Finish (`completed`) or Discard (`abandoned`)
 ```
 
-Resume: if `inProgress` exists, Plans home shows **Continue workout** above the list.
+Resume: if `inProgress` exists, the **home shell** (both tabs) shows **Continue workout**. Tapping it opens that session’s live screen. Common-section choices are not asked again.
+
+Starting while another session is `inProgress`:
+
+- Same plan + same day → resume (no new sheet).
+- Anything else → dialog: **Resume existing** | **Abandon existing and start this day**.
 
 ### Screen inventory
 
 | Screen | Purpose | Reuse |
 | --- | --- | --- |
 | Welcome | First-run fork: import or create | `welcome_page.dart` |
-| Plans home | List plans; continue session; import/create actions | New |
-| Import preview | Show parsed days/blocks; confirm save | New |
-| Plan preview | Day cards | `single_plan_page.dart` |
-| Day preview | Block list | `single_day_plan_page.dart` + start CTA |
-| Common-section sheet | Toggles before start | New |
-| Plan editor | Title, days, blocks, exercises | Replace `add_plan_page.dart` |
+| Plans home | List plans; continue session; Import / New; Month tab placeholder until slice 9 | `plans_home_page.dart` |
+| Import preview | Show parsed days/blocks; confirm save | `import_preview_page.dart` |
+| Plan preview | Photo day cards; rename; add/delete days; common-section chips | `plan_page.dart` (photo cards; collapsing sliver is optional) |
+| Day preview | Block list + Start | `day_preview_page.dart` |
+| Day editor | One day’s title, summary, blocks | `day_editor_page.dart` + block dialog |
+| Common-section editor | One named section’s blocks; same block dialog as the day editor | New, reuse day-editor widgets |
+| Create-plan title | Title (+ optional Day 1 summary) then Plan preview | `add_plan_page.dart` |
+| Common-section sheet | Toggles before start; skip when the plan has none | New |
+| In-progress conflict | Resume vs abandon-and-start | New dialog |
 | Live workout | Current block, set logger, rest | Replaces `single_exercise_page.dart` |
-| Rate exercise | 1–5 | New (can be a dialog) |
-| Month | Calendar + trends | New |
-| Session log | Read-only day history | New |
+| Rate exercise | 1–5; dialog on singles, inline on the exercise row in a superset | New |
+| End-workout sheet | Finish (`completed`) or Discard (`abandoned`) | New |
+| Month | Calendar + trends | New (home Month tab) |
+| Session log | Read-only history for one calendar day | New |
+
+There is **no** all-in-one “plan editor” screen. Plan-level actions live on Plan preview; exercise editing is per day (and per common section).
 
 ### Wireframes (layout, not pixels)
 
-**Welcome.** Centered Lottie, title, subtitle, two full-width actions: Import a plan | Create a plan. Returning users skip this if any plan exists (open Plans home). Show welcome once via a local flag, or skip whenever `WorkoutPlan` count > 0.
+**Welcome.** Centered Lottie, title, subtitle, two full-width actions: Import a plan | Create a plan. Returning users never see this once any plan exists.
 
-**Plans home.** App bar “Plans”. If in-progress: banner Continue. List of plan titles + day count. FAB or bottom actions: Import, New. Bottom nav: Plans (selected), Month.
+**Plans home.** App bar “Plans” (or “Month” on that tab). Continue banner above the body when `inProgress` exists. List of plan titles + day count. Bottom row: Import | New. Bottom nav: Plans, Month.
 
 **Import preview.** File name, plan title, expandable days (block summaries: `3×12 kang squat + leg extension`). Common sections listed as chips. Primary: Save plan. Secondary: Cancel.
 
-**Plan preview.** Keep current sliver + photo cards. App bar: title, edit icon. Card arrow still opens the day.
+**Plan preview.** Photo cards (keep `assets/image/0–2.png`). App bar: title, edit icon **renames** the plan, overflow **deletes** the plan (confirm; sessions stay, per Step 2). Add day from the app bar / FAB already on this screen. Card tap opens Day preview. If `commonSections` is not empty, chips under the list; tap a chip to edit that section. Empty chips row: **Add section**.
 
-**Day preview.** Keep alternating summary rows (SVG, names × reps or duration, set/round badge). Bottom: Start workout.
+**Day preview.** Keep alternating summary rows (SVG, names × reps or duration, set/round badge). **Edit day** opens the day editor. Bottom: Start workout.
 
-**Start sheet.** “Include today” with switches for each `CommonSection`. Confirm starts a `WorkoutSession` and copies logs.
+Start is enabled when the day has at least one block, **or** the plan has common sections (the user can train commons only). Otherwise disable Start.
+
+**Start sheet.** Shown only when the plan has one or more `CommonSection`s. Title “Include today”. One switch per section, **default off**. Confirm copies the day’s blocks, then each enabled section’s blocks, into `ExerciseLog`s and creates the `inProgress` session.
 
 **Live workout (make-or-break).**
 
 ```
-[ Day 1  ·  set 2 of 3  ·  0:45 rest ]
+[ Day 1  ·  Kang squat  ·  set 2 of 3  ·  rest 0:45 ]
 
 Superset
-  Kang squat          3 × 12
+  Kang squat          3 × 12     ← active
   Leg extension       3 × 12
 
 Active: Kang squat
-  Weight [  40  ] kg     Reps [  12  ]
+  Weight [     ] kg     Reps [  12  ]
   [ Log set ]
 
 Rest stopwatch  [ Start ]  [ Reset ]
-
-When sets for Kang squat are done:
-  How hard?  1  2  3  4  5
 ```
 
-Superset: both prescriptions stay visible; one is **active**. After rating exercise A, active becomes B in the same block. Duration exercises replace weight/reps with a countdown from `prescribedDurationSeconds` and a Log time action (stores actual seconds, which may be more or less than prescribed).
+A **superset is alternating sets**, not “finish A then B”. Both prescriptions stay visible; **active** is the next exercise in the block that still has unlogged prescribed sets, cycling in prescription order: A1 → B1 → A2 → B2 → … Weight may be empty (`null` = bodyweight). Reps are required for rep work.
 
-Persist every logged set immediately. Back leaves the session `inProgress`.
+After each logged set, rest is **manual** (user starts the stopwatch). Do not auto-start rest.
 
-**Rate.** Required. Five equal tappable digits. Confirm writes `difficulty` and `completedAt`. No skip in v1.
+When `sets.length` for Kang squat reaches `prescribedSets`, show **How hard? 1 2 3 4 5** on that row (dialog is fine on a single; on a superset keep the partner visible). After A’s last prescribed set, rate A, then continue with B’s remaining sets. Extra sets are allowed **until that exercise is rated**; rating locks the log (`completedAt`). No skip.
 
-**Month.** Month title with prev/next. Calendar: dots on days with a non-abandoned session. Below: list of `exerciseTitleKey`s this month with primary metric, delta vs first session in the month, and optional “felt easier”. Tap a calendar day → session log (exercises, sets, ratings). Tap an exercise row → the same numbers, no extra screen required in v1 if the list is enough.
+Duration exercises replace weight/reps with a countdown from `prescribedDurationSeconds`, paused until Start. **Log time** stores actual seconds: if the timer ran, `prescribed − remaining` (can be more or less if they edit remaining); if they log without starting, store the prescribed value.
+
+Header must name the **active exercise** and that exercise’s set index, not only “set 2 of 3”.
+
+Persist every logged set immediately. App-bar back and system back leave the session `inProgress` with no extra prompt.
+
+**End.** A live-workout action (not back) opens Finish | Discard. Finish → `completed` (partial logs stay; unrated `difficulty` stays null). Discard → `abandoned` (month view ignores it, per Step 2).
+
+**Rate.** Required to mark the movement complete. Five equal tappable digits. Confirm writes `difficulty` and `completedAt`.
+
+**Month.** Month title with prev/next. Empty month: calendar with no dots and “No workouts this month.” Dots on days with a non-abandoned session. Below: list of `exerciseTitleKey`s this month with primary metric, delta vs first session in the month, and optional “felt easier”. Tap a calendar day → session log. Several sessions that day: list them, oldest first. Tap an exercise row → the same numbers; no extra screen in v1 if the list is enough.
 
 ### Out of v1 UI
 
-Auto-start rest, target weight field, photos, accounts, suggested next load, reordering days, duplicating days.
+Auto-start rest, target weight field, photos, accounts, suggested next load, reordering days, duplicating days, prefill weight from last session.
 
 ---
 
@@ -358,9 +386,9 @@ initialRoute: plans exist ? /home : /
 `WorkoutController` is a GetX controller created with the session id. It:
 
 - Loads the session from Isar
-- Tracks `activeLogIndex`
+- Tracks which `ExerciseLog` is **active**. On a single, that log stays active until it is rated. On a superset, after each logged set the active log becomes the next partner in the same `blockId` that still has `sets.length < prescribedSets`; after both have their prescribed sets, the unrated logs in that block are rated in order
 - Holds rest elapsed seconds with `Stopwatch` + `Timer.periodic` (1s). Rest is not written to Isar
-- Duration work: countdown `int` remaining; Log time stores `prescribed - remaining` or elapsed, whichever the UI shows; persist `durationSeconds`
+- Duration work: countdown `int` remaining, paused until Start; Log time stores `prescribed - remaining` if the timer ran, or the prescribed value if they log without starting; persist `durationSeconds`
 - Calls `sessionRepository.update` after each set and after rating so process death does not lose the log
 
 No extra timer package.
@@ -392,7 +420,7 @@ lib/
     progress/        # month, session log
 ```
 
-Routes (names can shift slightly at implementation): `/`, `/home`, `/import`, `/plan`, `/plan/edit`, `/day`, `/session`, `/month`.
+Routes (names can shift slightly at implementation): `/`, `/home`, `/import`, `/plan`, `/day`, `/edit-day`, `/session`. Month is a tab on `/home`, not its own route. Live workout is `/session`.
 
 ---
 
@@ -413,16 +441,16 @@ Build in this order. Each slice should be runnable. Do not start a later slice u
    Wire existing day cards and block list to `WorkoutPlan` / `PlanDay` (map duration vs reps in the summary row).
 
 5. **Create / edit plan**  
-   Replace add-plan stub: title, days, single/superset blocks, reps or duration. Save updates `updatedAt`.
+   Title form creates the plan and opens Plan preview (`add_plan_page.dart`). Add/delete days and rename/delete the plan on Plan preview. Day editor + block dialog already exist; add a common-section editor that reuses them. Save updates `updatedAt`.
 
 6. **Start session**  
-   Common-section toggles, copy `ExerciseLog`s, create `inProgress` session, Continue banner.
+   Skip the sheet when there are no common sections; otherwise switches default **off**. Copy `ExerciseLog`s (day blocks, then enabled commons). Create `inProgress`. Continue banner on the home shell. Same-day resume vs abandon-and-start dialog.
 
 7. **Live logger**  
-   Active exercise, log set (weight+reps or duration timer), rest stopwatch, persist each set. Superset keeps both lines visible.
+   Active exercise, log set (weight+reps or duration timer), rest stopwatch, persist each set. Superset **alternates** sets (A1, B1, A2, …) with both lines visible.
 
 8. **Per-exercise 1–5**  
-   After prescribed sets (or when the user marks the movement done), require rating. Advance to the next log. End session when all logs are rated, or End early → `completed` with partial logs (rated ones keep ratings; unrated stay null).
+   After `sets.length >= prescribedSets`, require rating. Extra sets allowed until rated. Advance to the next unlogged or unrated log. All logs rated → `completed`. End → Finish (`completed`, partial OK) or Discard (`abandoned`).
 
 9. **Month overview**  
    Calendar + day session log + per-exercise primary metric and delta using `progress_service.dart`.
