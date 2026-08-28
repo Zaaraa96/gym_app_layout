@@ -52,10 +52,8 @@ void main() {
       ),
     );
     Get.put<IsarService>(service, permanent: true);
-    return Get.put<PlanRepository>(
-      PlanRepository(service.isar),
-      permanent: true,
-    );
+    putSessions(service.isar);
+    return putPlans(service.isar);
   }
 
   Future<void> settle(WidgetTester tester) => settleApp(tester);

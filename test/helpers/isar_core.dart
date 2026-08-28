@@ -1,4 +1,7 @@
 import 'package:flutter_test/flutter_test.dart';
+import 'package:get/get.dart';
+import 'package:gym_app/data/plan_repository.dart';
+import 'package:gym_app/data/session_repository.dart';
 import 'package:isar/isar.dart';
 
 /// Host tests download the native binary. Device runs already have it from
@@ -15,6 +18,16 @@ Future<void> ensureIsarCore() async {
     fail('Could not load the Isar native library: $error\n$stack');
   }
 }
+
+PlanRepository putPlans(Isar isar) => Get.put<PlanRepository>(
+      PlanRepository(isar),
+      permanent: true,
+    );
+
+SessionRepository putSessions(Isar isar) => Get.put<SessionRepository>(
+      SessionRepository(isar),
+      permanent: true,
+    );
 
 /// Finish a GetX page transition and let a real Isar read land.
 ///
