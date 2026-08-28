@@ -1,0 +1,12 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" width="64" height="64">
+  <title>Treadmill</title>
+  <circle cx="32" cy="32" r="30" fill="#f0f4f8"/>
+  <circle cx="32" cy="14" r="5" fill="#1a1a2e"/>
+  <line x1="32" y1="19" x2="32" y2="32" stroke="#1a1a2e" stroke-width="2.5" stroke-linecap="round"/>
+  <line x1="32" y1="24" x2="22" y2="20" stroke="#1a1a2e" stroke-width="2.5" stroke-linecap="round"/>
+  <line x1="32" y1="24" x2="42" y2="28" stroke="#1a1a2e" stroke-width="2.5" stroke-linecap="round"/>
+  <line x1="32" y1="32" x2="24" y2="46" stroke="#1a1a2e" stroke-width="2.5" stroke-linecap="round"/>
+  <line x1="32" y1="32" x2="42" y2="40" stroke="#1a1a2e" stroke-width="2.5" stroke-linecap="round"/>
+  <rect x="8" y="46" width="48" height="6" rx="2" fill="#0f3460"/>
+</svg>

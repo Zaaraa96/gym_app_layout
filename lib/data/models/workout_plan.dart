@@ -77,8 +77,17 @@ class ExerciseBlock {
   @enumerated
   late BlockKind kind;
 
-  /// Optional icon asset; may be empty on import.
+  /// Legacy bundled SVG path. Prefer [mediaUri] for new data.
   String? svgPath;
+
+  /// Asset path, local file path, or remote URL depending on [mediaSource].
+  String? mediaUri;
+
+  @enumerated
+  ExerciseMediaSource mediaSource = ExerciseMediaSource.none;
+
+  @enumerated
+  ExerciseMediaKind mediaKind = ExerciseMediaKind.unknown;
 
   /// One item for [BlockKind.single]; two or more for [BlockKind.superset].
   List<ExercisePrescription> exercises = [];
@@ -89,6 +98,9 @@ class ExerciseBlock {
     required this.blockId,
     required this.kind,
     this.svgPath,
+    this.mediaUri,
+    this.mediaSource = ExerciseMediaSource.none,
+    this.mediaKind = ExerciseMediaKind.unknown,
     List<ExercisePrescription>? exercises,
   }) : exercises = exercises ?? [];
 }

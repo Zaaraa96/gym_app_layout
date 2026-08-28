@@ -45,5 +45,9 @@
 	<true/>
 	<key>UIApplicationSupportsIndirectInputEvents</key>
 	<true/>
+	<key>NSPhotoLibraryUsageDescription</key>
+	<string>Choose photos or videos to show what each exercise looks like.</string>
+	<key>NSCameraUsageDescription</key>
+	<string>Take a photo or video to show what each exercise looks like.</string>
 </dict>
 </plist>

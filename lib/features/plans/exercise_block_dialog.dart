@@ -3,6 +3,11 @@ import 'package:flutter/material.dart';
 import '../../common/widgets/app_text_field.dart';
 import '../../data/models/models.dart';
 import '../../data/new_id.dart';
+import 'exercise_asset_catalog.dart';
+import 'exercise_media.dart';
+import 'exercise_media_picker.dart';
+import 'exercise_media_picker_sheet.dart';
+import 'exercise_media_thumbnail.dart';
 
 Future<ExerciseBlock?> showExerciseBlockDialog(
   BuildContext context, {
@@ -64,6 +69,8 @@ class _ExerciseBlockDialogState extends State<ExerciseBlockDialog> {
   late final List<_MovementDraft> _movements;
   late bool _superset;
   String? _error;
+  PickedExerciseMedia? _media;
+  bool _mediaTouched = false;
 
   @override
   void initState() {
@@ -74,6 +81,10 @@ class _ExerciseBlockDialogState extends State<ExerciseBlockDialog> {
       text: '${exercises.isEmpty ? 3 : exercises.first.prescribedSets}',
     );
     _superset = existing?.kind == BlockKind.superset;
+    _media = existing == null
+        ? null
+        : PickedExerciseMedia.fromBlock(existing);
+    _mediaTouched = _media != null;
     _movements = [
       if (exercises.isEmpty) _MovementDraft.blank() else ...[
         for (final exercise in exercises) _MovementDraft.from(exercise),
@@ -140,6 +151,49 @@ class _ExerciseBlockDialogState extends State<ExerciseBlockDialog> {
     });
   }
 
+  Future<void> _pickMedia() async {
+    final picked = await showExerciseMediaPickerSheet(
+      context,
+      current: _media,
+      titleHint: _movements.first.title.text,
+    );
+    if (!mounted || picked == null) return;
+    setState(() {
+      _media = picked;
+      _mediaTouched = true;
+    });
+  }
+
+  void _clearMedia() {
+    setState(() {
+      _media = null;
+      _mediaTouched = true;
+    });
+  }
+
+  ExerciseBlock _buildBlock(int sets) {
+    final block = ExerciseBlock.create(
+      blockId: widget.existing?.blockId ?? newId(),
+      kind: _superset ? BlockKind.superset : BlockKind.single,
+      exercises: [
+        for (final draft in (_superset ? _movements : _movements.take(1)))
+          _prescription(draft, sets),
+      ],
+    );
+    final media = _media;
+    if (media != null) {
+      media.applyTo(block);
+    } else if (!_mediaTouched) {
+      final match = bestAssetMatchForTitle(_movements.first.title.text);
+      if (match != null) {
+        PickedExerciseMedia.asset(match.assetPath).applyTo(block);
+      }
+    } else {
+      PickedExerciseMedia.clearBlock(block);
+    }
+    return block;
+  }
+
   void _submit() {
     final firstTitle = _movements.first.title.text.trim();
     if (firstTitle.isEmpty) {
@@ -155,18 +209,47 @@ class _ExerciseBlockDialogState extends State<ExerciseBlockDialog> {
       }
     }
     final sets = _parsePositive(_sets.text, 3);
-    final selected = _superset ? _movements : _movements.take(1);
-    Navigator.pop(
-      context,
-      ExerciseBlock.create(
-        blockId: widget.existing?.blockId ?? newId(),
-        kind: _superset ? BlockKind.superset : BlockKind.single,
-        svgPath: widget.existing?.svgPath,
-        exercises: [
-          for (final draft in selected) _prescription(draft, sets),
-        ],
-      ),
+    Navigator.pop(context, _buildBlock(sets));
+  }
+
+  String _mediaLabel() {
+    final media = _media;
+    if (media == null) return 'Auto from exercise name';
+    switch (media.source) {
+      case ExerciseMediaSource.none:
+        return 'Auto from exercise name';
+      case ExerciseMediaSource.asset:
+        final entry = bundledAssetByPath(media.uri);
+        return entry?.label ?? 'Bundled asset';
+      case ExerciseMediaSource.gallery:
+        return media.kind == ExerciseMediaKind.video
+            ? 'Gallery video'
+            : 'Gallery photo';
+      case ExerciseMediaSource.network:
+        return 'Network link';
+    }
+  }
+
+  ExerciseBlock _previewBlockData() {
+    final preview = ExerciseBlock.create(
+      blockId: 'preview',
+      kind: BlockKind.single,
+      exercises: [
+        ExercisePrescription.create(
+          prescriptionId: 'preview',
+          title: _movements.first.title.text.trim().isEmpty
+              ? 'Exercise'
+              : _movements.first.title.text.trim(),
+          prescribedSets: 1,
+          prescribedReps: 12,
+        ),
+      ],
     );
+    final media = _media;
+    if (media != null) {
+      media.applyTo(preview);
+    }
+    return preview;
   }
 
   @override
@@ -187,6 +270,33 @@ class _ExerciseBlockDialogState extends State<ExerciseBlockDialog> {
                     style: TextStyle(color: Theme.of(context).colorScheme.error),
                   ),
                 ),
+              ListTile(
+                key: const Key('exercise-media-picker'),
+                contentPadding: EdgeInsets.zero,
+                leading: ExerciseMediaThumbnail(
+                  block: _previewBlockData(),
+                  size: 48,
+                ),
+                title: const Text('Exercise preview'),
+                subtitle: Text(_mediaLabel()),
+                trailing: Row(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    if (_media != null)
+                      IconButton(
+                        tooltip: 'Clear preview',
+                        onPressed: _clearMedia,
+                        icon: const Icon(Icons.close),
+                      ),
+                    IconButton(
+                      tooltip: 'Choose preview',
+                      onPressed: _pickMedia,
+                      icon: const Icon(Icons.image_outlined),
+                    ),
+                  ],
+                ),
+                onTap: _pickMedia,
+              ),
               AppTextField(
                 label: _titleLabel(0),
                 controller: _movements.first.title,
