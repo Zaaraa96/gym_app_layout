@@ -1,0 +1,15 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 128 128" width="128" height="128" role="img" aria-label="Push up">
+  <title>Push up</title>
+  <circle cx="64" cy="64" r="60" fill="#EADDFF"/>
+  <circle cx="64" cy="64" r="54" fill="none" stroke="#D0BCFF" stroke-width="3"/>
+  <g fill="none" stroke-linecap="round" stroke-linejoin="round">
+    <circle cx="26" cy="48" r="8.5" fill="#4F378B" stroke="none"/>
+    <line x1="34" y1="52" x2="92" y2="52" stroke="#4F378B" stroke-width="9"/>
+    <line x1="92" y1="52" x2="108" y2="40" stroke="#4F378B" stroke-width="9"/>
+    <line x1="92" y1="52" x2="110" y2="64" stroke="#4F378B" stroke-width="9"/>
+    <line x1="46" y1="52" x2="38" y2="78" stroke="#4F378B" stroke-width="9"/>
+    <line x1="70" y1="52" x2="64" y2="78" stroke="#4F378B" stroke-width="9"/>
+    <rect x="20" y="80" width="92" height="5" rx="2" fill="#21005D" stroke="none" opacity="0.45"/>
+  </g>
+</svg>

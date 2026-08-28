@@ -1,0 +1,13 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 128 128" width="128" height="128" role="img" aria-label="Leg raise">
+  <title>Leg raise</title>
+  <circle cx="64" cy="64" r="60" fill="#EADDFF"/>
+  <circle cx="64" cy="64" r="54" fill="none" stroke="#D0BCFF" stroke-width="3"/>
+  <g fill="none" stroke-linecap="round" stroke-linejoin="round">
+    <rect x="16" y="86" width="96" height="6" rx="3" fill="#21005D" stroke="none" opacity="0.4"/>
+    <circle cx="28" cy="72" r="8.5" fill="#4F378B" stroke="none"/>
+    <line x1="36" y1="76" x2="64" y2="76" stroke="#4F378B" stroke-width="9"/>
+    <polyline points="64,76 78,44 82,28" stroke="#4F378B" stroke-width="9"/>
+    <polyline points="64,76 90,50 98,32" stroke="#4F378B" stroke-width="9"/>
+  </g>
+</svg>

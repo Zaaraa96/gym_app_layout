@@ -1,0 +1,16 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 128 128" width="128" height="128" role="img" aria-label="Kettlebell swing">
+  <title>Kettlebell swing</title>
+  <circle cx="64" cy="64" r="60" fill="#EADDFF"/>
+  <circle cx="64" cy="64" r="54" fill="none" stroke="#D0BCFF" stroke-width="3"/>
+  <g fill="none" stroke-linecap="round" stroke-linejoin="round">
+    <circle cx="48" cy="24" r="8.5" fill="#4F378B" stroke="none"/>
+    <line x1="52" y1="34" x2="70" y2="58" stroke="#4F378B" stroke-width="9"/>
+    <line x1="58" y1="44" x2="64" y2="78" stroke="#4F378B" stroke-width="9"/>
+    <line x1="60" y1="46" x2="72" y2="76" stroke="#4F378B" stroke-width="9"/>
+    <polyline points="70,58 56,82 48,104" stroke="#4F378B" stroke-width="9"/>
+    <polyline points="70,58 88,80 94,104" stroke="#4F378B" stroke-width="9"/>
+    <ellipse cx="66" cy="90" rx="10" ry="12" fill="#21005D" stroke="none"/>
+    <rect x="62" y="76" width="8" height="10" rx="3" fill="#21005D" stroke="none"/>
+  </g>
+</svg>

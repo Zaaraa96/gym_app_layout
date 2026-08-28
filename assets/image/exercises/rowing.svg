@@ -1,0 +1,19 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 128 128" width="128" height="128" role="img" aria-label="Rowing">
+  <title>Rowing</title>
+  <circle cx="64" cy="64" r="60" fill="#EADDFF"/>
+  <circle cx="64" cy="64" r="54" fill="none" stroke="#D0BCFF" stroke-width="3"/>
+  <g fill="none" stroke-linecap="round" stroke-linejoin="round">
+    <line x1="28" y1="52" x2="100" y2="52" stroke="#21005D" stroke-width="5"/>
+    <rect x="25" y="46" width="7" height="12" rx="2" fill="#21005D" stroke="none"/>
+    <rect x="34" y="48" width="5" height="8" rx="2" fill="#7D5260" stroke="none"/>
+    <rect x="96" y="46" width="7" height="12" rx="2" fill="#21005D" stroke="none"/>
+    <rect x="89" y="48" width="5" height="8" rx="2" fill="#7D5260" stroke="none"/>
+    <circle cx="42" cy="28" r="8.5" fill="#4F378B" stroke="none"/>
+    <line x1="46" y1="38" x2="70" y2="62" stroke="#4F378B" stroke-width="9"/>
+    <line x1="56" y1="48" x2="40" y2="52" stroke="#4F378B" stroke-width="9"/>
+    <line x1="58" y1="50" x2="86" y2="50" stroke="#4F378B" stroke-width="9"/>
+    <polyline points="70,62 58,84 50,104" stroke="#4F378B" stroke-width="9"/>
+    <polyline points="70,62 86,84 92,104" stroke="#4F378B" stroke-width="9"/>
+  </g>
+</svg>

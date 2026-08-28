@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import '../../common/widgets/app_text_field.dart';
 import '../../data/models/models.dart';
 import '../../data/new_id.dart';
+import '../../common/exercise_asset_catalog.dart';
 
 Future<ExerciseBlock?> showExerciseBlockDialog(
   BuildContext context, {
@@ -156,15 +157,17 @@ class _ExerciseBlockDialogState extends State<ExerciseBlockDialog> {
     }
     final sets = _parsePositive(_sets.text, 3);
     final selected = _superset ? _movements : _movements.take(1);
+    final exercises = [
+      for (final draft in selected) _prescription(draft, sets),
+    ];
     Navigator.pop(
       context,
       ExerciseBlock.create(
         blockId: widget.existing?.blockId ?? newId(),
         kind: _superset ? BlockKind.superset : BlockKind.single,
-        svgPath: widget.existing?.svgPath,
-        exercises: [
-          for (final draft in selected) _prescription(draft, sets),
-        ],
+        svgPath: matchExerciseAsset(exercises.first.title)?.assetPath ??
+            widget.existing?.svgPath,
+        exercises: exercises,
       ),
     );
   }

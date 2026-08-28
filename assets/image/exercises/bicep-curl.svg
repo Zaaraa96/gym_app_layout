@@ -1,0 +1,18 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 128 128" width="128" height="128" role="img" aria-label="Bicep curl">
+  <title>Bicep curl</title>
+  <circle cx="64" cy="64" r="60" fill="#EADDFF"/>
+  <circle cx="64" cy="64" r="54" fill="none" stroke="#D0BCFF" stroke-width="3"/>
+  <g fill="none" stroke-linecap="round" stroke-linejoin="round">
+    <circle cx="64" cy="20" r="8.5" fill="#4F378B" stroke="none"/>
+    <line x1="64" y1="30" x2="64" y2="68" stroke="#4F378B" stroke-width="9"/>
+    <line x1="64" y1="42" x2="46" y2="58" stroke="#4F378B" stroke-width="9"/>
+    <line x1="46" y1="58" x2="42" y2="40" stroke="#4F378B" stroke-width="9"/>
+    <line x1="64" y1="42" x2="82" y2="58" stroke="#4F378B" stroke-width="9"/>
+    <line x1="82" y1="58" x2="86" y2="40" stroke="#4F378B" stroke-width="9"/>
+    <circle cx="42" cy="36" r="7" fill="#21005D" stroke="none"/>
+    <circle cx="86" cy="36" r="7" fill="#21005D" stroke="none"/>
+    <polyline points="64,68 52,92 48,108" stroke="#4F378B" stroke-width="9"/>
+    <polyline points="64,68 76,92 80,108" stroke="#4F378B" stroke-width="9"/>
+  </g>
+</svg>

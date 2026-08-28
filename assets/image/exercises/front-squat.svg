@@ -1,0 +1,19 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 128 128" width="128" height="128" role="img" aria-label="Front squat">
+  <title>Front squat</title>
+  <circle cx="64" cy="64" r="60" fill="#EADDFF"/>
+  <circle cx="64" cy="64" r="54" fill="none" stroke="#D0BCFF" stroke-width="3"/>
+  <g fill="none" stroke-linecap="round" stroke-linejoin="round">
+    <line x1="30" y1="44" x2="98" y2="44" stroke="#21005D" stroke-width="5"/>
+    <rect x="27" y="37" width="7" height="14" rx="2" fill="#21005D" stroke="none"/>
+    <rect x="36" y="39" width="5" height="10" rx="2" fill="#7D5260" stroke="none"/>
+    <rect x="94" y="37" width="7" height="14" rx="2" fill="#21005D" stroke="none"/>
+    <rect x="87" y="39" width="5" height="10" rx="2" fill="#7D5260" stroke="none"/>
+    <circle cx="64" cy="26" r="8.5" fill="#4F378B" stroke="none"/>
+    <line x1="64" y1="36" x2="64" y2="62" stroke="#4F378B" stroke-width="9"/>
+    <line x1="64" y1="46" x2="40" y2="44" stroke="#4F378B" stroke-width="9"/>
+    <line x1="64" y1="46" x2="88" y2="44" stroke="#4F378B" stroke-width="9"/>
+    <polyline points="64,62 50,80 46,100" stroke="#4F378B" stroke-width="9"/>
+    <polyline points="64,62 78,80 82,100" stroke="#4F378B" stroke-width="9"/>
+  </g>
+</svg>

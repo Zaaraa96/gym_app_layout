@@ -1,0 +1,15 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 128 128" width="128" height="128" role="img" aria-label="Box jump">
+  <title>Box jump</title>
+  <circle cx="64" cy="64" r="60" fill="#EADDFF"/>
+  <circle cx="64" cy="64" r="54" fill="none" stroke="#D0BCFF" stroke-width="3"/>
+  <g fill="none" stroke-linecap="round" stroke-linejoin="round">
+    <rect x="70" y="78" width="38" height="28" rx="4" fill="#21005D" stroke="none"/>
+    <circle cx="48" cy="22" r="8.5" fill="#4F378B" stroke="none"/>
+    <line x1="50" y1="32" x2="56" y2="54" stroke="#4F378B" stroke-width="9"/>
+    <line x1="54" y1="42" x2="38" y2="34" stroke="#4F378B" stroke-width="9"/>
+    <line x1="54" y1="42" x2="72" y2="36" stroke="#4F378B" stroke-width="9"/>
+    <polyline points="56,54 42,48 36,40" stroke="#4F378B" stroke-width="9"/>
+    <polyline points="56,54 70,46 78,38" stroke="#4F378B" stroke-width="9"/>
+  </g>
+</svg>

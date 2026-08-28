@@ -1,0 +1,15 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 128 128" width="128" height="128" role="img" aria-label="Crunches">
+  <title>Crunches</title>
+  <circle cx="64" cy="64" r="60" fill="#EADDFF"/>
+  <circle cx="64" cy="64" r="54" fill="none" stroke="#D0BCFF" stroke-width="3"/>
+  <g fill="none" stroke-linecap="round" stroke-linejoin="round">
+    <rect x="18" y="92" width="92" height="6" rx="3" fill="#21005D" stroke="none" opacity="0.4"/>
+    <circle cx="40" cy="42" r="8.5" fill="#4F378B" stroke="none"/>
+    <polyline points="48,50 72,62 96,70" stroke="#4F378B" stroke-width="9"/>
+    <line x1="56" y1="54" x2="44" y2="70" stroke="#4F378B" stroke-width="9"/>
+    <line x1="56" y1="54" x2="64" y2="72" stroke="#4F378B" stroke-width="9"/>
+    <polyline points="72,62 70,86 88,92" stroke="#4F378B" stroke-width="9"/>
+    <polyline points="72,62 90,82 104,90" stroke="#4F378B" stroke-width="9"/>
+  </g>
+</svg>

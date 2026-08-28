@@ -1,0 +1,18 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 128 128" width="128" height="128" role="img" aria-label="Leg extension">
+  <title>Leg extension</title>
+  <circle cx="64" cy="64" r="60" fill="#EADDFF"/>
+  <circle cx="64" cy="64" r="54" fill="none" stroke="#D0BCFF" stroke-width="3"/>
+  <g fill="none" stroke-linecap="round" stroke-linejoin="round">
+    <rect x="30" y="70" width="52" height="10" rx="4" fill="#21005D" stroke="none"/>
+    <line x1="36" y1="80" x2="36" y2="102" stroke="#21005D" stroke-width="6"/>
+    <line x1="76" y1="80" x2="76" y2="102" stroke="#21005D" stroke-width="6"/>
+    <rect x="78" y="54" width="10" height="36" rx="4" fill="#7D5260" stroke="none"/>
+    <circle cx="48" cy="34" r="8.5" fill="#4F378B" stroke="none"/>
+    <line x1="48" y1="44" x2="52" y2="68" stroke="#4F378B" stroke-width="9"/>
+    <line x1="52" y1="52" x2="36" y2="62" stroke="#4F378B" stroke-width="9"/>
+    <line x1="52" y1="52" x2="68" y2="58" stroke="#4F378B" stroke-width="9"/>
+    <polyline points="52,68 86,66 104,58" stroke="#4F378B" stroke-width="9"/>
+    <circle cx="104" cy="58" r="6" fill="#21005D" stroke="none"/>
+  </g>
+</svg>

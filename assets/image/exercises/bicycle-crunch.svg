@@ -1,0 +1,14 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 128 128" width="128" height="128" role="img" aria-label="Bicycle crunch">
+  <title>Bicycle crunch</title>
+  <circle cx="64" cy="64" r="60" fill="#EADDFF"/>
+  <circle cx="64" cy="64" r="54" fill="none" stroke="#D0BCFF" stroke-width="3"/>
+  <g fill="none" stroke-linecap="round" stroke-linejoin="round">
+    <circle cx="40" cy="36" r="8.5" fill="#4F378B" stroke="none"/>
+    <polyline points="48,44 70,56 88,50" stroke="#4F378B" stroke-width="9"/>
+    <line x1="58" y1="50" x2="42" y2="64" stroke="#4F378B" stroke-width="9"/>
+    <line x1="58" y1="50" x2="78" y2="42" stroke="#4F378B" stroke-width="9"/>
+    <polyline points="70,56 52,78 40,70" stroke="#4F378B" stroke-width="9"/>
+    <polyline points="70,56 98,72 108,88" stroke="#4F378B" stroke-width="9"/>
+  </g>
+</svg>
