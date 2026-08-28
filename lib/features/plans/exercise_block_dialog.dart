@@ -83,10 +83,18 @@ class _ExerciseBlockDialogState extends State<ExerciseBlockDialog> {
     if (_superset && _movements.length < 2) {
       _movements.add(_MovementDraft.blank());
     }
+    for (final movement in _movements) {
+      movement.title.addListener(_onTitleChanged);
+    }
   }
+
+  void _onTitleChanged() => setState(() {});
 
   @override
   void dispose() {
+    for (final movement in _movements) {
+      movement.title.removeListener(_onTitleChanged);
+    }
     _sets.dispose();
     for (final movement in _movements) {
       movement.dispose();
@@ -125,19 +133,27 @@ class _ExerciseBlockDialogState extends State<ExerciseBlockDialog> {
     setState(() {
       _superset = value;
       if (value && _movements.length < 2) {
-        _movements.add(_MovementDraft.blank());
+        final draft = _MovementDraft.blank();
+        draft.title.addListener(_onTitleChanged);
+        _movements.add(draft);
       }
     });
   }
 
   void _addMovement() {
-    setState(() => _movements.add(_MovementDraft.blank()));
+    setState(() {
+      final draft = _MovementDraft.blank();
+      draft.title.addListener(_onTitleChanged);
+      _movements.add(draft);
+    });
   }
 
   void _removeMovement(int index) {
     if (_movements.length <= 2) return;
     setState(() {
-      _movements.removeAt(index).dispose();
+      final draft = _movements.removeAt(index);
+      draft.title.removeListener(_onTitleChanged);
+      draft.dispose();
     });
   }
 
@@ -195,6 +211,7 @@ class _ExerciseBlockDialogState extends State<ExerciseBlockDialog> {
                 controller: _movements.first.title,
                 autofocus: true,
               ),
+              _formDemo(_movements.first.title.text),
               AppTextField(
                 label: 'sets',
                 controller: _sets,
@@ -234,6 +251,30 @@ class _ExerciseBlockDialogState extends State<ExerciseBlockDialog> {
           child: const Text('Save exercise'),
         ),
       ],
+    );
+  }
+
+  Widget _formDemo(String title) {
+    final match = matchExerciseAsset(title);
+    if (match == null) return const SizedBox.shrink();
+    return Padding(
+      padding: const EdgeInsets.only(top: 8, bottom: 4),
+      child: Column(
+        children: [
+          Image.asset(
+            match.gifPath,
+            key: Key('exercise-form-gif-${match.id}'),
+            width: 120,
+            height: 120,
+            gaplessPlayback: true,
+            filterQuality: FilterQuality.medium,
+          ),
+          Text(
+            'How to: ${match.label}',
+            style: Theme.of(context).textTheme.bodySmall,
+          ),
+        ],
+      ),
     );
   }
 

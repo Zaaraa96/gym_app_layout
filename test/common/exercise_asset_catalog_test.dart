@@ -20,9 +20,10 @@ void main() {
     );
   });
 
-  test('every bundled svg file is on disk', () {
+  test('every bundled svg and gif file is on disk', () {
     for (final asset in bundledExerciseAssets) {
       expect(File(asset.assetPath).existsSync(), isTrue, reason: asset.assetPath);
+      expect(File(asset.gifPath).existsSync(), isTrue, reason: asset.gifPath);
     }
   });
 
@@ -63,6 +64,26 @@ void main() {
                 asset.assetPath,
                 width: 40,
                 height: 40,
+              ),
+          ],
+        ),
+      ),
+    );
+    await tester.pump();
+    expect(tester.takeException(), isNull);
+  });
+
+  testWidgets('every exercise form gif decodes', (tester) async {
+    await tester.pumpWidget(
+      MaterialApp(
+        home: ListView(
+          children: [
+            for (final asset in bundledExerciseAssets)
+              Image.asset(
+                asset.gifPath,
+                width: 64,
+                height: 64,
+                gaplessPlayback: true,
               ),
           ],
         ),

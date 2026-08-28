@@ -14,6 +14,9 @@ class ExerciseAssetEntry {
 
   /// Phrase used when matching titles, e.g. `kang squat`.
   String get phrase => id.replaceAll('-', ' ');
+
+  /// Looping form demo for this movement.
+  String get gifPath => '$exerciseAssetFolder/gifs/$id.gif';
 }
 
 const exerciseAssetFolder = 'assets/image/exercises';
