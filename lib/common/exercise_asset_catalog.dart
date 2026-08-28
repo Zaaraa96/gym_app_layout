@@ -32,7 +32,7 @@ ExerciseAssetEntry _asset(
 }
 
 /// Thirty exercise icons designed for this app's deep-purple day rows.
-const bundledExerciseAssets = <ExerciseAssetEntry>[
+final bundledExerciseAssets = <ExerciseAssetEntry>[
   _asset('squat', 'Squat', ['squat', 'back squat']),
   _asset('kang-squat', 'Kang squat', ['kang', 'kang squat']),
   _asset('front-squat', 'Front squat', ['front squat']),
@@ -41,7 +41,13 @@ const bundledExerciseAssets = <ExerciseAssetEntry>[
   _asset(
     'reverse-lunge-press',
     'Reverse lunge press',
-    ['reverse lunge', 'lunges+ press', 'lunge press', 'reverse lunges'],
+    [
+      'reverse lunge',
+      'lunges+ press',
+      'lunge press',
+      'reverse lunges',
+      'reverse lunges press',
+    ],
   ),
   _asset('deadlift', 'Deadlift', ['deadlift']),
   _asset(
@@ -122,10 +128,11 @@ ExerciseAssetEntry? matchExerciseAsset(String? title) {
 }
 
 int _score(String haystack, ExerciseAssetEntry asset) {
+  final padded = ' $haystack ';
   final phrase = asset.phrase;
   if (haystack == phrase || haystack == asset.id) return 100 + phrase.length;
   var score = 0;
-  if (haystack.contains(phrase)) {
+  if (padded.contains(' $phrase ')) {
     score = 80 + phrase.length;
   }
   for (final keyword in asset.keywords) {
@@ -133,7 +140,7 @@ int _score(String haystack, ExerciseAssetEntry asset) {
     if (needle.isEmpty) continue;
     if (haystack == needle) {
       score = score < 90 + needle.length ? 90 + needle.length : score;
-    } else if (haystack.contains(needle)) {
+    } else if (padded.contains(' $needle ')) {
       final bump = 10 + needle.length;
       if (bump > score) score = bump;
     }
