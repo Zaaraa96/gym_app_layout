@@ -179,6 +179,173 @@ void main() {
     expect(progress.exercises.single.firstValue, 35);
     expect(progress.exercises.single.lastValue, 40);
   });
+
+  test('any loaded set makes weight the metric, using the heaviest set', () {
+    final progress = service.fold(
+      month: DateTime.utc(2026, 8),
+      sessions: [
+        _session(
+          id: 1,
+          startedAt: DateTime.utc(2026, 8, 4),
+          logs: [
+            ExerciseLog.create(
+              prescriptionId: 'p-hold',
+              blockId: 'block-hold',
+              blockKind: BlockKind.single,
+              fromCommonSection: true,
+              exerciseTitle: 'shoot out',
+              exerciseTitleKey: 'shoot out',
+              prescribedSets: 1,
+              prescribedDurationSeconds: 30,
+              sets: [
+                SetLog.create(
+                  setIndex: 1,
+                  completedAt: DateTime.utc(2026, 8, 4),
+                  durationSeconds: 40,
+                  weightKg: 2.5,
+                ),
+                SetLog.create(
+                  setIndex: 2,
+                  completedAt: DateTime.utc(2026, 8, 4),
+                  durationSeconds: 20,
+                  weightKg: 8,
+                ),
+                SetLog.create(
+                  setIndex: 3,
+                  completedAt: DateTime.utc(2026, 8, 4),
+                  durationSeconds: 35,
+                ),
+              ],
+            ),
+          ],
+        ),
+      ],
+    );
+    final row = progress.exercises.single;
+    expect(row.metric, ProgressMetricKind.weight);
+    expect(row.firstValue, 8);
+    expect(row.lastValue, 8);
+    expect(row.delta, 0);
+    expect(row.feltEasier, isFalse);
+    expect(row.sessions.single.metPrescription, isTrue);
+  });
+
+  test('felt easier needs the same or better load and a lower rating', () {
+    final sameLoadEasier = service.fold(
+      month: DateTime.utc(2026, 8),
+      sessions: [
+        _session(
+          id: 1,
+          startedAt: DateTime.utc(2026, 8, 2),
+          logs: [_repLog(title: 'kang squat', reps: [12], weight: 40, difficulty: 4)],
+        ),
+        _session(
+          id: 2,
+          startedAt: DateTime.utc(2026, 8, 20),
+          logs: [_repLog(title: 'kang squat', reps: [12], weight: 40, difficulty: 2)],
+        ),
+      ],
+    );
+    expect(sameLoadEasier.exercises.single.feltEasier, isTrue);
+    expect(sameLoadEasier.exercises.single.delta, 0);
+
+    final heavierSameRating = service.fold(
+      month: DateTime.utc(2026, 8),
+      sessions: [
+        _session(
+          id: 1,
+          startedAt: DateTime.utc(2026, 8, 2),
+          logs: [_repLog(title: 'kang squat', reps: [12], weight: 40, difficulty: 3)],
+        ),
+        _session(
+          id: 2,
+          startedAt: DateTime.utc(2026, 8, 20),
+          logs: [_repLog(title: 'kang squat', reps: [12], weight: 50, difficulty: 3)],
+        ),
+      ],
+    );
+    expect(heavierSameRating.exercises.single.feltEasier, isFalse);
+    expect(heavierSameRating.exercises.single.delta, 10);
+
+    final missingRating = service.fold(
+      month: DateTime.utc(2026, 8),
+      sessions: [
+        _session(
+          id: 1,
+          startedAt: DateTime.utc(2026, 8, 2),
+          logs: [_repLog(title: 'kang squat', reps: [12], weight: 40, difficulty: 4)],
+        ),
+        _session(
+          id: 2,
+          startedAt: DateTime.utc(2026, 8, 20),
+          logs: [_repLog(title: 'kang squat', reps: [12], weight: 45)],
+        ),
+      ],
+    );
+    expect(missingRating.exercises.single.feltEasier, isFalse);
+
+    final oneSession = service.fold(
+      month: DateTime.utc(2026, 8),
+      sessions: [
+        _session(
+          id: 1,
+          startedAt: DateTime.utc(2026, 8, 2),
+          logs: [_repLog(title: 'kang squat', reps: [12], weight: 40, difficulty: 2)],
+        ),
+      ],
+    );
+    expect(oneSession.exercises.single.feltEasier, isFalse);
+  });
+
+  test('first-seen exercise order, last title, and empty duration sets stay null',
+      () {
+    final progress = service.fold(
+      month: DateTime.utc(2026, 8),
+      sessions: [
+        _session(
+          id: 1,
+          startedAt: DateTime.utc(2026, 8, 5),
+          logs: [
+            _repLog(title: 'Push Up', reps: [10]),
+            _durationLog(seconds: const [], prescribed: 30),
+          ],
+        ),
+        _session(
+          id: 2,
+          startedAt: DateTime.utc(2026, 8, 12),
+          logs: [
+            ExerciseLog.create(
+              prescriptionId: 'p-shoot',
+              blockId: 'block-abs',
+              blockKind: BlockKind.single,
+              fromCommonSection: true,
+              exerciseTitle: 'Shoot Out',
+              exerciseTitleKey: 'shoot out',
+              prescribedSets: 1,
+              prescribedDurationSeconds: 30,
+              sets: [
+                SetLog.create(
+                  setIndex: 1,
+                  completedAt: DateTime.utc(2026, 8, 12),
+                  durationSeconds: 40,
+                ),
+              ],
+            ),
+            _repLog(title: 'push up', reps: [12]),
+          ],
+        ),
+      ],
+    );
+
+    expect(progress.exercises.map((row) => row.titleKey), ['push up', 'shoot out']);
+    expect(progress.exercises.first.title, 'push up');
+    expect(progress.exercises.last.title, 'Shoot Out');
+    expect(progress.exercises.last.metric, ProgressMetricKind.duration);
+    expect(progress.exercises.last.firstValue, 40);
+    expect(progress.exercises.last.lastValue, 40);
+    expect(progress.exercises.last.sessions.first.primaryValue, isNull);
+    expect(progress.exercises.last.sessions.first.completedSets, 0);
+  });
 }
 
 WorkoutSession _session({
