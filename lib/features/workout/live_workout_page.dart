@@ -193,10 +193,13 @@ class _LiveWorkoutPageState extends State<LiveWorkoutPage> {
             ),
             actions: [
               if (controller.isLive)
-                TextButton(
-                  key: const Key('end-workout'),
-                  onPressed: _end,
-                  child: const Text('End'),
+                Padding(
+                  padding: const EdgeInsets.only(right: 8),
+                  child: TextButton(
+                    key: const Key('end-workout'),
+                    onPressed: _end,
+                    child: const Text('End'),
+                  ),
                 ),
             ],
           ),
@@ -253,6 +256,12 @@ class _LiveWorkoutPageState extends State<LiveWorkoutPage> {
         if (active != null) _logger(controller, active),
         const SizedBox(height: 16),
         _rest(controller),
+        const SizedBox(height: 24),
+        AppElevatedButton(
+          outlined: true,
+          data: 'End workout',
+          onPressed: _end,
+        ),
         const SizedBox(height: 24),
       ],
     );
