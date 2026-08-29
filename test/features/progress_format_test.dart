@@ -18,7 +18,7 @@ void main() {
   });
 
   test('formatTrendSummary uses last value and the month delta', () {
-    const withDelta = ExerciseMonthTrend(
+    final withDelta = ExerciseMonthTrend(
       titleKey: 'kang squat',
       title: 'kang squat',
       metric: ProgressMetricKind.weight,
@@ -51,7 +51,7 @@ void main() {
     );
     expect(formatTrendSummary(withDelta), '45 kg  ·  +5 kg');
 
-    const empty = ExerciseMonthTrend(
+    final empty = ExerciseMonthTrend(
       titleKey: 'kang squat',
       title: 'kang squat',
       metric: ProgressMetricKind.weight,
