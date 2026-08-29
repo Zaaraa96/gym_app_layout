@@ -1,13 +1,6 @@
 import '../../data/models/workout_plan.dart';
 
-/// Fallback icon when an imported block has no [ExerciseBlock.svgPath].
-const defaultBlockSvg = 'assets/image/upper-body.svg';
-
-String blockSvgPath(ExerciseBlock block) {
-  final path = block.svgPath?.trim();
-  if (path == null || path.isEmpty) return defaultBlockSvg;
-  return path;
-}
+export 'exercise_media.dart';
 
 /// Sets badge for a block. Prescriptions in one block share the set count.
 int blockSetCount(ExerciseBlock block) =>

@@ -1,9 +1,9 @@
 import 'package:flutter/material.dart';
-import 'package:flutter_svg/svg.dart';
 
 import '../../common/widgets/app_text.dart';
 import '../../data/models/models.dart';
 import 'block_summary.dart';
+import 'exercise_media_thumbnail.dart';
 
 /// Alternating day-preview row: icon, names × reps or duration, set badge.
 class ExerciseBlockRow extends StatelessWidget {
@@ -31,12 +31,7 @@ class ExerciseBlockRow extends StatelessWidget {
         ),
         child: Row(
           children: [
-            SvgPicture.asset(
-              blockSvgPath(block),
-              width: 40,
-              height: 40,
-              placeholderBuilder: (_) => const SizedBox(width: 40, height: 40),
-            ),
+            ExerciseMediaThumbnail(block: block, size: 40),
             const SizedBox(width: 12),
             Expanded(
               child: Column(
