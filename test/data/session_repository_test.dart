@@ -181,6 +181,54 @@ void main() {
     expect(day.map((s) => s.id), [earlier.id, later.id]);
   });
 
+  test('forCalendarDay keeps live sessions, drops abandoned, and stops at midnight',
+      () async {
+    final db = await open();
+    final plan = _plan();
+    await db.plans.save(plan);
+
+    final live = await db.sessions.start(
+      plan: plan,
+      planDayId: 'day-1',
+      startedAt: DateTime.utc(2026, 8, 15, 6),
+    );
+
+    final abandoned = await db.sessions.start(
+      plan: plan,
+      planDayId: 'day-1',
+      startedAt: DateTime.utc(2026, 8, 15, 9),
+    );
+    abandoned.status = SessionStatus.abandoned;
+    abandoned.endedAt = DateTime.utc(2026, 8, 15, 10);
+    await db.sessions.save(abandoned);
+
+    final late = await db.sessions.start(
+      plan: plan,
+      planDayId: 'day-1',
+      startedAt: DateTime.utc(2026, 8, 15, 23, 59),
+    );
+    late.status = SessionStatus.completed;
+    late.endedAt = DateTime.utc(2026, 8, 16);
+    await db.sessions.save(late);
+
+    final nextDay = await db.sessions.start(
+      plan: plan,
+      planDayId: 'day-1',
+      startedAt: DateTime.utc(2026, 8, 16),
+    );
+    nextDay.status = SessionStatus.completed;
+    nextDay.endedAt = DateTime.utc(2026, 8, 16, 1);
+    await db.sessions.save(nextDay);
+
+    final day = await db.sessions.forCalendarDay(DateTime.utc(2026, 8, 15));
+    expect(day.map((s) => s.id), [live.id, late.id]);
+    expect(
+      (await db.sessions.forCalendarDay(DateTime.utc(2026, 8, 16)))
+          .map((s) => s.id),
+      [nextDay.id],
+    );
+  });
+
   test('lastCompleted is the newest completed session for that plan', () async {
     final db = await open();
     final plan = _plan();
@@ -215,6 +263,44 @@ void main() {
       (await db.sessions.completedNewestFirst(planId: plan.id)).map((s) => s.id),
       [second.id, first.id],
     );
+  });
+
+  test('completedNewestFirst without a plan is global newest first', () async {
+    final db = await open();
+    final firstPlan = _plan();
+    await db.plans.save(firstPlan);
+    final secondPlan = WorkoutPlan.create(
+      title: 'plan 2',
+      source: PlanSource.created,
+      createdAt: DateTime.utc(2026, 8, 1),
+      updatedAt: DateTime.utc(2026, 8, 1),
+      days: firstPlan.days,
+    );
+    await db.plans.save(secondPlan);
+
+    final older = await db.sessions.start(
+      plan: firstPlan,
+      planDayId: 'day-1',
+      startedAt: DateTime.utc(2026, 8, 10, 8),
+    );
+    older.status = SessionStatus.completed;
+    older.endedAt = DateTime.utc(2026, 8, 10, 9);
+    await db.sessions.save(older);
+
+    final newer = await db.sessions.start(
+      plan: secondPlan,
+      planDayId: 'day-1',
+      startedAt: DateTime.utc(2026, 8, 12, 8),
+    );
+    newer.status = SessionStatus.completed;
+    newer.endedAt = DateTime.utc(2026, 8, 12, 9);
+    await db.sessions.save(newer);
+
+    expect(
+      (await db.sessions.completedNewestFirst()).map((s) => s.id),
+      [newer.id, older.id],
+    );
+    expect((await db.sessions.lastCompleted())?.id, newer.id);
   });
 
   test('start throws when the day is not on the plan', () async {
