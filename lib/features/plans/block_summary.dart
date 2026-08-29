@@ -1,4 +1,5 @@
 import '../../data/models/workout_plan.dart';
+import 'exercise_media.dart';
 
 export 'exercise_media.dart';
 
