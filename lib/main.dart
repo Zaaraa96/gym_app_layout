@@ -16,6 +16,7 @@ import 'features/plans/plan_import_picker.dart';
 import 'features/plans/plan_page.dart';
 import 'features/plans/plans_home_page.dart';
 import 'features/plans/starter_plans_page.dart';
+import 'features/progress/session_log_page.dart';
 import 'features/welcome/welcome_page.dart';
 import 'features/workout/live_workout_page.dart';
 
@@ -96,6 +97,14 @@ class MyApp extends StatelessWidget {
         GetPage(
           name: AppRoutes.session,
           page: () => LiveWorkoutPage(sessionId: Get.arguments as int),
+        ),
+        GetPage(
+          name: AppRoutes.dayLog,
+          page: () => DayLogPage(day: Get.arguments as DateTime),
+        ),
+        GetPage(
+          name: AppRoutes.sessionLog,
+          page: () => SessionLogPage(sessionId: Get.arguments as int),
         ),
       ],
     );

@@ -12,6 +12,7 @@ import '../../data/models/workout_plan.dart';
 import '../../data/models/workout_session.dart';
 import '../../data/plan_repository.dart';
 import '../../data/session_repository.dart';
+import '../progress/month_tab.dart';
 import '../workout/start_workout.dart';
 import 'plan_import_flow.dart';
 import 'today_suggestion.dart';
@@ -96,7 +97,13 @@ class _PlansHomePageState extends State<PlansHomePage> {
       appbar: AppBar(
         title: AppText(_tab == 0 ? 'Plans' : 'Month', style: titleTextStyle),
       ),
-      body: _tab == 0 ? _plansTab() : const _MonthPlaceholder(),
+      body: IndexedStack(
+        index: _tab,
+        children: [
+          _plansTab(),
+          const MonthTab(),
+        ],
+      ),
       bottomNavigationBar: NavigationBar(
         selectedIndex: _tab,
         onDestinationSelected: (index) => setState(() => _tab = index),
@@ -253,21 +260,6 @@ class _PlansHomePageState extends State<PlansHomePage> {
       onTap: () => Get.toNamed(
         AppRoutes.plan,
         arguments: plan.id,
-      ),
-    );
-  }
-}
-
-class _MonthPlaceholder extends StatelessWidget {
-  const _MonthPlaceholder();
-
-  @override
-  Widget build(BuildContext context) {
-    return const Center(
-      child: AppText(
-        'The month calendar arrives with session logging.',
-        style: subtitleTextStyle,
-        textAlign: TextAlign.center,
       ),
     );
   }

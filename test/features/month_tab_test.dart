@@ -1,0 +1,291 @@
+import 'dart:io';
+
+import 'package:flutter/material.dart';
+import 'package:flutter_test/flutter_test.dart';
+import 'package:get/get.dart';
+import 'package:gym_app/common/app_routes.dart';
+import 'package:gym_app/data/isar_service.dart';
+import 'package:gym_app/data/models/models.dart';
+import 'package:gym_app/data/plan_repository.dart';
+import 'package:gym_app/data/session_repository.dart';
+import 'package:gym_app/features/progress/progress_format.dart';
+import 'package:gym_app/main.dart';
+
+import '../helpers/isar_core.dart';
+
+void main() {
+  Directory? tempDir;
+  var instanceSeq = 0;
+
+  setUpAll(() async {
+    await ensureIsarCore();
+    tempDir = await Directory.systemTemp.createTemp('gym_app_month_');
+  });
+
+  tearDown(() async {
+    if (Get.isRegistered<IsarService>()) {
+      await IsarService.to.close(deleteFromDisk: true);
+    }
+    Get.reset();
+  });
+
+  tearDownAll(() async {
+    final dir = tempDir;
+    if (dir != null && dir.existsSync()) {
+      await dir.delete(recursive: true);
+    }
+  });
+
+  Future<T> db<T>(WidgetTester tester, Future<T> Function() body) async =>
+      (await tester.runAsync(body)) as T;
+
+  Future<({PlanRepository plans, SessionRepository sessions})> bootstrap(
+    WidgetTester tester,
+  ) async {
+    await tester.pumpWidget(const SizedBox.shrink());
+    await tester.pump();
+
+    instanceSeq += 1;
+    final service = await db(
+      tester,
+      () => IsarService.init(
+        directory: tempDir!.path,
+        name: 'month$instanceSeq',
+      ),
+    );
+    Get.put<IsarService>(service, permanent: true);
+    return (
+      plans: putPlans(service.isar),
+      sessions: putSessions(service.isar),
+    );
+  }
+
+  Future<void> settle(WidgetTester tester) => settleApp(tester);
+
+  Future<void> launch(WidgetTester tester, String route) async {
+    await tester.pumpWidget(MyApp(initialRoute: route));
+    await tester.pump(const Duration(milliseconds: 100));
+    await settle(tester);
+  }
+
+  Future<void> openMonth(WidgetTester tester) async {
+    await tester.tap(find.byIcon(Icons.calendar_month_outlined));
+    await tester.pump(const Duration(milliseconds: 500));
+    await settle(tester);
+  }
+
+  DateTime thisMonth({int day = 15, int hour = 10}) {
+    final now = DateTime.now().toUtc();
+    return DateTime.utc(now.year, now.month, day, hour);
+  }
+
+  testWidgets('an empty month still shows the calendar', (tester) async {
+    final repos = await bootstrap(tester);
+    await db(tester, () => repos.plans.save(_plan()));
+
+    await launch(tester, AppRoutes.home);
+    await openMonth(tester);
+
+    expect(
+      find.text('The month calendar arrives with session logging.'),
+      findsNothing,
+    );
+    expect(find.text(formatMonthTitle(DateTime.now().toUtc())), findsOneWidget);
+    expect(find.byKey(const Key('month-calendar')), findsOneWidget);
+    expect(find.text('No workouts this month.'), findsOneWidget);
+  });
+
+  testWidgets('completed sessions get a dot, a trend row, and a session log',
+      (tester) async {
+    final repos = await bootstrap(tester);
+    final plan = _plan();
+    await db(tester, () => repos.plans.save(plan));
+    await db(
+      tester,
+      () => _complete(
+        repos.sessions,
+        plan: plan,
+        startedAt: thisMonth(day: 15),
+        weight: 40,
+        reps: 12,
+        difficulty: 4,
+      ),
+    );
+    await db(
+      tester,
+      () => _complete(
+        repos.sessions,
+        plan: plan,
+        startedAt: thisMonth(day: 20, hour: 9),
+        weight: 45,
+        reps: 12,
+        difficulty: 3,
+      ),
+    );
+
+    await launch(tester, AppRoutes.home);
+    await openMonth(tester);
+
+    expect(find.text('No workouts this month.'), findsNothing);
+    expect(find.byKey(const Key('month-dot-15')), findsOneWidget);
+    expect(find.byKey(const Key('month-dot-20')), findsOneWidget);
+    expect(find.text('kang squat'), findsOneWidget);
+    expect(find.text('45 kg  ·  +5 kg  ·  felt easier'), findsOneWidget);
+
+    await tester.tap(find.byKey(const Key('month-day-15')));
+    await tester.pump();
+    await settle(tester);
+
+    expect(find.text('day 1'), findsWidgets);
+    expect(find.text('Completed'), findsOneWidget);
+    expect(find.text('Set 1  40 kg × 12'), findsOneWidget);
+    expect(find.text('★4'), findsOneWidget);
+  });
+
+  testWidgets('several sessions on one day list oldest first', (tester) async {
+    final repos = await bootstrap(tester);
+    final plan = _plan(dayCount: 2);
+    await db(tester, () => repos.plans.save(plan));
+    final morning = await db(
+      tester,
+      () => _complete(
+        repos.sessions,
+        plan: plan,
+        startedAt: thisMonth(day: 15, hour: 7),
+        weight: 40,
+        reps: 8,
+      ),
+    );
+    final evening = await db(
+      tester,
+      () => _complete(
+        repos.sessions,
+        plan: plan,
+        dayId: 'day-2',
+        startedAt: thisMonth(day: 15, hour: 18),
+        weight: 50,
+        reps: 10,
+      ),
+    );
+
+    await launch(tester, AppRoutes.home);
+    await openMonth(tester);
+
+    await tester.tap(find.byKey(const Key('month-day-15')));
+    await tester.pump();
+    await settle(tester);
+
+    expect(find.byKey(const Key('day-log-list')), findsOneWidget);
+    final first = tester.getTopLeft(
+      find.byKey(Key('day-log-session-${morning.id}')),
+    );
+    final second = tester.getTopLeft(
+      find.byKey(Key('day-log-session-${evening.id}')),
+    );
+    expect(first.dy, lessThan(second.dy));
+
+    await tester.tap(find.byKey(Key('day-log-session-${evening.id}')));
+    await tester.pump();
+    await settle(tester);
+
+    expect(find.text('day 2'), findsWidgets);
+    expect(find.text('Set 1  50 kg × 10'), findsOneWidget);
+  });
+
+  testWidgets('abandoned sessions do not appear and next month is empty',
+      (tester) async {
+    final repos = await bootstrap(tester);
+    final plan = _plan();
+    await db(tester, () => repos.plans.save(plan));
+    await db(tester, () async {
+      final session = await repos.sessions.start(
+        plan: plan,
+        planDayId: 'day-1',
+        startedAt: thisMonth(day: 12),
+      );
+      session.status = SessionStatus.abandoned;
+      session.endedAt = thisMonth(day: 12, hour: 11);
+      await repos.sessions.save(session);
+    });
+
+    await launch(tester, AppRoutes.home);
+    await openMonth(tester);
+
+    expect(find.byKey(const Key('month-dot-12')), findsNothing);
+    expect(find.text('No workouts this month.'), findsOneWidget);
+
+    await tester.tap(find.byKey(const Key('month-next')));
+    await tester.pump();
+    await settle(tester);
+
+    final next = DateTime.utc(
+      DateTime.now().toUtc().year,
+      DateTime.now().toUtc().month + 1,
+    );
+    expect(find.text(formatMonthTitle(next)), findsOneWidget);
+    expect(find.text('No workouts this month.'), findsOneWidget);
+  });
+}
+
+WorkoutPlan _plan({int dayCount = 1}) {
+  final now = DateTime.utc(2026, 8, 1);
+  return WorkoutPlan.create(
+    title: 'plan 1',
+    source: PlanSource.imported,
+    createdAt: now,
+    updatedAt: now,
+    days: List.generate(
+      dayCount,
+      (index) => PlanDay.create(
+        dayId: 'day-${index + 1}',
+        title: 'day ${index + 1}',
+        blocks: [
+          ExerciseBlock.create(
+            blockId: 'block-${index + 1}',
+            kind: BlockKind.single,
+            exercises: [
+              ExercisePrescription.create(
+                prescriptionId: 'p-${index + 1}',
+                title: 'kang squat',
+                prescribedSets: 3,
+                prescribedReps: 12,
+              ),
+            ],
+          ),
+        ],
+      ),
+    ),
+  );
+}
+
+Future<WorkoutSession> _complete(
+  SessionRepository sessions, {
+  required WorkoutPlan plan,
+  required DateTime startedAt,
+  required double weight,
+  required int reps,
+  String dayId = 'day-1',
+  int? difficulty,
+}) async {
+  final session = await sessions.start(
+    plan: plan,
+    planDayId: dayId,
+    startedAt: startedAt,
+  );
+  final log = session.exerciseLogs.first;
+  log.sets = [
+    SetLog.create(
+      setIndex: 1,
+      completedAt: startedAt,
+      reps: reps,
+      weightKg: weight,
+    ),
+  ];
+  log.difficulty = difficulty;
+  log.completedAt = difficulty == null ? null : startedAt;
+  session.exerciseLogs = [log];
+  session.status = SessionStatus.completed;
+  session.endedAt = startedAt;
+  await sessions.save(session);
+  return session;
+}
