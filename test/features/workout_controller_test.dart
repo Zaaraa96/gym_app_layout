@@ -126,6 +126,7 @@ void main() {
 
     await c.rate(4);
     expect(c.session!.exerciseLogs.single.isComplete, isTrue);
+    expect(c.session!.status, SessionStatus.completed);
     expect(c.activeLog, isNull);
     expect(c.canLogSet(c.session!.exerciseLogs.single), isFalse);
   });

@@ -15,7 +15,9 @@ import 'features/plans/exercise_media_picker_sheet.dart';
 import 'features/plans/plan_import_picker.dart';
 import 'features/plans/plan_page.dart';
 import 'features/plans/plans_home_page.dart';
+import 'features/plans/starter_plans_page.dart';
 import 'features/welcome/welcome_page.dart';
+import 'features/workout/live_workout_page.dart';
 
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -54,6 +56,7 @@ class MyApp extends StatelessWidget {
       getPages: [
         GetPage(name: AppRoutes.welcome, page: () => const WelcomePage()),
         GetPage(name: AppRoutes.home, page: () => const PlansHomePage()),
+        GetPage(name: AppRoutes.starters, page: () => const StarterPlansPage()),
         GetPage(
           name: AppRoutes.import,
           page: () {
@@ -89,6 +92,10 @@ class MyApp extends StatelessWidget {
               sectionId: args.sectionId,
             );
           },
+        ),
+        GetPage(
+          name: AppRoutes.session,
+          page: () => LiveWorkoutPage(sessionId: Get.arguments as int),
         ),
       ],
     );

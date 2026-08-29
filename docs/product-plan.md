@@ -228,6 +228,7 @@ Skip Welcome whenever `WorkoutPlan` count > 0. No extra local flag.
 
 ```
 Welcome (plan count == 0)
+  ├─ Beginner plan → pick template → save → Home (Today card)
   ├─ Import JSON → preview → save → Plan preview
   ├─ Create plan → title form → Plan preview
   └─ (returning) → Home shell
@@ -235,6 +236,7 @@ Welcome (plan count == 0)
 Home shell
   ├─ Plans tab
   │     ├─ Continue banner → Live workout (resume)
+  │     ├─ Today card → Start → (sheet if commons) → Live workout
   │     ├─ Plan preview (photo day cards)
   │     │     ├─ Rename / delete plan
   │     │     ├─ Add / delete day
@@ -266,7 +268,8 @@ Starting while another session is `inProgress`:
 
 | Screen | Purpose | Reuse |
 | --- | --- | --- |
-| Welcome | First-run fork: import or create | `welcome_page.dart` |
+| Welcome | First-run fork: beginner template, import, or create | `welcome_page.dart` |
+| Starter plans | Pick a bundled beginner program | `starter_plans_page.dart` |
 | Plans home | List plans; continue session; Import / New; Month tab placeholder until slice 9 | `plans_home_page.dart` |
 | Import preview | Show parsed days/blocks; confirm save | `import_preview_page.dart` |
 | Plan preview | Photo day cards; rename; add/delete days; common-section chips | `plan_page.dart` (photo cards; collapsing sliver is optional) |
@@ -286,9 +289,9 @@ There is **no** all-in-one “plan editor” screen. Plan-level actions live on 
 
 ### Wireframes (layout, not pixels)
 
-**Welcome.** Centered Lottie, title, subtitle, two full-width actions: Import a plan | Create a plan. Returning users never see this once any plan exists.
+**Welcome.** Centered Lottie, title, subtitle, three full-width actions: Start with a beginner plan | Import a plan | Create a plan. Returning users never see this once any plan exists.
 
-**Plans home.** App bar “Plans” (or “Month” on that tab). Continue banner above the body when `inProgress` exists. List of plan titles + day count. Bottom row: Import | New. Bottom nav: Plans, Month.
+**Plans home.** App bar “Plans” (or “Month” on that tab). Continue banner above the body when `inProgress` exists. **Today** card with the next plan day and a Start CTA. List of plan titles + day count. Bottom row: Import | New. Bottom nav: Plans, Month.
 
 **Import preview.** File name, plan title, expandable days (block summaries: `3×12 kang squat + leg extension`). Common sections listed as chips. Primary: Save plan. Secondary: Cancel.
 
@@ -422,7 +425,7 @@ lib/
     progress/        # month, session log
 ```
 
-Routes (names can shift slightly at implementation): `/`, `/home`, `/import`, `/new-plan`, `/plan`, `/day`, `/edit-day`, `/session`. Month is a tab on `/home`, not its own route. Live workout is `/session`.
+Routes (names can shift slightly at implementation): `/`, `/home`, `/starters`, `/import`, `/new-plan`, `/plan`, `/day`, `/edit-day`, `/session`. Month is a tab on `/home`, not its own route. Live workout is `/session`.
 
 ---
 
@@ -434,7 +437,7 @@ Build in this order. Each slice should be runnable. Do not start a later slice u
    Schemas, `IsarService` in `main`, codegen. No UI change except the app still launches.
 
 2. **Empty home + welcome fork**  
-   If no plans → Welcome with Import / Create. If plans exist → Plans home list (empty actions still visible). Remove hardcoded `/plan` demo as the launch route.
+   If no plans → Welcome with **Start with a beginner plan** / Import / Create. If plans exist → Plans home list (empty actions still visible). Remove hardcoded `/plan` demo as the launch route.
 
 3. **JSON import**  
    File picker, parse, preview, save `WorkoutPlan`. Ship a valid sample (fix `assets/json/plan.json`). Open Plan preview from the saved plan.
@@ -449,7 +452,7 @@ Build in this order. Each slice should be runnable. Do not start a later slice u
    Skip the sheet when there are no common sections; otherwise switches default **off**. Copy `ExerciseLog`s (day blocks, then enabled commons). Create `inProgress`. Continue banner on the home shell. Same-day resume vs abandon-and-start dialog.
 
 7. **Live logger**  
-   Active exercise, log set (weight+reps or duration timer), rest stopwatch, persist each set. Superset **alternates** sets (A1, B1, A2, …) with both lines visible.
+   Active exercise, log set (weight+reps or duration timer), rest stopwatch, persist each set. Superset **alternates** sets (A1, B1, A2, …) with both lines visible. Copy: “Log what you did on this set.” Reps are prefilled from the prescription; weight may be empty (bodyweight).
 
 8. **Per-exercise 1–5**  
    After the block’s prescribed sets, show inline 1–5 on each unrated log. Extra sets allowed until that log is rated. All logs rated → `completed`. End → Finish (`completed`, partial OK) or Discard (`abandoned`).
@@ -460,4 +463,12 @@ Build in this order. Each slice should be runnable. Do not start a later slice u
 10. **Harden**  
     Resume after kill, one in-progress session rule, invalid JSON error, analyze/lints, replace counter test with a shallow widget test that does not need a device file picker.
 
-Slice 10 is the last v1 planning slice. Photos, cloud, auto rest, and target weight stay later.
+### Workout-first additions (locked with slices 6–8)
+
+The first useful session should not require JSON or a blank plan editor.
+
+- **Beginner defaults.** Bundled programs in `assets/json/beginner-full-body.json` (3 days + abs/mobility) and `beginner-two-day.json` (A/B, no commons). Welcome’s primary button opens `/starters`. One tap writes a real `WorkoutPlan` (`PlanSource.imported`) and lands on home. Installing the same title twice reuses the stored plan.
+- **Today card.** Home recommends the next day on the newest startable plan. No history → day 1. After a completed session → the next startable day, wrapping around. If they already completed a session **today**, the card is “Next up” for the following day instead of repeating the same one. The prompt names the first exercise and asks them to log what they did.
+- **Start from Today.** Same start flow as day preview (commons sheet, in-progress conflict, live logger). No need to open the plan first.
+
+Still later: slice 9 month overview, slice 10 harden. Photos, cloud, auto rest, and target weight stay later.

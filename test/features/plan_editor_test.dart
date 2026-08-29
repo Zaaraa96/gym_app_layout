@@ -54,15 +54,12 @@ void main() {
       ),
     );
     Get.put<IsarService>(service, permanent: true);
-    Get.put<PlanRepository>(
-      PlanRepository(service.isar),
-      permanent: true,
-    );
+    putSessions(service.isar);
     Get.put<ExerciseGalleryPicker>(
       FakeExerciseGalleryPicker(),
       permanent: true,
     );
-    return Get.find<PlanRepository>();
+    return putPlans(service.isar);
   }
 
   Future<void> settle(WidgetTester tester) => settleApp(tester);

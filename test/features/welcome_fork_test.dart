@@ -60,12 +60,8 @@ void main() {
       ),
     );
     Get.put<IsarService>(service, permanent: true);
-    // Explicit type argument: inside a `return`, inference would register the
-    // instance under `FutureOr<PlanRepository>` and Get.find would miss it.
-    return Get.put<PlanRepository>(
-      PlanRepository(service.isar),
-      permanent: true,
-    );
+    putSessions(service.isar);
+    return putPlans(service.isar);
   }
 
   Future<void> settle(WidgetTester tester) => settleApp(tester);
@@ -86,12 +82,25 @@ void main() {
 
     await launch(tester, AppRoutes.welcome);
 
+    expect(find.text('Start with a beginner plan'), findsOneWidget);
     expect(find.text('Import a plan'), findsOneWidget);
     expect(find.text('Create a plan'), findsOneWidget);
 
     await tester.tap(find.text('Create a plan'));
     await tester.pump(const Duration(milliseconds: 500));
     expect(Get.currentRoute, AppRoutes.newPlan);
+  });
+
+  testWidgets('the beginner CTA opens the starter picker', (tester) async {
+    await bootstrap(tester);
+    await launch(tester, AppRoutes.welcome);
+
+    await tester.tap(find.text('Start with a beginner plan'));
+    await tester.pump();
+    await settle(tester);
+    expect(Get.currentRoute, AppRoutes.starters);
+    expect(find.text('Beginner full body'), findsOneWidget);
+    expect(find.text('Beginner 2-day'), findsOneWidget);
   });
 
   testWidgets('a stored plan sends the app to the plans home', (tester) async {
@@ -105,6 +114,12 @@ void main() {
     expect(find.text('Plans'), findsWidgets);
     expect(find.text('plan 1'), findsOneWidget);
     expect(find.text('3 days'), findsOneWidget);
+    expect(find.byKey(const Key('today-card')), findsOneWidget);
+    expect(find.text('Today: day 1'), findsOneWidget);
+    expect(
+      find.text('Start with kang squat, then log what you did.'),
+      findsOneWidget,
+    );
     expect(find.text('Import'), findsOneWidget);
     expect(find.text('New'), findsOneWidget);
     expect(find.text('Import a plan'), findsNothing);
@@ -133,9 +148,12 @@ void main() {
     await launch(tester, AppRoutes.home);
 
     expect(
-      find.text('No plans yet. Import one or create your first.'),
+      find.text(
+        'No plans yet. Start with a beginner template, import one, or create your first.',
+      ),
       findsOneWidget,
     );
+    expect(find.text('Start with a beginner plan'), findsOneWidget);
     expect(find.text('Import'), findsOneWidget);
 
     await tester.tap(find.text('New'));

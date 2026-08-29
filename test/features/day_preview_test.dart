@@ -52,10 +52,8 @@ void main() {
       ),
     );
     Get.put<IsarService>(service, permanent: true);
-    return Get.put<PlanRepository>(
-      PlanRepository(service.isar),
-      permanent: true,
-    );
+    putSessions(service.isar);
+    return putPlans(service.isar);
   }
 
   Future<void> settle(WidgetTester tester) => settleApp(tester);
@@ -178,7 +176,17 @@ void main() {
 
     await tester.tap(find.text('Start workout'));
     await tester.pump();
-    expect(find.text('Starting a workout comes next'), findsWidgets);
+    await settle(tester);
+    expect(find.text('Include today'), findsOneWidget);
+    expect(find.text('abs'), findsOneWidget);
+
+    await tester.tap(find.byKey(const Key('confirm-include')));
+    await tester.pump();
+    await settle(tester);
+
+    expect(find.text('kang squat'), findsWidgets);
+    expect(find.text('Log what you did on this set.'), findsOneWidget);
+    expect(find.text('Log set'), findsOneWidget);
   });
 
   testWidgets('Start is disabled when the day is empty and there are no commons',
