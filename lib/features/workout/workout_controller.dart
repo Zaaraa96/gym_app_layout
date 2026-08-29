@@ -92,8 +92,16 @@ class WorkoutController extends GetxController {
   bool get inExtrasPhase =>
       currentBlockId != null && !isPrescribedPhase && isLive;
 
+  bool get allLogsRated {
+    final session = _session;
+    if (session == null || session.exerciseLogs.isEmpty) return false;
+    return session.exerciseLogs.every((log) => log.difficulty != null);
+  }
+
   /// 1-based set index shown in the live header for the active exercise.
   int get headerSetIndex => (activeLog?.sets.length ?? 0) + 1;
+
+  int get headerPrescribedSets => activeLog?.prescribedSets ?? 0;
 
   Future<void> load() async {
     _session = await _sessions.byId(sessionId);
@@ -191,6 +199,9 @@ class WorkoutController extends GetxController {
     _selectInitialActive();
     _syncDurationForActive();
     await _persist();
+    if (allLogsRated && isLive) {
+      await finish();
+    }
   }
 
   Future<void> finish() async {

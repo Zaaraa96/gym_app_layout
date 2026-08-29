@@ -180,6 +180,42 @@ void main() {
     final day = await db.sessions.forCalendarDay(DateTime.utc(2026, 8, 15));
     expect(day.map((s) => s.id), [earlier.id, later.id]);
   });
+
+  test('lastCompleted is the newest completed session for that plan', () async {
+    final db = await open();
+    final plan = _plan();
+    await db.plans.save(plan);
+
+    final first = await db.sessions.start(
+      plan: plan,
+      planDayId: 'day-1',
+      startedAt: DateTime.utc(2026, 8, 10, 8),
+    );
+    first.status = SessionStatus.completed;
+    first.endedAt = DateTime.utc(2026, 8, 10, 9);
+    await db.sessions.save(first);
+
+    final second = await db.sessions.start(
+      plan: plan,
+      planDayId: 'day-1',
+      startedAt: DateTime.utc(2026, 8, 12, 8),
+    );
+    second.status = SessionStatus.completed;
+    second.endedAt = DateTime.utc(2026, 8, 12, 9);
+    await db.sessions.save(second);
+
+    await db.sessions.start(
+      plan: plan,
+      planDayId: 'day-1',
+      startedAt: DateTime.utc(2026, 8, 13, 8),
+    );
+
+    expect((await db.sessions.lastCompleted(planId: plan.id))?.id, second.id);
+    expect(
+      (await db.sessions.completedNewestFirst(planId: plan.id)).map((s) => s.id),
+      [second.id, first.id],
+    );
+  });
 }
 
 WorkoutPlan _plan() {

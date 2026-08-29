@@ -1,0 +1,183 @@
+{
+  "name": "Beginner full body",
+  "days": 3,
+  "basic-plan": [
+    {
+      "name": "Day 1 — Squat and push",
+      "exercises": [
+        {
+          "type": "single",
+          "exercise": {
+            "title": "Bodyweight squat",
+            "sets": 3,
+            "times": 10,
+            "duration": null
+          }
+        },
+        {
+          "type": "single",
+          "exercise": {
+            "title": "Knee or wall push-up",
+            "sets": 3,
+            "times": 8,
+            "duration": null
+          }
+        },
+        {
+          "type": "super-set",
+          "exercise": [
+            {
+              "title": "Glute bridge",
+              "sets": 3,
+              "times": 10,
+              "duration": null
+            },
+            {
+              "title": "Bird dog",
+              "sets": 3,
+              "times": 8,
+              "duration": null
+            }
+          ]
+        },
+        {
+          "type": "single",
+          "exercise": {
+            "title": "Plank",
+            "sets": 2,
+            "times": null,
+            "duration": 20
+          }
+        }
+      ]
+    },
+    {
+      "name": "Day 2 — Hinge and pull",
+      "exercises": [
+        {
+          "type": "single",
+          "exercise": {
+            "title": "Hip hinge",
+            "sets": 3,
+            "times": 10,
+            "duration": null
+          }
+        },
+        {
+          "type": "single",
+          "exercise": {
+            "title": "Backpack or band row",
+            "sets": 3,
+            "times": 10,
+            "duration": null
+          }
+        },
+        {
+          "type": "super-set",
+          "exercise": [
+            {
+              "title": "Reverse lunge",
+              "sets": 3,
+              "times": 8,
+              "duration": null
+            },
+            {
+              "title": "Band pull-apart",
+              "sets": 3,
+              "times": 12,
+              "duration": null
+            }
+          ]
+        },
+        {
+          "type": "single",
+          "exercise": {
+            "title": "Side plank",
+            "sets": 2,
+            "times": null,
+            "duration": 15
+          }
+        }
+      ]
+    },
+    {
+      "name": "Day 3 — Lunge and core",
+      "exercises": [
+        {
+          "type": "single",
+          "exercise": {
+            "title": "Sit to stand",
+            "sets": 3,
+            "times": 12,
+            "duration": null
+          }
+        },
+        {
+          "type": "single",
+          "exercise": {
+            "title": "Incline push-up",
+            "sets": 3,
+            "times": 8,
+            "duration": null
+          }
+        },
+        {
+          "type": "super-set",
+          "exercise": [
+            {
+              "title": "Step-up",
+              "sets": 3,
+              "times": 8,
+              "duration": null
+            },
+            {
+              "title": "Dead bug",
+              "sets": 3,
+              "times": 8,
+              "duration": null
+            }
+          ]
+        },
+        {
+          "type": "single",
+          "exercise": {
+            "title": "Hollow hold",
+            "sets": 2,
+            "times": null,
+            "duration": 15
+          }
+        }
+      ]
+    }
+  ],
+  "common-plan": [
+    {
+      "name": "abs",
+      "exercises": [
+        {
+          "type": "single",
+          "exercise": {
+            "title": "Curl-up",
+            "sets": 2,
+            "times": 8,
+            "duration": null
+          }
+        }
+      ]
+    },
+    {
+      "name": "mobility",
+      "exercises": [
+        {
+          "type": "single",
+          "exercise": {
+            "title": "World's greatest stretch",
+            "sets": 2,
+            "times": null,
+            "duration": 30
+          }
+        }
+      ]
+    }
+  ]
+}

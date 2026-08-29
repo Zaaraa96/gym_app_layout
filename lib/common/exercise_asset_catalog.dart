@@ -130,6 +130,24 @@ ExerciseAssetEntry? matchExerciseAsset(String? title) {
   return best;
 }
 
+ExerciseAssetEntry? bundledAssetByPath(String? path) {
+  if (path == null || path.trim().isEmpty) return null;
+  for (final entry in bundledExerciseAssets) {
+    if (entry.assetPath == path || entry.gifPath == path) return entry;
+  }
+  return null;
+}
+
+ExerciseAssetEntry? bestAssetMatchForTitle(String title) =>
+    matchExerciseAsset(title);
+
+List<ExerciseAssetEntry> suggestedAssetsForTitle(String title) {
+  final match = bestAssetMatchForTitle(title);
+  if (match == null) return bundledExerciseAssets;
+  final rest = bundledExerciseAssets.where((entry) => entry.id != match.id);
+  return [match, ...rest];
+}
+
 int _score(String haystack, ExerciseAssetEntry asset) {
   final padded = ' $haystack ';
   final phrase = asset.phrase;

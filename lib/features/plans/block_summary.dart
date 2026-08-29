@@ -1,15 +1,9 @@
 import '../../data/models/workout_plan.dart';
-import '../../common/exercise_asset_catalog.dart';
 
-/// Fallback icon when no bundled exercise matches the block.
-const defaultBlockSvg = 'assets/image/upper-body.svg';
+export 'exercise_media.dart';
 
-String blockSvgPath(ExerciseBlock block) {
-  final stored = block.svgPath?.trim();
-  if (stored != null && stored.isNotEmpty) return stored;
-  final title = block.exercises.isEmpty ? null : block.exercises.first.title;
-  return matchExerciseAsset(title)?.assetPath ?? defaultBlockSvg;
-}
+/// Resolved preview path for a block (bundled still, gallery, or fallback SVG).
+String blockSvgPath(ExerciseBlock block) => resolveBlockMedia(block).uri;
 
 /// Sets badge for a block. Prescriptions in one block share the set count.
 int blockSetCount(ExerciseBlock block) =>

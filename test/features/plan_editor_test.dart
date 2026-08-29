@@ -8,8 +8,10 @@ import 'package:gym_app/data/isar_service.dart';
 import 'package:gym_app/data/models/models.dart';
 import 'package:gym_app/data/plan_repository.dart';
 import 'package:gym_app/features/plans/day_editor_page.dart';
+import 'package:gym_app/features/plans/exercise_media_picker.dart';
 import 'package:gym_app/main.dart';
 
+import '../helpers/fake_exercise_gallery_picker.dart';
 import '../helpers/isar_core.dart';
 
 /// A stored plan can be opened, given more days, and filled with exercises.
@@ -52,10 +54,12 @@ void main() {
       ),
     );
     Get.put<IsarService>(service, permanent: true);
-    return Get.put<PlanRepository>(
-      PlanRepository(service.isar),
+    putSessions(service.isar);
+    Get.put<ExerciseGalleryPicker>(
+      FakeExerciseGalleryPicker(),
       permanent: true,
     );
+    return putPlans(service.isar);
   }
 
   Future<void> settle(WidgetTester tester) => settleApp(tester);
@@ -200,6 +204,46 @@ void main() {
     expect(day.blocks.last.exercises.single.prescribedDurationSeconds, 45);
     expect(day.blocks.last.svgPath, 'assets/image/exercises/plank.png');
     expect(day.blocks.last.kind, BlockKind.single);
+    expect(day.blocks.last.mediaUri, 'assets/image/exercises/plank.png');
+  });
+
+  testWidgets('exercise dialog can pick a bundled preview asset', (tester) async {
+    final plans = await bootstrap(tester);
+    await db(tester, () => plans.save(samplePlan()));
+    await launch(tester, AppRoutes.home);
+
+    await tester.tap(find.text('Push week'));
+    await tester.pump();
+    await settle(tester);
+    await tester.tap(find.byKey(const Key('day-card-day-1')));
+    await tester.pump();
+    await settle(tester);
+    await tester.tap(find.text('Edit day'));
+    await tester.pump();
+    await settle(tester);
+
+    await tester.tap(find.text('Add exercise'));
+    await tester.pump();
+    await tester.tap(find.byKey(const Key('exercise-media-picker')));
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('Deadlift'));
+    await tester.pumpAndSettle();
+
+    await tester.enterText(
+      find.descendant(
+        of: find.byType(AlertDialog),
+        matching: find.byType(TextFormField),
+      ).first,
+      'heavy deadlift',
+    );
+    await tester.tap(find.text('Save exercise'));
+    await tester.pump();
+    await settle(tester);
+
+    final stored = await db(tester, plans.all);
+    final block = stored.single.days.single.blocks.single;
+    expect(block.mediaUri, 'assets/image/exercises/deadlift.png');
+    expect(block.mediaSource, ExerciseMediaSource.asset);
   });
 
   testWidgets('a plan can be renamed and a day can be deleted', (tester) async {

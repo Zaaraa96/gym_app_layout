@@ -1,9 +1,9 @@
 import 'package:flutter/material.dart';
-import 'package:flutter_svg/svg.dart';
 
 import '../../common/widgets/app_text.dart';
 import '../../data/models/models.dart';
 import 'block_summary.dart';
+import 'exercise_media_thumbnail.dart';
 
 /// Alternating day-preview row: icon, names × reps or duration, set badge.
 class ExerciseBlockRow extends StatelessWidget {
@@ -31,7 +31,7 @@ class ExerciseBlockRow extends StatelessWidget {
         ),
         child: Row(
           children: [
-            _ExerciseIcon(path: blockSvgPath(block), size: 48),
+            ExerciseMediaThumbnail(block: block, size: 48),
             const SizedBox(width: 12),
             Expanded(
               child: Column(
@@ -90,33 +90,6 @@ class _SetBadge extends StatelessWidget {
           style: titleTextStyle.copyWith(fontWeight: FontWeight.w700),
         ),
       ),
-    );
-  }
-}
-
-class _ExerciseIcon extends StatelessWidget {
-  const _ExerciseIcon({required this.path, required this.size});
-
-  final String path;
-  final double size;
-
-  @override
-  Widget build(BuildContext context) {
-    if (path.toLowerCase().endsWith('.svg')) {
-      return SvgPicture.asset(
-        path,
-        width: size,
-        height: size,
-        placeholderBuilder: (_) => SizedBox(width: size, height: size),
-      );
-    }
-    return Image.asset(
-      path,
-      width: size,
-      height: size,
-      fit: BoxFit.contain,
-      gaplessPlayback: true,
-      filterQuality: FilterQuality.medium,
     );
   }
 }

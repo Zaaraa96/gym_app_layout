@@ -10,10 +10,14 @@ import 'features/plans/add_plan_page.dart';
 import 'features/plans/day_editor_page.dart';
 import 'features/plans/day_preview_page.dart';
 import 'features/plans/import_preview_page.dart';
+import 'features/plans/exercise_media_picker.dart';
+import 'features/plans/exercise_media_picker_sheet.dart';
 import 'features/plans/plan_import_picker.dart';
 import 'features/plans/plan_page.dart';
 import 'features/plans/plans_home_page.dart';
+import 'features/plans/starter_plans_page.dart';
 import 'features/welcome/welcome_page.dart';
+import 'features/workout/live_workout_page.dart';
 
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -21,6 +25,7 @@ Future<void> main() async {
   final plans = Get.put(PlanRepository(isarService.isar));
   Get.put(SessionRepository(isarService.isar));
   Get.put<PlanImportPicker>(FilePickerPlanImportPicker());
+  Get.put<ExerciseGalleryPicker>(ImagePickerExerciseGalleryPicker());
   runApp(MyApp(initialRoute: await resolveInitialRoute(plans)));
 }
 
@@ -39,9 +44,19 @@ class MyApp extends StatelessWidget {
       title: 'My Awesome Gym App',
       theme: appTheme,
       initialRoute: initialRoute,
+      builder: (context, child) {
+        final galleryPicker = Get.isRegistered<ExerciseGalleryPicker>()
+            ? Get.find<ExerciseGalleryPicker>()
+            : ImagePickerExerciseGalleryPicker();
+        return ExerciseGalleryPickerScope(
+          picker: galleryPicker,
+          child: child ?? const SizedBox.shrink(),
+        );
+      },
       getPages: [
         GetPage(name: AppRoutes.welcome, page: () => const WelcomePage()),
         GetPage(name: AppRoutes.home, page: () => const PlansHomePage()),
+        GetPage(name: AppRoutes.starters, page: () => const StarterPlansPage()),
         GetPage(
           name: AppRoutes.import,
           page: () {
@@ -77,6 +92,10 @@ class MyApp extends StatelessWidget {
               sectionId: args.sectionId,
             );
           },
+        ),
+        GetPage(
+          name: AppRoutes.session,
+          page: () => LiveWorkoutPage(sessionId: Get.arguments as int),
         ),
       ],
     );
