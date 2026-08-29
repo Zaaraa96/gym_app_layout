@@ -74,7 +74,7 @@ void main() {
     await settle(tester);
   }
 
-  DateTime _thisMonth({int day = 15, int hour = 10}) {
+  DateTime thisMonth({int day = 15, int hour = 10}) {
     final now = DateTime.now().toUtc();
     return DateTime.utc(now.year, now.month, day, hour);
   }
@@ -105,7 +105,7 @@ void main() {
       () => _complete(
         repos.sessions,
         plan: plan,
-        startedAt: _thisMonth(day: 15),
+        startedAt: thisMonth(day: 15),
         weight: 40,
         reps: 12,
         difficulty: 4,
@@ -116,7 +116,7 @@ void main() {
       () => _complete(
         repos.sessions,
         plan: plan,
-        startedAt: _thisMonth(day: 20, hour: 9),
+        startedAt: thisMonth(day: 20, hour: 9),
         weight: 45,
         reps: 12,
         difficulty: 3,
@@ -151,7 +151,7 @@ void main() {
       () => _complete(
         repos.sessions,
         plan: plan,
-        startedAt: _thisMonth(day: 15, hour: 7),
+        startedAt: thisMonth(day: 15, hour: 7),
         weight: 40,
         reps: 8,
       ),
@@ -162,7 +162,7 @@ void main() {
         repos.sessions,
         plan: plan,
         dayId: 'day-2',
-        startedAt: _thisMonth(day: 15, hour: 18),
+        startedAt: thisMonth(day: 15, hour: 18),
         weight: 50,
         reps: 10,
       ),
@@ -201,10 +201,10 @@ void main() {
       final session = await repos.sessions.start(
         plan: plan,
         planDayId: 'day-1',
-        startedAt: _thisMonth(day: 12),
+        startedAt: thisMonth(day: 12),
       );
       session.status = SessionStatus.abandoned;
-      session.endedAt = _thisMonth(day: 12, hour: 11);
+      session.endedAt = thisMonth(day: 12, hour: 11);
       await repos.sessions.save(session);
     });
 
