@@ -256,12 +256,12 @@ void main() {
       await c.logSet(reps: 12);
     }
     expect(c.inExtrasPhase, isTrue);
-    expect(c.activeLog?.exerciseTitle, 'kang squat');
-
-    await c.logSet(reps: 6, log: c.session!.exerciseLogs[1]);
-    expect(c.session!.exerciseLogs[1].sets, hasLength(4));
-    expect(c.session!.exerciseLogs[1].sets.last.reps, 6);
     expect(c.activeLog?.exerciseTitle, 'leg extension');
+
+    await c.logSet(reps: 6, log: c.session!.exerciseLogs[0]);
+    expect(c.session!.exerciseLogs[0].sets, hasLength(4));
+    expect(c.session!.exerciseLogs[0].sets.last.reps, 6);
+    expect(c.activeLog?.exerciseTitle, 'kang squat');
 
     await expectLater(
       c.logSet(reps: 5, log: c.session!.exerciseLogs[2]),

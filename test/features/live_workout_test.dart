@@ -216,8 +216,11 @@ void main() {
     await tester.tap(find.text('Log set'));
     await tester.pump();
     await settle(tester);
+    await settle(tester);
 
-    await tester.tap(find.byKey(const Key('end-workout')));
+    final end = find.byKey(const Key('end-workout'));
+    await tester.ensureVisible(end);
+    await tester.tap(end);
     await tester.pump();
     await settle(tester);
     final finish = find.byKey(const Key('finish-workout'));
@@ -247,8 +250,11 @@ void main() {
     await tester.tap(find.text("Start today's workout"));
     await tester.pump();
     await settle(tester);
+    await settle(tester);
 
-    await tester.tap(find.byKey(const Key('end-workout')));
+    final end = find.byKey(const Key('end-workout'));
+    await tester.ensureVisible(end);
+    await tester.tap(end);
     await tester.pump();
     await settle(tester);
     final discard = find.byKey(const Key('discard-workout'));
