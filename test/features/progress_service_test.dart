@@ -179,6 +179,68 @@ void main() {
     expect(progress.exercises.single.firstValue, 35);
     expect(progress.exercises.single.lastValue, 40);
   });
+
+  test('same title in one session rolls up, and weight beats duration', () {
+    final progress = service.fold(
+      month: DateTime.utc(2026, 8),
+      sessions: [
+        _session(
+          id: 1,
+          startedAt: DateTime.utc(2026, 8, 10),
+          logs: [
+            _repLog(
+              title: 'plank',
+              reps: [1],
+              weight: 10,
+              prescribedSets: 1,
+            ),
+            ExerciseLog.create(
+              prescriptionId: 'p-plank-hold',
+              blockId: 'block-hold',
+              blockKind: BlockKind.single,
+              fromCommonSection: true,
+              exerciseTitle: 'Plank',
+              exerciseTitleKey: 'plank',
+              prescribedSets: 1,
+              prescribedDurationSeconds: 30,
+              sets: [
+                SetLog.create(
+                  setIndex: 1,
+                  completedAt: DateTime.utc(2026, 8, 10),
+                  durationSeconds: 45,
+                ),
+              ],
+            ),
+          ],
+        ),
+      ],
+    );
+    final row = progress.exercises.single;
+    expect(row.metric, ProgressMetricKind.weight);
+    expect(row.lastValue, 10);
+    expect(row.sessions.single.completedSets, 2);
+    expect(row.sessions.single.prescribedSets, 2);
+  });
+
+  test('felt easier stays off when a rating is missing', () {
+    final progress = service.fold(
+      month: DateTime.utc(2026, 8),
+      sessions: [
+        _session(
+          id: 1,
+          startedAt: DateTime.utc(2026, 8, 2),
+          logs: [_repLog(title: 'squat', reps: [8], weight: 40, difficulty: 4)],
+        ),
+        _session(
+          id: 2,
+          startedAt: DateTime.utc(2026, 8, 20),
+          logs: [_repLog(title: 'squat', reps: [8], weight: 40)],
+        ),
+      ],
+    );
+    expect(progress.exercises.single.feltEasier, isFalse);
+    expect(progress.exercises.single.delta, 0);
+  });
 }
 
 WorkoutSession _session({

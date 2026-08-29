@@ -249,6 +249,23 @@ void main() {
     await expectLater(c.logTime(), throwsA(isA<WorkoutActionException>()));
   });
 
+  test('extras may be logged on a sibling in the same block, not a later one',
+      () async {
+    final started = await startController();
+    final c = started.controller;
+    for (var i = 0; i < 6; i++) {
+      await c.logSet(reps: 12);
+    }
+    expect(c.inExtrasPhase, isTrue);
+    await c.logSet(reps: 6, log: c.session!.exerciseLogs[1]);
+    expect(c.session!.exerciseLogs[1].sets, hasLength(4));
+
+    await expectLater(
+      c.logSet(reps: 10, log: c.session!.exerciseLogs[2]),
+      throwsA(isA<WorkoutActionException>()),
+    );
+  });
+
   test('load fails when the session is gone, and ended sessions reject logs',
       () async {
     final started = await startController();

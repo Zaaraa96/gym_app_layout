@@ -62,6 +62,38 @@ void main() {
     expect(formatTrendSummary(empty), 'No logged sets');
   });
 
+  test('formatTrendSummary omits the delta when only one session has a value',
+      () {
+    final one = ExerciseMonthTrend(
+      titleKey: 'squat',
+      title: 'squat',
+      metric: ProgressMetricKind.weight,
+      firstValue: 40,
+      lastValue: 40,
+      delta: 0,
+      feltEasier: false,
+      sessions: [
+        SessionExercisePoint(
+          sessionId: 1,
+          startedAt: DateTime.utc(2026, 8, 2),
+          status: SessionStatus.completed,
+          completedSets: 1,
+          prescribedSets: 3,
+          totalReps: 12,
+          metPrescription: false,
+          primaryValue: 40,
+        ),
+      ],
+    );
+    expect(formatTrendSummary(one), '40 kg');
+  });
+
+  test('formatClock keeps minutes and a leading minus', () {
+    expect(formatClock(0), '0:00');
+    expect(formatClock(75), '1:15');
+    expect(formatClock(-5), '-0:05');
+  });
+
   test('formatSetLine covers weight, bodyweight, and duration', () {
     expect(
       formatSetLine(

@@ -8,7 +8,9 @@ import 'package:gym_app/data/isar_service.dart';
 import 'package:gym_app/data/models/models.dart';
 import 'package:gym_app/data/plan_repository.dart';
 import 'package:gym_app/data/session_repository.dart';
+import 'package:gym_app/features/progress/month_tab.dart';
 import 'package:gym_app/features/progress/progress_format.dart';
+import 'package:gym_app/features/progress/session_log_page.dart';
 import 'package:gym_app/main.dart';
 
 import '../helpers/isar_core.dart';
@@ -225,6 +227,102 @@ void main() {
     expect(find.text(formatMonthTitle(next)), findsOneWidget);
     expect(find.text('No workouts this month.'), findsOneWidget);
   });
+
+  testWidgets('a missing session log shows that it is gone', (tester) async {
+    await bootstrap(tester);
+
+    await tester.pumpWidget(
+      const GetMaterialApp(
+        home: SessionLogPage(sessionId: 999999),
+      ),
+    );
+    await settle(tester);
+
+    expect(find.text('This session is gone.'), findsOneWidget);
+    await tester.tap(find.text('Try again'));
+    await tester.pump();
+    await settle(tester);
+    expect(find.text('This session is gone.'), findsOneWidget);
+  });
+
+  testWidgets('an empty calendar day lists no workouts', (tester) async {
+    await bootstrap(tester);
+
+    await tester.pumpWidget(
+      GetMaterialApp(
+        home: DayLogPage(day: DateTime.utc(2026, 8, 15)),
+      ),
+    );
+    await settle(tester);
+
+    expect(find.text('No workouts this day.'), findsOneWidget);
+    expect(find.byKey(const Key('day-log-list')), findsNothing);
+  });
+
+  testWidgets('a live session gets a dot and opens with no sets logged',
+      (tester) async {
+    final repos = await bootstrap(tester);
+    final plan = _plan();
+    await db(tester, () => repos.plans.save(plan));
+    await db(
+      tester,
+      () => repos.sessions.start(
+        plan: plan,
+        planDayId: 'day-1',
+        startedAt: thisMonth(day: 8, hour: 9),
+      ),
+    );
+
+    await launch(tester, AppRoutes.home);
+    await openMonth(tester);
+
+    expect(find.byKey(const Key('month-dot-8')), findsOneWidget);
+    await tester.tap(find.byKey(const Key('month-day-8')));
+    await tester.pump();
+    await settle(tester);
+
+    expect(find.text('In progress'), findsOneWidget);
+    expect(find.text('No sets logged'), findsOneWidget);
+    expect(find.text('kang squat'), findsWidgets);
+  });
+
+  testWidgets('month load error retry reloads the calendar', (tester) async {
+    await tester.pumpWidget(const SizedBox.shrink());
+    await tester.pump();
+
+    instanceSeq += 1;
+    final service = await db(
+      tester,
+      () => IsarService.init(
+        directory: tempDir!.path,
+        name: 'month$instanceSeq',
+      ),
+    );
+    Get.put<IsarService>(service, permanent: true);
+    putPlans(service.isar);
+    Get.put<SessionRepository>(
+      _FailOnceSessions(service.isar),
+      permanent: true,
+    );
+
+    await tester.pumpWidget(
+      GetMaterialApp(
+        home: Scaffold(
+          body: MonthTab(now: DateTime.utc(2026, 8, 15)),
+        ),
+      ),
+    );
+    await settle(tester);
+
+    expect(find.text('Could not load this month.'), findsOneWidget);
+    await tester.tap(find.text('Try again'));
+    await tester.pump();
+    await settle(tester);
+
+    expect(find.byKey(const Key('month-calendar')), findsOneWidget);
+    expect(find.text('August 2026'), findsOneWidget);
+    expect(find.text('No workouts this month.'), findsOneWidget);
+  });
 }
 
 WorkoutPlan _plan({int dayCount = 1}) {
@@ -288,4 +386,19 @@ Future<WorkoutSession> _complete(
   session.endedAt = startedAt;
   await sessions.save(session);
   return session;
+}
+
+class _FailOnceSessions extends SessionRepository {
+  _FailOnceSessions(super.isar);
+
+  var _fail = true;
+
+  @override
+  Future<List<WorkoutSession>> forMonth(DateTime month) {
+    if (_fail) {
+      _fail = false;
+      return Future<List<WorkoutSession>>.error(StateError('offline'));
+    }
+    return super.forMonth(month);
+  }
 }
