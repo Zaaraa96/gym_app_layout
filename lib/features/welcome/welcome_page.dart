@@ -8,7 +8,7 @@ import '../../common/widgets/app_scaffold.dart';
 import '../../common/widgets/app_text.dart';
 import '../plans/plan_import_flow.dart';
 
-/// First-run fork: get a plan in by import or by creating one.
+/// First-run fork: get a plan in by starter, import, or create.
 class WelcomePage extends StatelessWidget {
   const WelcomePage({super.key});
 
@@ -28,7 +28,8 @@ class WelcomePage extends StatelessWidget {
               ),
               const SizedBox(height: 10),
               const AppText(
-                'Start with a plan. Import one you already have, or build it here.',
+                'Start with a plan. Grab a beginner template, import one you '
+                'already have, or build it here.',
                 style: subtitleTextStyle,
                 textAlign: TextAlign.center,
               ),
@@ -36,6 +37,15 @@ class WelcomePage extends StatelessWidget {
               SizedBox(
                 width: double.infinity,
                 child: AppElevatedButton(
+                  data: 'Start with a beginner plan',
+                  onPressed: () => Get.toNamed(AppRoutes.starters),
+                ),
+              ),
+              const SizedBox(height: 12),
+              SizedBox(
+                width: double.infinity,
+                child: AppElevatedButton(
+                  outlined: true,
                   data: 'Import a plan',
                   onPressed: () => startPlanImport(context),
                 ),

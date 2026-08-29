@@ -1,0 +1,88 @@
+{
+  "name": "Beginner 2-day",
+  "days": 2,
+  "basic-plan": [
+    {
+      "name": "Day A — Squat and push",
+      "exercises": [
+        {
+          "type": "single",
+          "exercise": {
+            "title": "Bodyweight squat",
+            "sets": 3,
+            "times": 8,
+            "duration": null
+          }
+        },
+        {
+          "type": "single",
+          "exercise": {
+            "title": "Knee or wall push-up",
+            "sets": 3,
+            "times": 6,
+            "duration": null
+          }
+        },
+        {
+          "type": "single",
+          "exercise": {
+            "title": "Glute bridge",
+            "sets": 3,
+            "times": 10,
+            "duration": null
+          }
+        },
+        {
+          "type": "single",
+          "exercise": {
+            "title": "Plank",
+            "sets": 2,
+            "times": null,
+            "duration": 15
+          }
+        }
+      ]
+    },
+    {
+      "name": "Day B — Hinge and pull",
+      "exercises": [
+        {
+          "type": "single",
+          "exercise": {
+            "title": "Hip hinge",
+            "sets": 3,
+            "times": 8,
+            "duration": null
+          }
+        },
+        {
+          "type": "single",
+          "exercise": {
+            "title": "Backpack or band row",
+            "sets": 3,
+            "times": 8,
+            "duration": null
+          }
+        },
+        {
+          "type": "single",
+          "exercise": {
+            "title": "Reverse lunge",
+            "sets": 3,
+            "times": 6,
+            "duration": null
+          }
+        },
+        {
+          "type": "single",
+          "exercise": {
+            "title": "Dead bug",
+            "sets": 2,
+            "times": 8,
+            "duration": null
+          }
+        }
+      ]
+    }
+  ]
+}

@@ -57,10 +57,8 @@ void main() {
       ),
     );
     Get.put<IsarService>(service, permanent: true);
-    final plans = Get.put<PlanRepository>(
-      PlanRepository(service.isar),
-      permanent: true,
-    );
+    final plans = putPlans(service.isar);
+    putSessions(service.isar);
     final picker = FakePlanImportPicker(file: file);
     Get.put<PlanImportPicker>(picker, permanent: true);
     return (plans: plans, picker: picker);

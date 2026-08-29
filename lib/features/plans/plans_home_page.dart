@@ -9,10 +9,14 @@ import '../../common/widgets/app_load_error.dart';
 import '../../common/widgets/app_scaffold.dart';
 import '../../common/widgets/app_text.dart';
 import '../../data/models/workout_plan.dart';
+import '../../data/models/workout_session.dart';
 import '../../data/plan_repository.dart';
+import '../../data/session_repository.dart';
+import '../workout/start_workout.dart';
 import 'plan_import_flow.dart';
+import 'today_suggestion.dart';
 
-/// Landing screen for returning users: the plan list plus the Plans | Month bar.
+/// Landing screen for returning users: today, the plan list, Plans | Month.
 class PlansHomePage extends StatefulWidget {
   const PlansHomePage({super.key});
 
@@ -22,24 +26,30 @@ class PlansHomePage extends StatefulWidget {
 
 class _PlansHomePageState extends State<PlansHomePage> {
   final PlanRepository _plans = Get.find<PlanRepository>();
+  final SessionRepository _sessions = Get.find<SessionRepository>();
 
   List<WorkoutPlan> _items = const [];
+  WorkoutSession? _live;
+  TodaySuggestion? _today;
   bool _loading = true;
   String? _error;
   int _tab = 0;
   int _loadId = 0;
-  StreamSubscription<void>? _watch;
+  StreamSubscription<void>? _planWatch;
+  StreamSubscription<void>? _sessionWatch;
 
   @override
   void initState() {
     super.initState();
     _load();
-    _watch = _plans.watch().listen((_) => _load());
+    _planWatch = _plans.watch().listen((_) => _load());
+    _sessionWatch = _sessions.watch().listen((_) => _load());
   }
 
   @override
   void dispose() {
-    _watch?.cancel();
+    _planWatch?.cancel();
+    _sessionWatch?.cancel();
     super.dispose();
   }
 
@@ -47,9 +57,17 @@ class _PlansHomePageState extends State<PlansHomePage> {
     final id = ++_loadId;
     try {
       final items = await _plans.all();
+      final live = await _sessions.inProgress();
+      final completed = await _sessions.completedNewestFirst();
+      final today = suggestToday(
+        plans: items,
+        completedNewestFirst: completed,
+      );
       if (!mounted || id != _loadId) return;
       setState(() {
         _items = items;
+        _live = live;
+        _today = today;
         _loading = false;
         _error = null;
       });
@@ -109,32 +127,19 @@ class _PlansHomePageState extends State<PlansHomePage> {
       children: [
         Expanded(
           child: _items.isEmpty
-              ? const Center(
-                  child: AppText(
-                    'No plans yet. Import one or create your first.',
-                    style: subtitleTextStyle,
-                    textAlign: TextAlign.center,
-                  ),
-                )
-              : ListView.separated(
-                  itemCount: _items.length,
-                  separatorBuilder: (_, __) => const Divider(height: 1),
-                  itemBuilder: (context, index) {
-                    final plan = _items[index];
-                    return ListTile(
-                      title: AppText(plan.title, style: dataTextStyle),
-                      subtitle: AppText(
-                        '${plan.days.length} '
-                        '${plan.days.length == 1 ? 'day' : 'days'}',
-                        style: subtitleTextStyle,
-                      ),
-                      trailing: const Icon(Icons.arrow_forward),
-                      onTap: () => Get.toNamed(
-                        AppRoutes.plan,
-                        arguments: plan.id,
-                      ),
-                    );
-                  },
+              ? _empty()
+              : ListView(
+                  children: [
+                    if (_live != null) _continueBanner(_live!),
+                    if (_today != null) _todayCard(_today!),
+                    const SizedBox(height: 8),
+                    const AppText('Your plans', style: dataTextStyle),
+                    const SizedBox(height: 8),
+                    for (var index = 0; index < _items.length; index++) ...[
+                      if (index > 0) const Divider(height: 1),
+                      _planTile(_items[index]),
+                    ],
+                  ],
                 ),
         ),
         Padding(
@@ -159,6 +164,96 @@ class _PlansHomePageState extends State<PlansHomePage> {
           ),
         ),
       ],
+    );
+  }
+
+  Widget _empty() {
+    return Center(
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          const AppText(
+            'No plans yet. Start with a beginner template, import one, or create your first.',
+            style: subtitleTextStyle,
+            textAlign: TextAlign.center,
+          ),
+          const SizedBox(height: 16),
+          AppElevatedButton(
+            data: 'Start with a beginner plan',
+            onPressed: () => Get.toNamed(AppRoutes.starters),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _continueBanner(WorkoutSession live) {
+    return Padding(
+      padding: const EdgeInsets.only(bottom: 12),
+      child: Material(
+        key: const Key('continue-banner'),
+        color: Theme.of(context).colorScheme.primaryContainer,
+        borderRadius: BorderRadius.circular(16),
+        child: ListTile(
+          title: const AppText('Continue workout', style: dataTextStyle),
+          subtitle: AppText(
+            live.dayTitleSnapshot,
+            style: subtitleTextStyle,
+          ),
+          trailing: const Icon(Icons.play_arrow),
+          onTap: () => openLiveSession(live.id),
+        ),
+      ),
+    );
+  }
+
+  Widget _todayCard(TodaySuggestion today) {
+    return Padding(
+      padding: const EdgeInsets.only(bottom: 12),
+      child: Material(
+        key: const Key('today-card'),
+        color: Theme.of(context).colorScheme.surfaceContainerHighest,
+        borderRadius: BorderRadius.circular(16),
+        child: Padding(
+          padding: const EdgeInsets.all(16),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: [
+              AppText(today.headline, style: titleTextStyle),
+              const SizedBox(height: 6),
+              AppText(today.prompt, style: subtitleTextStyle),
+              const SizedBox(height: 12),
+              AppElevatedButton(
+                data: today.alreadyTrainedToday
+                    ? 'Start next day'
+                    : "Start today's workout",
+                onPressed: () => startWorkout(
+                  context: context,
+                  plan: today.plan,
+                  day: today.day,
+                ),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+
+  Widget _planTile(WorkoutPlan plan) {
+    return ListTile(
+      contentPadding: EdgeInsets.zero,
+      title: AppText(plan.title, style: dataTextStyle),
+      subtitle: AppText(
+        '${plan.days.length} '
+        '${plan.days.length == 1 ? 'day' : 'days'}',
+        style: subtitleTextStyle,
+      ),
+      trailing: const Icon(Icons.arrow_forward),
+      onTap: () => Get.toNamed(
+        AppRoutes.plan,
+        arguments: plan.id,
+      ),
     );
   }
 }

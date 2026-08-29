@@ -7,6 +7,7 @@ import '../../common/widgets/app_load_error.dart';
 import '../../common/widgets/app_text.dart';
 import '../../data/models/models.dart';
 import '../../data/plan_repository.dart';
+import '../workout/start_workout.dart';
 import 'day_editor_page.dart';
 import 'exercise_block_row.dart';
 
@@ -95,10 +96,11 @@ class _DayPreviewPageState extends State<DayPreviewPage> {
     await _load();
   }
 
-  void _startWorkout() {
-    ScaffoldMessenger.of(context).showSnackBar(
-      const SnackBar(content: Text('Starting a workout comes next')),
-    );
+  Future<void> _startWorkout() async {
+    final plan = _plan;
+    final day = _day;
+    if (plan == null || day == null) return;
+    await startWorkout(context: context, plan: plan, day: day);
   }
 
   @override

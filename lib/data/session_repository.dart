@@ -23,6 +23,28 @@ class SessionRepository {
       .statusEqualTo(SessionStatus.inProgress)
       .findFirst();
 
+  /// Newest completed session, optionally for one plan.
+  Future<WorkoutSession?> lastCompleted({int? planId}) {
+    final query = _isar.workoutSessions
+        .filter()
+        .statusEqualTo(SessionStatus.completed);
+    if (planId == null) {
+      return query.sortByStartedAtDesc().findFirst();
+    }
+    return query.planIdEqualTo(planId).sortByStartedAtDesc().findFirst();
+  }
+
+  /// Completed sessions, newest [WorkoutSession.startedAt] first.
+  Future<List<WorkoutSession>> completedNewestFirst({int? planId}) {
+    final query = _isar.workoutSessions
+        .filter()
+        .statusEqualTo(SessionStatus.completed);
+    if (planId == null) {
+      return query.sortByStartedAtDesc().findAll();
+    }
+    return query.planIdEqualTo(planId).sortByStartedAtDesc().findAll();
+  }
+
   /// Non-abandoned sessions whose [WorkoutSession.startedAt] falls in [month].
   Future<List<WorkoutSession>> forMonth(DateTime month) {
     final start = DateTime.utc(month.year, month.month);
