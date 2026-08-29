@@ -226,7 +226,16 @@ void main() {
     await tester.pump();
     await tester.tap(find.byKey(const Key('exercise-media-picker')));
     await tester.pumpAndSettle();
-    await tester.tap(find.text('Deadlift'));
+    final deadlift = find.byKey(const Key('bundled-asset-deadlift'));
+    await tester.scrollUntilVisible(
+      deadlift,
+      80,
+      scrollable: find.descendant(
+        of: find.byType(GridView),
+        matching: find.byType(Scrollable),
+      ),
+    );
+    await tester.tap(deadlift);
     await tester.pumpAndSettle();
 
     await tester.enterText(

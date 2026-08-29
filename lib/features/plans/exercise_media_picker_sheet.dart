@@ -176,6 +176,7 @@ class _ExerciseMediaPickerSheetState extends State<ExerciseMediaPickerSheet> {
                   final entry = _assets[index];
                   final selected = _isSelected(entry);
                   return InkWell(
+                    key: Key('bundled-asset-${entry.id}'),
                     onTap: () => _select(PickedExerciseMedia.asset(entry.assetPath)),
                     borderRadius: BorderRadius.circular(12),
                     child: Ink(
