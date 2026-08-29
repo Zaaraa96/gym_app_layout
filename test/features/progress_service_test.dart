@@ -179,6 +179,55 @@ void main() {
     expect(progress.exercises.single.firstValue, 35);
     expect(progress.exercises.single.lastValue, 40);
   });
+
+  test('felt easier needs two rated sessions and the same or better load', () {
+    final sameLoadEasier = service.fold(
+      month: DateTime.utc(2026, 8),
+      sessions: [
+        _session(
+          id: 1,
+          startedAt: DateTime.utc(2026, 8, 2),
+          logs: [_repLog(title: 'kang squat', reps: [12], weight: 40, difficulty: 5)],
+        ),
+        _session(
+          id: 2,
+          startedAt: DateTime.utc(2026, 8, 20),
+          logs: [_repLog(title: 'kang squat', reps: [12], weight: 40, difficulty: 3)],
+        ),
+      ],
+    );
+    expect(sameLoadEasier.exercises.single.feltEasier, isTrue);
+    expect(sameLoadEasier.exercises.single.delta, 0);
+
+    final missingDifficulty = service.fold(
+      month: DateTime.utc(2026, 8),
+      sessions: [
+        _session(
+          id: 1,
+          startedAt: DateTime.utc(2026, 8, 2),
+          logs: [_repLog(title: 'kang squat', reps: [12], weight: 40, difficulty: 4)],
+        ),
+        _session(
+          id: 2,
+          startedAt: DateTime.utc(2026, 8, 20),
+          logs: [_repLog(title: 'kang squat', reps: [12], weight: 50)],
+        ),
+      ],
+    );
+    expect(missingDifficulty.exercises.single.feltEasier, isFalse);
+
+    final oneSession = service.fold(
+      month: DateTime.utc(2026, 8),
+      sessions: [
+        _session(
+          id: 1,
+          startedAt: DateTime.utc(2026, 8, 2),
+          logs: [_repLog(title: 'kang squat', reps: [12], weight: 40, difficulty: 2)],
+        ),
+      ],
+    );
+    expect(oneSession.exercises.single.feltEasier, isFalse);
+  });
 }
 
 WorkoutSession _session({

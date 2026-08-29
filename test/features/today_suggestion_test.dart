@@ -157,6 +157,21 @@ void main() {
     expect(suggestion.alreadyTrainedToday, isFalse);
   });
 
+  test('firstExerciseTitle falls back when the day and commons are empty', () {
+    final plan = WorkoutPlan.create(
+      title: 'empty',
+      source: PlanSource.created,
+      createdAt: DateTime.utc(2026, 8, 1),
+      updatedAt: DateTime.utc(2026, 8, 1),
+      days: [PlanDay.create(dayId: 'day-1', title: 'Empty')],
+      commonSections: [
+        CommonSection.create(sectionId: 'sec-abs', title: 'abs'),
+      ],
+    );
+    expect(firstExerciseTitle(plan.days.single, plan), 'your first exercise');
+    expect(dayCanStart(plan, plan.days.single), isTrue);
+  });
+
   test('sameUtcDay is true across clock times on that UTC date', () {
     expect(
       sameUtcDay(

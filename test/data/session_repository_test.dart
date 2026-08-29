@@ -266,6 +266,87 @@ void main() {
     );
     expect(withUnknown.includedCommonSectionIds, ['sec-abs', 'sec-missing']);
   });
+
+  test('completedNewestFirst without a plan id is what home uses', () async {
+    final db = await open();
+    final plan = _plan();
+    await db.plans.save(plan);
+    final other = WorkoutPlan.create(
+      title: 'plan 2',
+      source: PlanSource.created,
+      createdAt: DateTime.utc(2026, 8, 1),
+      updatedAt: DateTime.utc(2026, 8, 2),
+      days: plan.days,
+    );
+    await db.plans.save(other);
+
+    Future<WorkoutSession> complete({
+      required WorkoutPlan onPlan,
+      required DateTime at,
+    }) async {
+      final session = await db.sessions.start(
+        plan: onPlan,
+        planDayId: 'day-1',
+        startedAt: at,
+      );
+      session.status = SessionStatus.completed;
+      session.endedAt = at.add(const Duration(hours: 1));
+      await db.sessions.save(session);
+      return session;
+    }
+
+    final older = await complete(
+      onPlan: plan,
+      at: DateTime.utc(2026, 8, 10, 8),
+    );
+    final newer = await complete(
+      onPlan: other,
+      at: DateTime.utc(2026, 8, 12, 8),
+    );
+    await db.sessions.start(
+      plan: plan,
+      planDayId: 'day-1',
+      startedAt: DateTime.utc(2026, 8, 13, 8),
+    );
+
+    expect(
+      (await db.sessions.completedNewestFirst()).map((s) => s.id),
+      [newer.id, older.id],
+    );
+    expect((await db.sessions.lastCompleted())?.id, newer.id);
+  });
+
+  test('abandonInProgress is a no-op when nothing is live', () async {
+    final db = await open();
+    await db.sessions.abandonInProgress(
+      endedAt: DateTime.utc(2026, 8, 15, 11),
+    );
+    expect(await db.sessions.inProgress(), isNull);
+  });
+
+  test('exerciseLogsForStart copies day blocks then included commons', () {
+    final plan = _plan();
+    final empty = exerciseLogsForStart(
+      day: plan.days.single,
+      commonSections: plan.commonSections,
+      includedCommonSectionIds: const [],
+    );
+    expect(empty.map((log) => log.exerciseTitle), ['kang squat', 'leg extension']);
+    expect(empty.every((log) => log.fromCommonSection == false), isTrue);
+
+    final withAbs = exerciseLogsForStart(
+      day: plan.days.single,
+      commonSections: plan.commonSections,
+      includedCommonSectionIds: const ['sec-missing', 'sec-abs'],
+    );
+    expect(
+      withAbs.map((log) => log.exerciseTitle),
+      ['kang squat', 'leg extension', 'shoot out'],
+    );
+    expect(withAbs.last.fromCommonSection, isTrue);
+    expect(withAbs.last.prescribedDurationSeconds, 30);
+    expect(withAbs.last.exerciseTitleKey, 'shoot out');
+  });
 }
 
 WorkoutPlan _plan() {
