@@ -207,6 +207,76 @@ void main() {
     expect(day.blocks.last.mediaUri, 'assets/image/exercises/plank.png');
   });
 
+  testWidgets('saving an exercise without a name stays on the dialog',
+      (tester) async {
+    final plans = await bootstrap(tester);
+    await db(tester, () => plans.save(samplePlan()));
+    await launch(tester, AppRoutes.home);
+
+    await tester.tap(find.text('Push week'));
+    await tester.pump();
+    await settle(tester);
+    await tester.tap(find.byKey(const Key('day-card-day-1')));
+    await tester.pump();
+    await settle(tester);
+    await tester.tap(find.text('Edit day'));
+    await tester.pump();
+    await settle(tester);
+
+    await tester.tap(find.text('Add exercise'));
+    await tester.pump();
+    await tester.tap(find.text('Save exercise'));
+    await tester.pump();
+
+    expect(find.text('Add an exercise name'), findsOneWidget);
+    expect(find.text('Save exercise'), findsOneWidget);
+    final stored = await db(tester, plans.all);
+    expect(stored.single.days.single.blocks, isEmpty);
+  });
+
+  testWidgets('an exercise can be deleted from the day editor', (tester) async {
+    final plans = await bootstrap(tester);
+    await db(tester, () => plans.save(samplePlan()));
+    await launch(tester, AppRoutes.home);
+
+    await tester.tap(find.text('Push week'));
+    await tester.pump();
+    await settle(tester);
+    await tester.tap(find.byKey(const Key('day-card-day-1')));
+    await tester.pump();
+    await settle(tester);
+    await tester.tap(find.text('Edit day'));
+    await tester.pump();
+    await settle(tester);
+
+    Finder dialogField() => find.descendant(
+          of: find.byType(AlertDialog),
+          matching: find.byType(TextFormField),
+        );
+
+    await tester.tap(find.text('Add exercise'));
+    await tester.pump();
+    await tester.enterText(dialogField().first, 'kang squat');
+    await tester.tap(find.text('Save exercise'));
+    await tester.pump();
+    await settle(tester);
+    expect(
+      find.descendant(
+        of: find.byType(DayEditorPage),
+        matching: find.text('3 × 12 kang squat'),
+      ),
+      findsOneWidget,
+    );
+
+    await tester.tap(find.byTooltip('Delete exercise'));
+    await tester.pump();
+    await settle(tester);
+
+    expect(find.text('3 × 12 kang squat'), findsNothing);
+    final stored = await db(tester, plans.all);
+    expect(stored.single.days.single.blocks, isEmpty);
+  });
+
   testWidgets('exercise dialog can pick a bundled preview asset', (tester) async {
     final plans = await bootstrap(tester);
     await db(tester, () => plans.save(samplePlan()));

@@ -156,6 +156,52 @@ void main() {
     expect(stored.exerciseLogs.single.difficulty, 3);
   });
 
+  testWidgets('End can finish a partial session from the live page',
+      (tester) async {
+    final repos = await bootstrap(tester);
+    final plan = _simplePlan();
+    await db(tester, () => repos.plans.save(plan));
+    final session = await db(
+      tester,
+      () => repos.sessions.start(
+        plan: plan,
+        planDayId: 'day-1',
+        startedAt: DateTime.utc(2026, 8, 28, 12),
+      ),
+    );
+
+    await tester.pumpWidget(
+      GetMaterialApp(
+        home: LiveWorkoutPage(sessionId: session.id),
+      ),
+    );
+    await settle(tester);
+
+    await tester.tap(find.text('Log set'));
+    await tester.pump();
+    await settle(tester);
+
+    final end = find.byKey(const Key('end-workout'));
+    await tester.ensureVisible(end);
+    await tester.tap(end);
+    await tester.pump();
+    await settle(tester);
+
+    final finish = find.byKey(const Key('finish-workout'));
+    await tester.ensureVisible(finish);
+    await tester.tap(finish);
+    await tester.pump();
+    await settle(tester);
+
+    expect(find.text('Workout complete'), findsOneWidget);
+    expect(find.text('Nice work. What you logged is saved.'), findsOneWidget);
+    expect(find.byKey(const Key('end-workout')), findsNothing);
+    final stored = await db(tester, () => repos.sessions.byId(session.id));
+    expect(stored!.status, SessionStatus.completed);
+    expect(stored.exerciseLogs.single.sets, hasLength(1));
+    expect(stored.endedAt, isNotNull);
+  });
+
   testWidgets('home today card uses a stored beginner plan', (tester) async {
     final repos = await bootstrap(tester);
     await db(

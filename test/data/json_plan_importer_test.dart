@@ -352,6 +352,68 @@ void main() {
       ),
     );
   });
+
+  test('rejects missing lists, non-object days, and untitled exercises', () {
+    expect(
+      () => importer.import('{"name":"plan"}'),
+      throwsA(
+        isA<PlanImportException>().having(
+          (e) => e.message,
+          'message',
+          contains('missing a basic-plan'),
+        ),
+      ),
+    );
+    expect(
+      () => importer.import('{"name":"plan","basic-plan":["day 1"]}'),
+      throwsA(
+        isA<PlanImportException>().having(
+          (e) => e.message,
+          'message',
+          contains('not a JSON object'),
+        ),
+      ),
+    );
+    expect(
+      () => importer.import('''
+{
+  "name": "plan",
+  "basic-plan": [{
+    "name": "day 1",
+    "exercises": [{ "exercise": { "title": "squat", "sets": 3, "times": 8 } }]
+  }]
+}
+'''),
+      throwsA(
+        isA<PlanImportException>().having(
+          (e) => e.message,
+          'message',
+          contains('missing a type'),
+        ),
+      ),
+    );
+    expect(
+      () => importer.import('''
+{
+  "name": "plan",
+  "basic-plan": [{
+    "name": "day 1",
+    "exercises": [{
+      "type": "single",
+      "exercise": { "title": "  ", "sets": 3, "times": 8, "duration": null }
+    }]
+  }]
+}
+'''),
+      throwsA(
+        isA<PlanImportException>().having(
+          (e) => e.message,
+          'message',
+          contains('needs an exercise title'),
+        ),
+      ),
+    );
+  });
 }
 
 var _ids = 0;
