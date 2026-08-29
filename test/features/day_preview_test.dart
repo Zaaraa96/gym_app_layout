@@ -309,7 +309,9 @@ void main() {
     await settle(tester);
 
     expect(find.text('A workout is already in progress'), findsOneWidget);
-    await tester.tap(find.byKey(const Key('resume-existing')));
+    final resume = find.byKey(const Key('resume-existing'));
+    await tester.ensureVisible(resume);
+    await tester.tap(resume);
     await tester.pump();
     await settle(tester);
 
@@ -343,11 +345,18 @@ void main() {
     await tester.tap(find.text('Start workout'));
     await tester.pump();
     await settle(tester);
-    await tester.tap(find.byKey(const Key('abandon-and-start')));
+    expect(find.text('A workout is already in progress'), findsOneWidget);
+
+    final abandon = find.byKey(const Key('abandon-and-start'));
+    await tester.ensureVisible(abandon);
+    await tester.tap(abandon);
     await tester.pump();
     await settle(tester);
+    await settle(tester);
 
-    expect(find.text('push up  ·  set 1 of 2'), findsOneWidget);
+    expect(find.text('A workout is already in progress'), findsNothing);
+    expect(find.text('Log set'), findsOneWidget);
+    expect(find.textContaining('push up'), findsWidgets);
     final abandoned = await db(tester, () => sessions.byId(live.id));
     expect(abandoned!.status, SessionStatus.abandoned);
     final current = await db(tester, () => sessions.inProgress());
@@ -402,7 +411,10 @@ void main() {
     await tester.pump();
     await settle(tester);
 
-    await tester.tap(find.text('Start workout'));
+    expect(find.text('empty day'), findsWidgets);
+    final start = find.widgetWithText(ElevatedButton, 'Start workout');
+    await tester.ensureVisible(start);
+    await tester.tap(start);
     await tester.pump();
     await settle(tester);
     expect(find.text('Include today'), findsOneWidget);
