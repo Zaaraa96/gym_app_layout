@@ -173,8 +173,10 @@ void main() {
     expect(find.text('plan 1'), findsNothing);
     expect(
       find.text('The month calendar arrives with session logging.'),
-      findsOneWidget,
+      findsNothing,
     );
+    expect(find.byKey(const Key('month-calendar')), findsOneWidget);
+    expect(find.text('No workouts this month.'), findsOneWidget);
   });
 }
 

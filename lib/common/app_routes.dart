@@ -13,4 +13,8 @@ abstract final class AppRoutes {
   static const starters = '/starters';
   /// Live workout. Month stays a tab on [home], not its own route.
   static const session = '/session';
+  /// Read-only list of sessions on one calendar day.
+  static const dayLog = '/day-log';
+  /// Read-only log of one session from the month calendar.
+  static const sessionLog = '/session-log';
 }
