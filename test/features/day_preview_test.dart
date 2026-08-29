@@ -7,6 +7,7 @@ import 'package:gym_app/common/app_routes.dart';
 import 'package:gym_app/data/isar_service.dart';
 import 'package:gym_app/data/models/models.dart';
 import 'package:gym_app/data/plan_repository.dart';
+import 'package:gym_app/data/session_repository.dart';
 import 'package:gym_app/main.dart';
 
 import '../helpers/isar_core.dart';
@@ -279,4 +280,175 @@ void main() {
     expect(Get.currentRoute, AppRoutes.editDay);
     expect(find.text('Add exercise'), findsWidgets);
   });
+
+  testWidgets('starting a different day offers to resume the live session',
+      (tester) async {
+    final plans = await bootstrap(tester);
+    final sessions = Get.find<SessionRepository>();
+    final plan = _twoDayPlan();
+    await db(tester, () => plans.save(plan));
+    await db(
+      tester,
+      () => sessions.start(
+        plan: plan,
+        planDayId: 'day-a',
+        startedAt: DateTime.utc(2026, 8, 28, 12),
+      ),
+    );
+
+    await launch(tester, AppRoutes.home);
+    await tester.tap(find.text('A/B'));
+    await tester.pump();
+    await settle(tester);
+    await tester.tap(find.byKey(const Key('day-card-day-b')));
+    await tester.pump();
+    await settle(tester);
+
+    await tester.tap(find.text('Start workout'));
+    await tester.pump();
+    await settle(tester);
+
+    expect(find.text('A workout is already in progress'), findsOneWidget);
+    await tester.tap(find.byKey(const Key('resume-existing')));
+    await tester.pump();
+    await settle(tester);
+
+    expect(find.text('squat  ·  set 1 of 2'), findsOneWidget);
+    expect(find.text('Log set'), findsOneWidget);
+  });
+
+  testWidgets('abandon and start this day closes the live session',
+      (tester) async {
+    final plans = await bootstrap(tester);
+    final sessions = Get.find<SessionRepository>();
+    final plan = _twoDayPlan();
+    await db(tester, () => plans.save(plan));
+    final live = await db(
+      tester,
+      () => sessions.start(
+        plan: plan,
+        planDayId: 'day-a',
+        startedAt: DateTime.utc(2026, 8, 28, 12),
+      ),
+    );
+
+    await launch(tester, AppRoutes.home);
+    await tester.tap(find.text('A/B'));
+    await tester.pump();
+    await settle(tester);
+    await tester.tap(find.byKey(const Key('day-card-day-b')));
+    await tester.pump();
+    await settle(tester);
+
+    await tester.tap(find.text('Start workout'));
+    await tester.pump();
+    await settle(tester);
+    await tester.tap(find.byKey(const Key('abandon-and-start')));
+    await tester.pump();
+    await settle(tester);
+
+    expect(find.text('push up  ·  set 1 of 2'), findsOneWidget);
+    final abandoned = await db(tester, () => sessions.byId(live.id));
+    expect(abandoned!.status, SessionStatus.abandoned);
+    final current = await db(tester, () => sessions.inProgress());
+    expect(current!.planDayId, 'day-b');
+  });
+
+  testWidgets(
+      'starting an empty day without turning on commons shows a snackbar',
+      (tester) async {
+    final plans = await bootstrap(tester);
+    final now = DateTime.utc(2026, 8, 26, 12);
+    await db(
+      tester,
+      () => plans.save(
+        WorkoutPlan.create(
+          title: 'commons only',
+          source: PlanSource.created,
+          createdAt: now,
+          updatedAt: now,
+          days: [
+            PlanDay.create(dayId: 'day-empty', title: 'empty day'),
+          ],
+          commonSections: [
+            CommonSection.create(
+              sectionId: 'sec-abs',
+              title: 'abs',
+              blocks: [
+                ExerciseBlock.create(
+                  blockId: 'block-abs',
+                  kind: BlockKind.single,
+                  exercises: [
+                    ExercisePrescription.create(
+                      prescriptionId: 'p-plank',
+                      title: 'plank',
+                      prescribedSets: 1,
+                      prescribedDurationSeconds: 30,
+                    ),
+                  ],
+                ),
+              ],
+            ),
+          ],
+        ),
+      ),
+    );
+
+    await launch(tester, AppRoutes.home);
+    await tester.tap(find.text('commons only'));
+    await tester.pump();
+    await settle(tester);
+    await tester.tap(find.byKey(const Key('day-card-day-empty')));
+    await tester.pump();
+    await settle(tester);
+
+    await tester.tap(find.text('Start workout'));
+    await tester.pump();
+    await settle(tester);
+    expect(find.text('Include today'), findsOneWidget);
+
+    await tester.tap(find.byKey(const Key('confirm-include')));
+    await tester.pump();
+    await settle(tester);
+
+    expect(
+      find.text('Turn on a section or add an exercise first.'),
+      findsOneWidget,
+    );
+    expect(find.text('Log set'), findsNothing);
+  });
+}
+
+WorkoutPlan _twoDayPlan() {
+  final now = DateTime.utc(2026, 8, 28, 12);
+  ExerciseBlock single(String id, String title) => ExerciseBlock.create(
+        blockId: 'block-$id',
+        kind: BlockKind.single,
+        exercises: [
+          ExercisePrescription.create(
+            prescriptionId: 'p-$id',
+            title: title,
+            prescribedSets: 2,
+            prescribedReps: 10,
+          ),
+        ],
+      );
+  return WorkoutPlan.create(
+    title: 'A/B',
+    source: PlanSource.created,
+    createdAt: now,
+    updatedAt: now,
+    days: [
+      PlanDay.create(
+        dayId: 'day-a',
+        title: 'Day A',
+        blocks: [single('a', 'squat')],
+      ),
+      PlanDay.create(
+        dayId: 'day-b',
+        title: 'Day B',
+        blocks: [single('b', 'push up')],
+      ),
+    ],
+  );
 }

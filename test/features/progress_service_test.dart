@@ -6,6 +6,13 @@ import 'package:gym_app/features/progress/progress_service.dart';
 void main() {
   const service = ProgressService();
 
+  test('exerciseTitleKeyFor trims and lowercases without rewriting punctuation',
+      () {
+    expect(exerciseTitleKeyFor('  Kang Squat '), 'kang squat');
+    expect(exerciseTitleKeyFor('Push-up'), 'push-up');
+    expect(exerciseTitleKeyFor('Push up'), 'push up');
+  });
+
   test('an empty month has no dots and no exercise rows', () {
     final progress = service.fold(
       month: DateTime.utc(2026, 8),

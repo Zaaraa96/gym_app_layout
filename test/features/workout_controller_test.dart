@@ -220,6 +220,66 @@ void main() {
     expect(c.session!.exerciseLogs.first.sets.single.weightKg, isNull);
     expect(c.session!.exerciseLogs.first.sets.single.reps, 12);
   });
+
+  test('rating must be 1 to 5 and is blocked until prescribed sets are done',
+      () async {
+    final started = await startController();
+    final c = started.controller;
+    await expectLater(
+      c.rate(0),
+      throwsA(
+        isA<WorkoutActionException>().having(
+          (e) => e.message,
+          'message',
+          contains('from 1 to 5'),
+        ),
+      ),
+    );
+    await expectLater(c.rate(6), throwsA(isA<WorkoutActionException>()));
+    await expectLater(
+      c.rate(3),
+      throwsA(
+        isA<WorkoutActionException>().having(
+          (e) => e.message,
+          'message',
+          contains('prescribed sets'),
+        ),
+      ),
+    );
+    await expectLater(c.logTime(), throwsA(isA<WorkoutActionException>()));
+  });
+
+  test('load fails when the session is gone, and ended sessions reject logs',
+      () async {
+    final started = await startController();
+    await started.controller.finish();
+    await expectLater(
+      started.controller.logSet(reps: 10),
+      throwsA(
+        isA<WorkoutActionException>().having(
+          (e) => e.message,
+          'message',
+          contains('already ended'),
+        ),
+      ),
+    );
+
+    final missing = WorkoutController(
+      sessionId: 999999,
+      sessions: started.sessions,
+    );
+    addTearDown(missing.onClose);
+    await expectLater(
+      missing.load(),
+      throwsA(
+        isA<WorkoutActionException>().having(
+          (e) => e.message,
+          'message',
+          contains('no longer here'),
+        ),
+      ),
+    );
+  });
 }
 
 WorkoutPlan _singlePlan() {
