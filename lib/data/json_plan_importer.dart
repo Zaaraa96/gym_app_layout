@@ -1,5 +1,6 @@
 import 'dart:convert';
 
+import '../common/exercise_asset_catalog.dart';
 import 'models/models.dart';
 import 'new_id.dart';
 
@@ -129,6 +130,7 @@ class JsonPlanImporter {
     return ExerciseBlock.create(
       blockId: newId(),
       kind: BlockKind.single,
+      svgPath: matchExerciseAsset(exercise.title)?.assetPath,
       exercises: [exercise],
     );
   }
@@ -155,6 +157,7 @@ class JsonPlanImporter {
     return ExerciseBlock.create(
       blockId: newId(),
       kind: BlockKind.superset,
+      svgPath: matchExerciseAsset(exercises.first.title)?.assetPath,
       exercises: exercises,
     );
   }

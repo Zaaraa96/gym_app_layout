@@ -5,11 +5,12 @@ import 'package:gym_app/features/plans/exercise_media.dart';
 import 'package:gym_app/features/plans/exercise_media_picker.dart';
 
 void main() {
-  test('bundled exercise catalog contains 30 SVG assets', () {
+  test('bundled exercise catalog contains 30 illustrated stills', () {
     expect(bundledExerciseAssets, hasLength(30));
     for (final entry in bundledExerciseAssets) {
-      expect(entry.assetPath, endsWith('.svg'));
+      expect(entry.assetPath, endsWith('.png'));
       expect(entry.assetPath, startsWith('assets/image/exercises/'));
+      expect(entry.gifPath, endsWith('.gif'));
     }
   });
 
@@ -25,15 +26,15 @@ void main() {
       blockId: 'b1',
       kind: BlockKind.single,
       svgPath: 'assets/image/upper-body.svg',
-      mediaUri: 'assets/image/exercises/squat.svg',
+      mediaUri: 'assets/image/exercises/squat.png',
       mediaSource: ExerciseMediaSource.asset,
-      mediaKind: ExerciseMediaKind.svg,
+      mediaKind: ExerciseMediaKind.image,
       exercises: [],
     );
 
     final media = resolveBlockMedia(block);
-    expect(media.uri, 'assets/image/exercises/squat.svg');
-    expect(media.kind, ExerciseMediaKind.svg);
+    expect(media.uri, 'assets/image/exercises/squat.png');
+    expect(media.kind, ExerciseMediaKind.image);
   });
 
   test('PickedExerciseMedia round-trips through ExerciseBlock', () {

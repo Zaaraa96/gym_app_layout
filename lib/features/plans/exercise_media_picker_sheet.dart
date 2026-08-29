@@ -176,6 +176,7 @@ class _ExerciseMediaPickerSheetState extends State<ExerciseMediaPickerSheet> {
                   final entry = _assets[index];
                   final selected = _isSelected(entry);
                   return InkWell(
+                    key: Key('bundled-asset-${entry.id}'),
                     onTap: () => _select(PickedExerciseMedia.asset(entry.assetPath)),
                     borderRadius: BorderRadius.circular(12),
                     child: Ink(
@@ -192,11 +193,7 @@ class _ExerciseMediaPickerSheetState extends State<ExerciseMediaPickerSheet> {
                       child: Column(
                         mainAxisAlignment: MainAxisAlignment.center,
                         children: [
-                          SvgPicture.asset(
-                            entry.assetPath,
-                            width: 36,
-                            height: 36,
-                          ),
+                          _BundledAssetThumb(path: entry.assetPath, size: 36),
                           const SizedBox(height: 4),
                           Text(
                             entry.label,
@@ -215,6 +212,28 @@ class _ExerciseMediaPickerSheetState extends State<ExerciseMediaPickerSheet> {
           ],
         ),
       ),
+    );
+  }
+}
+
+class _BundledAssetThumb extends StatelessWidget {
+  const _BundledAssetThumb({required this.path, required this.size});
+
+  final String path;
+  final double size;
+
+  @override
+  Widget build(BuildContext context) {
+    if (path.toLowerCase().endsWith('.svg')) {
+      return SvgPicture.asset(path, width: size, height: size);
+    }
+    return Image.asset(
+      path,
+      width: size,
+      height: size,
+      fit: BoxFit.contain,
+      gaplessPlayback: true,
+      filterQuality: FilterQuality.medium,
     );
   }
 }

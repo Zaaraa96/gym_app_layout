@@ -51,7 +51,7 @@ class PickedExerciseMedia {
     block.mediaUri = uri;
     block.mediaSource = source;
     block.mediaKind = kind;
-    if (source == ExerciseMediaSource.asset && kind == ExerciseMediaKind.svg) {
+    if (source == ExerciseMediaSource.asset) {
       block.svgPath = uri;
     } else {
       block.svgPath = null;

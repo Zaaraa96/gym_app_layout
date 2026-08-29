@@ -31,7 +31,7 @@ class ExerciseBlockRow extends StatelessWidget {
         ),
         child: Row(
           children: [
-            ExerciseMediaThumbnail(block: block, size: 40),
+            ExerciseMediaThumbnail(block: block, size: 48),
             const SizedBox(width: 12),
             Expanded(
               child: Column(

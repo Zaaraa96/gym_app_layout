@@ -1,6 +1,10 @@
 import '../../data/models/workout_plan.dart';
+import 'exercise_media.dart';
 
 export 'exercise_media.dart';
+
+/// Resolved preview path for a block (bundled still, gallery, or fallback SVG).
+String blockSvgPath(ExerciseBlock block) => resolveBlockMedia(block).uri;
 
 /// Sets badge for a block. Prescriptions in one block share the set count.
 int blockSetCount(ExerciseBlock block) =>

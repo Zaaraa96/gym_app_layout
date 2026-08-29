@@ -199,10 +199,12 @@ void main() {
     final day = stored.single.days.single;
     expect(day.blocks, hasLength(2));
     expect(day.blocks.first.exercises.single.title, 'kang squat');
+    expect(day.blocks.first.svgPath, 'assets/image/exercises/kang-squat.png');
     expect(day.blocks.first.exercises.single.prescribedReps, 12);
     expect(day.blocks.last.exercises.single.prescribedDurationSeconds, 45);
+    expect(day.blocks.last.svgPath, 'assets/image/exercises/plank.png');
     expect(day.blocks.last.kind, BlockKind.single);
-    expect(day.blocks.last.mediaUri, 'assets/image/exercises/plank.svg');
+    expect(day.blocks.last.mediaUri, 'assets/image/exercises/plank.png');
   });
 
   testWidgets('exercise dialog can pick a bundled preview asset', (tester) async {
@@ -224,7 +226,16 @@ void main() {
     await tester.pump();
     await tester.tap(find.byKey(const Key('exercise-media-picker')));
     await tester.pumpAndSettle();
-    await tester.tap(find.text('Deadlift'));
+    final deadlift = find.byKey(const Key('bundled-asset-deadlift'));
+    await tester.scrollUntilVisible(
+      deadlift,
+      80,
+      scrollable: find.descendant(
+        of: find.byType(GridView),
+        matching: find.byType(Scrollable),
+      ),
+    );
+    await tester.tap(deadlift);
     await tester.pumpAndSettle();
 
     await tester.enterText(
@@ -240,7 +251,7 @@ void main() {
 
     final stored = await db(tester, plans.all);
     final block = stored.single.days.single.blocks.single;
-    expect(block.mediaUri, 'assets/image/exercises/deadlift.svg');
+    expect(block.mediaUri, 'assets/image/exercises/deadlift.png');
     expect(block.mediaSource, ExerciseMediaSource.asset);
   });
 

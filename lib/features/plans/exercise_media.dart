@@ -39,9 +39,17 @@ ExerciseMediaRef resolveBlockMedia(ExerciseBlock block) {
     return ExerciseMediaRef(
       uri: legacy,
       source: ExerciseMediaSource.asset,
-      kind: legacy.toLowerCase().endsWith('.svg')
-          ? ExerciseMediaKind.svg
-          : ExerciseMediaKind.image,
+      kind: kindForPath(legacy),
+    );
+  }
+
+  final title = block.exercises.isEmpty ? null : block.exercises.first.title;
+  final matched = matchExerciseAsset(title);
+  if (matched != null) {
+    return ExerciseMediaRef(
+      uri: matched.assetPath,
+      source: ExerciseMediaSource.asset,
+      kind: kindForPath(matched.assetPath),
     );
   }
 
