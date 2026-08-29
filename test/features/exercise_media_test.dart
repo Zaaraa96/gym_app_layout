@@ -57,4 +57,98 @@ void main() {
     expect(block.mediaSource, ExerciseMediaSource.none);
     expect(block.mediaUri, isNull);
   });
+
+  test('resolveBlockMedia ignores unset media fields and falls back in order',
+      () {
+    final untitled = ExerciseBlock.create(
+      blockId: 'b1',
+      kind: BlockKind.single,
+      mediaUri: 'assets/image/exercises/squat.png',
+      mediaSource: ExerciseMediaSource.none,
+      mediaKind: ExerciseMediaKind.unknown,
+      svgPath: 'assets/image/upper-body.svg',
+      exercises: [],
+    );
+    expect(resolveBlockMedia(untitled).uri, 'assets/image/upper-body.svg');
+    expect(resolveBlockMedia(untitled).kind, ExerciseMediaKind.svg);
+
+    final matched = ExerciseBlock.create(
+      blockId: 'b2',
+      kind: BlockKind.single,
+      exercises: [
+        ExercisePrescription.create(
+          prescriptionId: 'p1',
+          title: 'plank',
+          prescribedSets: 1,
+          prescribedDurationSeconds: 30,
+        ),
+      ],
+    );
+    expect(resolveBlockMedia(matched).uri, 'assets/image/exercises/plank.png');
+    expect(selectedBundledAsset(matched)?.id, 'plank');
+
+    final unknown = ExerciseBlock.create(
+      blockId: 'b3',
+      kind: BlockKind.single,
+      mediaUri: '   ',
+      exercises: [
+        ExercisePrescription.create(
+          prescriptionId: 'p2',
+          title: 'mystery move',
+          prescribedSets: 3,
+          prescribedReps: 10,
+        ),
+      ],
+    );
+    expect(resolveBlockMedia(unknown).uri, defaultBlockSvg);
+    expect(resolveBlockMedia(unknown).kind, ExerciseMediaKind.svg);
+  });
+
+  test('kindForPath and kindForNetworkUrl classify extensions including query strings',
+      () {
+    expect(kindForPath('clip.SVG'), ExerciseMediaKind.svg);
+    expect(kindForPath('demo.GIF'), ExerciseMediaKind.gif);
+    expect(kindForPath('still.PNG'), ExerciseMediaKind.image);
+    expect(kindForPath('form.mp4'), ExerciseMediaKind.video);
+    expect(kindForPath('form.webm'), ExerciseMediaKind.video);
+    expect(
+      kindForNetworkUrl('https://cdn.example.com/form.gif?token=abc'),
+      ExerciseMediaKind.gif,
+    );
+    expect(
+      kindForNetworkUrl('https://cdn.example.com/form.mp4?exp=1'),
+      ExerciseMediaKind.video,
+    );
+  });
+
+  test('applying an asset keeps svgPath; gallery and network clear it', () {
+    final block = ExerciseBlock.create(
+      blockId: 'b1',
+      kind: BlockKind.single,
+      svgPath: 'assets/image/upper-body.svg',
+      exercises: [],
+    );
+
+    PickedExerciseMedia.asset('assets/image/exercises/deadlift.png').applyTo(block);
+    expect(block.svgPath, 'assets/image/exercises/deadlift.png');
+    expect(block.mediaSource, ExerciseMediaSource.asset);
+    expect(block.mediaKind, ExerciseMediaKind.image);
+
+    PickedExerciseMedia.galleryFile(
+      uri: '/tmp/photo.jpg',
+      kind: ExerciseMediaKind.image,
+    ).applyTo(block);
+    expect(block.svgPath, isNull);
+    expect(block.mediaSource, ExerciseMediaSource.gallery);
+
+    final legacyOnly = ExerciseBlock.create(
+      blockId: 'b2',
+      kind: BlockKind.single,
+      svgPath: 'assets/image/exercises/squat.png',
+      exercises: [],
+    );
+    final restored = PickedExerciseMedia.fromBlock(legacyOnly);
+    expect(restored?.source, ExerciseMediaSource.asset);
+    expect(restored?.uri, 'assets/image/exercises/squat.png');
+  });
 }

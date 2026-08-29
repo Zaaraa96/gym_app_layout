@@ -212,6 +212,146 @@ void main() {
     expect(plan.commonSections, isEmpty);
     expect(plan.days.single.blocks.single.exercises.single.title, 'squat');
   });
+
+  test('accepts whole-number doubles for sets and times', () {
+    final plan = importer.import('''
+{
+  "name": "numbers",
+  "basic-plan": [{
+    "name": "day 1",
+    "exercises": [{
+      "type": "single",
+      "exercise": { "title": "squat", "sets": 3.0, "times": 8.0, "duration": null }
+    }]
+  }]
+}
+''');
+    final exercise = plan.days.single.blocks.single.exercises.single;
+    expect(exercise.prescribedSets, 3);
+    expect(exercise.prescribedReps, 8);
+  });
+
+  test('rejects zero or fractional load values', () {
+    expect(
+      () => importer.import('''
+{
+  "name": "plan",
+  "basic-plan": [{
+    "name": "day 1",
+    "exercises": [{
+      "type": "single",
+      "exercise": { "title": "squat", "sets": 0, "times": 8, "duration": null }
+    }]
+  }]
+}
+'''),
+      throwsA(
+        isA<PlanImportException>().having(
+          (e) => e.message,
+          'message',
+          contains('at least 1 set'),
+        ),
+      ),
+    );
+    expect(
+      () => importer.import('''
+{
+  "name": "plan",
+  "basic-plan": [{
+    "name": "day 1",
+    "exercises": [{
+      "type": "single",
+      "exercise": { "title": "squat", "sets": 3, "times": 0, "duration": null }
+    }]
+  }]
+}
+'''),
+      throwsA(
+        isA<PlanImportException>().having(
+          (e) => e.message,
+          'message',
+          contains('times must be at least 1'),
+        ),
+      ),
+    );
+    expect(
+      () => importer.import('''
+{
+  "name": "plan",
+  "basic-plan": [{
+    "name": "day 1",
+    "exercises": [{
+      "type": "single",
+      "exercise": { "title": "plank", "sets": 1, "times": null, "duration": 0 }
+    }]
+  }]
+}
+'''),
+      throwsA(
+        isA<PlanImportException>().having(
+          (e) => e.message,
+          'message',
+          contains('duration must be at least 1 second'),
+        ),
+      ),
+    );
+    expect(
+      () => importer.import('''
+{
+  "name": "plan",
+  "basic-plan": [{
+    "name": "day 1",
+    "exercises": [{
+      "type": "single",
+      "exercise": { "title": "squat", "sets": 3.5, "times": 8, "duration": null }
+    }]
+  }]
+}
+'''),
+      throwsA(
+        isA<PlanImportException>().having(
+          (e) => e.message,
+          'message',
+          contains('must be a whole number'),
+        ),
+      ),
+    );
+  });
+
+  test('rejects a blank name and a non-array common-plan', () {
+    expect(
+      () => importer.import('{"name":"   ","basic-plan":[]}'),
+      throwsA(
+        isA<PlanImportException>().having(
+          (e) => e.message,
+          'message',
+          contains('needs a name'),
+        ),
+      ),
+    );
+    expect(
+      () => importer.import('''
+{
+  "name": "plan",
+  "basic-plan": [{
+    "name": "day 1",
+    "exercises": [{
+      "type": "single",
+      "exercise": { "title": "squat", "sets": 3, "times": 8, "duration": null }
+    }]
+  }],
+  "common-plan": {}
+}
+'''),
+      throwsA(
+        isA<PlanImportException>().having(
+          (e) => e.message,
+          'message',
+          contains('not a JSON array'),
+        ),
+      ),
+    );
+  });
 }
 
 var _ids = 0;

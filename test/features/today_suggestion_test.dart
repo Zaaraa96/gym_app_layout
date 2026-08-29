@@ -75,6 +75,104 @@ void main() {
     )..id = 1;
     expect(suggestToday(plans: [plan]), isNull);
   });
+
+  test('an empty day with common sections is still startable', () {
+    final plan = WorkoutPlan.create(
+      title: 'commons',
+      source: PlanSource.created,
+      createdAt: DateTime.utc(2026, 8, 1),
+      updatedAt: DateTime.utc(2026, 8, 1),
+      days: [PlanDay.create(dayId: 'day-1', title: 'Rest-ish')],
+      commonSections: [
+        CommonSection.create(
+          sectionId: 'sec-abs',
+          title: 'abs',
+          blocks: [
+            ExerciseBlock.create(
+              blockId: 'block-abs',
+              kind: BlockKind.single,
+              exercises: [
+                ExercisePrescription.create(
+                  prescriptionId: 'p-plank',
+                  title: 'plank',
+                  prescribedSets: 1,
+                  prescribedDurationSeconds: 30,
+                ),
+              ],
+            ),
+          ],
+        ),
+      ],
+    )..id = 1;
+
+    final suggestion = suggestToday(plans: [plan]);
+    expect(suggestion, isNotNull);
+    expect(suggestion!.day.title, 'Rest-ish');
+    expect(suggestion.prompt, 'Start with plank, then log what you did.');
+  });
+
+  test('rotation skips days that cannot start', () {
+    final work = _plan(id: 1, titles: ['Day 1', 'Day 3']);
+    final plan = WorkoutPlan.create(
+      title: 'with rest day',
+      source: PlanSource.created,
+      createdAt: DateTime.utc(2026, 8, 1),
+      updatedAt: DateTime.utc(2026, 8, 1),
+      days: [
+        work.days.first,
+        PlanDay.create(dayId: 'day-empty', title: 'Empty rest'),
+        PlanDay.create(
+          dayId: 'day-3',
+          title: 'Day 3',
+          blocks: work.days.last.blocks,
+        ),
+      ],
+    )..id = 1;
+
+    final suggestion = suggestToday(
+      plans: [plan],
+      completedNewestFirst: [
+        _completed(planId: 1, dayId: 'day-1', at: DateTime.utc(2026, 8, 26)),
+      ],
+      now: DateTime.utc(2026, 8, 27),
+    );
+    expect(suggestion!.day.title, 'Day 3');
+  });
+
+  test('a completed day that is no longer startable falls back to the first',
+      () {
+    final plan = _plan(id: 1, titles: ['Day 1', 'Day 2']);
+    final suggestion = suggestToday(
+      plans: [plan],
+      completedNewestFirst: [
+        _completed(
+          planId: 1,
+          dayId: 'retired-day',
+          at: DateTime.utc(2026, 8, 26),
+        ),
+      ],
+      now: DateTime.utc(2026, 8, 27),
+    );
+    expect(suggestion!.day.title, 'Day 1');
+    expect(suggestion.alreadyTrainedToday, isFalse);
+  });
+
+  test('sameUtcDay is true across clock times on that UTC date', () {
+    expect(
+      sameUtcDay(
+        DateTime.utc(2026, 8, 28, 1),
+        DateTime.utc(2026, 8, 28, 23),
+      ),
+      isTrue,
+    );
+    expect(
+      sameUtcDay(
+        DateTime.utc(2026, 8, 28, 23),
+        DateTime.utc(2026, 8, 29),
+      ),
+      isFalse,
+    );
+  });
 }
 
 WorkoutPlan _plan({

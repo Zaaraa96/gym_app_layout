@@ -216,6 +216,56 @@ void main() {
       [second.id, first.id],
     );
   });
+
+  test('start throws when the day is not on the plan', () async {
+    final db = await open();
+    final plan = _plan();
+    await db.plans.save(plan);
+
+    await expectLater(
+      db.sessions.start(plan: plan, planDayId: 'missing'),
+      throwsA(
+        isA<ArgumentError>().having(
+          (e) => e.message,
+          'message',
+          contains('Day not on this plan'),
+        ),
+      ),
+    );
+  });
+
+  test('unknown common section ids are skipped and omitted commons stay out',
+      () async {
+    final db = await open();
+    final plan = _plan();
+    await db.plans.save(plan);
+
+    final withoutCommons = await db.sessions.start(
+      plan: plan,
+      planDayId: 'day-1',
+      startedAt: DateTime.utc(2026, 8, 15, 10),
+    );
+    expect(
+      withoutCommons.exerciseLogs.map((l) => l.exerciseTitle),
+      ['kang squat', 'leg extension'],
+    );
+
+    withoutCommons.status = SessionStatus.abandoned;
+    withoutCommons.endedAt = DateTime.utc(2026, 8, 15, 11);
+    await db.sessions.save(withoutCommons);
+
+    final withUnknown = await db.sessions.start(
+      plan: plan,
+      planDayId: 'day-1',
+      includedCommonSectionIds: const ['sec-abs', 'sec-missing'],
+      startedAt: DateTime.utc(2026, 8, 16, 10),
+    );
+    expect(
+      withUnknown.exerciseLogs.map((l) => l.exerciseTitle),
+      ['kang squat', 'leg extension', 'shoot out'],
+    );
+    expect(withUnknown.includedCommonSectionIds, ['sec-abs', 'sec-missing']);
+  });
 }
 
 WorkoutPlan _plan() {

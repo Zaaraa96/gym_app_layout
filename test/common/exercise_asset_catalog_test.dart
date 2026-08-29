@@ -37,6 +37,40 @@ void main() {
     expect(matchExerciseAsset('unknown move'), isNull);
   });
 
+  test('matches titles on word boundaries so shorter names do not steal longer ones',
+      () {
+    expect(matchExerciseAsset('lunge')?.id, 'lunge');
+    expect(matchExerciseAsset('walking lunges')?.id, 'lunge');
+    expect(matchExerciseAsset('deadlift')?.id, 'deadlift');
+    expect(matchExerciseAsset('romanian deadlift')?.id, 'romanian-deadlift');
+    expect(matchExerciseAsset('rdl')?.id, 'romanian-deadlift');
+    expect(matchExerciseAsset('Push-up!')?.id, 'push-up');
+    expect(matchExerciseAsset('planks'), isNull);
+    expect(matchExerciseAsset(''), isNull);
+    expect(matchExerciseAsset(null), isNull);
+  });
+
+  test('suggestedAssetsForTitle puts the best match first', () {
+    final suggested = suggestedAssetsForTitle('heavy deadlift');
+    expect(suggested.first.id, 'deadlift');
+    expect(suggested, hasLength(bundledExerciseAssets.length));
+    expect(suggested.where((asset) => asset.id == 'deadlift'), hasLength(1));
+  });
+
+  test('bundledAssetByPath finds stills and form gifs', () {
+    expect(
+      bundledAssetByPath('assets/image/exercises/plank.png')?.id,
+      'plank',
+    );
+    expect(
+      bundledAssetByPath('assets/image/exercises/gifs/plank.gif')?.id,
+      'plank',
+    );
+    expect(bundledAssetByPath('assets/image/upper-body.svg'), isNull);
+    expect(bundledAssetByPath(''), isNull);
+    expect(bundledAssetByPath(null), isNull);
+  });
+
   test('day rows use the matched icon when svgPath is empty', () {
     final block = ExerciseBlock.create(
       blockId: 'b1',
