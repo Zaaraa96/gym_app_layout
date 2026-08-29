@@ -21,7 +21,7 @@ void main() {
     final suggestion = suggestToday(
       plans: [plan],
       completedNewestFirst: [
-        _completed(planId: 1, dayId: 'day-1', at: DateTime.utc(2026, 8, 26)),
+        _completed(planId: '1', dayId: 'day-1', at: DateTime.utc(2026, 8, 26)),
       ],
       now: DateTime.utc(2026, 8, 27, 12),
     );
@@ -35,7 +35,7 @@ void main() {
     final suggestion = suggestToday(
       plans: [plan],
       completedNewestFirst: [
-        _completed(planId: 1, dayId: 'day-2', at: DateTime.utc(2026, 8, 26)),
+        _completed(planId: '1', dayId: 'day-2', at: DateTime.utc(2026, 8, 26)),
       ],
       now: DateTime.utc(2026, 8, 27),
     );
@@ -47,7 +47,8 @@ void main() {
     final suggestion = suggestToday(
       plans: [plan],
       completedNewestFirst: [
-        _completed(planId: 1, dayId: 'day-1', at: DateTime.utc(2026, 8, 28, 8)),
+        _completed(
+            planId: '1', dayId: 'day-1', at: DateTime.utc(2026, 8, 28, 8)),
       ],
       now: DateTime.utc(2026, 8, 28, 18),
     );
@@ -58,8 +59,10 @@ void main() {
   });
 
   test('a newer plan wins over an older one', () {
-    final older = _plan(id: 1, titles: ['Old day'], updatedAt: DateTime.utc(2026, 1, 1));
-    final newer = _plan(id: 2, titles: ['New day'], updatedAt: DateTime.utc(2026, 8, 1));
+    final older =
+        _plan(id: 1, titles: ['Old day'], updatedAt: DateTime.utc(2026, 1, 1));
+    final newer =
+        _plan(id: 2, titles: ['New day'], updatedAt: DateTime.utc(2026, 8, 1));
     final suggestion = suggestToday(plans: [newer, older]);
     expect(suggestion!.plan.id, 2);
     expect(suggestion.day.title, 'New day');
@@ -72,7 +75,9 @@ void main() {
       createdAt: DateTime.utc(2026, 8, 1),
       updatedAt: DateTime.utc(2026, 8, 1),
       days: [PlanDay.create(dayId: 'day-1', title: 'Empty')],
-    )..id = 1;
+    )
+      ..id = 1
+      ..uuid = '1';
     expect(suggestToday(plans: [plan]), isNull);
   });
 
@@ -103,7 +108,9 @@ void main() {
           ],
         ),
       ],
-    )..id = 1;
+    )
+      ..id = 1
+      ..uuid = '1';
 
     final suggestion = suggestToday(plans: [plan]);
     expect(suggestion, isNotNull);
@@ -127,12 +134,14 @@ void main() {
           blocks: work.days.last.blocks,
         ),
       ],
-    )..id = 1;
+    )
+      ..id = 1
+      ..uuid = '1';
 
     final suggestion = suggestToday(
       plans: [plan],
       completedNewestFirst: [
-        _completed(planId: 1, dayId: 'day-1', at: DateTime.utc(2026, 8, 26)),
+        _completed(planId: '1', dayId: 'day-1', at: DateTime.utc(2026, 8, 26)),
       ],
       now: DateTime.utc(2026, 8, 27),
     );
@@ -146,7 +155,7 @@ void main() {
       plans: [plan],
       completedNewestFirst: [
         _completed(
-          planId: 1,
+          planId: '1',
           dayId: 'retired-day',
           at: DateTime.utc(2026, 8, 26),
         ),
@@ -207,11 +216,13 @@ WorkoutPlan _plan({
           ],
         ),
     ],
-  )..id = id;
+  )
+    ..id = id
+    ..uuid = '$id';
 }
 
 WorkoutSession _completed({
-  required int planId,
+  required String planId,
   required String dayId,
   required DateTime at,
 }) {

@@ -3,6 +3,7 @@ import 'package:get/get.dart';
 
 import '../../common/app_routes.dart';
 import '../../data/models/models.dart';
+import '../../data/session_lifecycle.dart';
 import '../../data/session_repository.dart';
 import 'live_workout_page.dart';
 
@@ -21,11 +22,12 @@ Future<void> startWorkout({
   required PlanDay day,
 }) async {
   final sessions = Get.find<SessionRepository>();
+  final lifecycle = Get.find<SessionLifecycle>();
 
   final existing = await sessions.inProgress();
   if (!context.mounted) return;
   if (existing != null) {
-    if (existing.planId == plan.id && existing.planDayId == day.dayId) {
+    if (existing.planId == plan.uuid && existing.planDayId == day.dayId) {
       await openLiveSession(existing.id);
       return;
     }
@@ -61,7 +63,7 @@ Future<void> startWorkout({
       await openLiveSession(existing.id);
       return;
     }
-    await sessions.abandonInProgress();
+    await lifecycle.abandonInProgress();
     if (!context.mounted) return;
   }
 
@@ -91,7 +93,7 @@ Future<void> startWorkout({
     return;
   }
 
-  final session = await sessions.start(
+  final session = await lifecycle.start(
     plan: plan,
     planDayId: day.dayId,
     includedCommonSectionIds: included,
