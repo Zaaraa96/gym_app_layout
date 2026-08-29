@@ -31,12 +31,7 @@ class ExerciseBlockRow extends StatelessWidget {
         ),
         child: Row(
           children: [
-            SvgPicture.asset(
-              blockSvgPath(block),
-              width: 40,
-              height: 40,
-              placeholderBuilder: (_) => const SizedBox(width: 40, height: 40),
-            ),
+            _ExerciseIcon(path: blockSvgPath(block), size: 48),
             const SizedBox(width: 12),
             Expanded(
               child: Column(
@@ -95,6 +90,33 @@ class _SetBadge extends StatelessWidget {
           style: titleTextStyle.copyWith(fontWeight: FontWeight.w700),
         ),
       ),
+    );
+  }
+}
+
+class _ExerciseIcon extends StatelessWidget {
+  const _ExerciseIcon({required this.path, required this.size});
+
+  final String path;
+  final double size;
+
+  @override
+  Widget build(BuildContext context) {
+    if (path.toLowerCase().endsWith('.svg')) {
+      return SvgPicture.asset(
+        path,
+        width: size,
+        height: size,
+        placeholderBuilder: (_) => SizedBox(width: size, height: size),
+      );
+    }
+    return Image.asset(
+      path,
+      width: size,
+      height: size,
+      fit: BoxFit.contain,
+      gaplessPlayback: true,
+      filterQuality: FilterQuality.medium,
     );
   }
 }

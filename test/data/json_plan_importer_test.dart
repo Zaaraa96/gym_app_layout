@@ -27,7 +27,7 @@ void main() {
 
     final superset = day.blocks[0];
     expect(superset.kind, BlockKind.superset);
-    expect(superset.svgPath, 'assets/image/exercises/kang-squat.svg');
+    expect(superset.svgPath, 'assets/image/exercises/kang-squat.png');
     expect(superset.exercises.map((e) => e.title),
         ['kang squat', 'leg extension']);
     expect(superset.exercises.first.prescribedSets, 3);
@@ -37,14 +37,14 @@ void main() {
 
     final single = day.blocks[1];
     expect(single.kind, BlockKind.single);
-    expect(single.svgPath, 'assets/image/exercises/reverse-lunge-press.svg');
+    expect(single.svgPath, 'assets/image/exercises/reverse-lunge-press.png');
     expect(single.exercises.single.title, 'reverse lunges+ Press');
     expect(single.exercises.single.prescribedReps, 12);
 
     final abs = plan.commonSections[0];
     expect(abs.title, 'abs');
     expect(abs.blocks.single.kind, BlockKind.single);
-    expect(abs.blocks.single.svgPath, 'assets/image/exercises/shoot-out.svg');
+    expect(abs.blocks.single.svgPath, 'assets/image/exercises/shoot-out.png');
     expect(abs.blocks.single.exercises.single.title, 'shoot out');
     expect(abs.blocks.single.exercises.single.prescribedSets, 1);
     expect(abs.blocks.single.exercises.single.prescribedReps, isNull);
@@ -53,7 +53,7 @@ void main() {
     expect(plan.commonSections[1].title, 'corrective');
     expect(
       plan.commonSections[1].blocks.single.svgPath,
-      'assets/image/exercises/step-lunge-stretch.svg',
+      'assets/image/exercises/step-lunge-stretch.png',
     );
   });
 

@@ -29,12 +29,12 @@ ExerciseAssetEntry _asset(
   return ExerciseAssetEntry(
     id: id,
     label: label,
-    assetPath: '$exerciseAssetFolder/$id.svg',
+    assetPath: '$exerciseAssetFolder/$id.png',
     keywords: keywords,
   );
 }
 
-/// Thirty exercise icons designed for this app's deep-purple day rows.
+/// Thirty illustrated exercise stills and matching form GIFs.
 final bundledExerciseAssets = <ExerciseAssetEntry>[
   _asset('squat', 'Squat', ['squat', 'back squat']),
   _asset('kang-squat', 'Kang squat', ['kang', 'kang squat']),

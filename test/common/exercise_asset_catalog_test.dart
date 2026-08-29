@@ -1,7 +1,6 @@
 import 'dart:io';
 
 import 'package:flutter/material.dart';
-import 'package:flutter_svg/flutter_svg.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:gym_app/common/exercise_asset_catalog.dart';
 import 'package:gym_app/data/models/models.dart';
@@ -20,7 +19,7 @@ void main() {
     );
   });
 
-  test('every bundled svg and gif file is on disk', () {
+  test('every bundled still and gif file is on disk', () {
     for (final asset in bundledExerciseAssets) {
       expect(File(asset.assetPath).existsSync(), isTrue, reason: asset.assetPath);
       expect(File(asset.gifPath).existsSync(), isTrue, reason: asset.gifPath);
@@ -51,7 +50,7 @@ void main() {
         ),
       ],
     );
-    expect(blockSvgPath(block), 'assets/image/exercises/kang-squat.svg');
+    expect(blockSvgPath(block), 'assets/image/exercises/kang-squat.png');
   });
 
   testWidgets('every exercise icon paints without throwing', (tester) async {
@@ -60,7 +59,7 @@ void main() {
         home: ListView(
           children: [
             for (final asset in bundledExerciseAssets)
-              SvgPicture.asset(
+              Image.asset(
                 asset.assetPath,
                 width: 40,
                 height: 40,

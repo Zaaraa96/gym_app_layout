@@ -195,10 +195,10 @@ void main() {
     final day = stored.single.days.single;
     expect(day.blocks, hasLength(2));
     expect(day.blocks.first.exercises.single.title, 'kang squat');
-    expect(day.blocks.first.svgPath, 'assets/image/exercises/kang-squat.svg');
+    expect(day.blocks.first.svgPath, 'assets/image/exercises/kang-squat.png');
     expect(day.blocks.first.exercises.single.prescribedReps, 12);
     expect(day.blocks.last.exercises.single.prescribedDurationSeconds, 45);
-    expect(day.blocks.last.svgPath, 'assets/image/exercises/plank.svg');
+    expect(day.blocks.last.svgPath, 'assets/image/exercises/plank.png');
     expect(day.blocks.last.kind, BlockKind.single);
   });
 
