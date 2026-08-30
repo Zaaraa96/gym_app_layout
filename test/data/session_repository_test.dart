@@ -266,6 +266,105 @@ void main() {
     );
     expect(withUnknown.includedCommonSectionIds, ['sec-abs', 'sec-missing']);
   });
+
+  test('forCalendarDay uses UTC midnight bounds and keeps live sessions',
+      () async {
+    final db = await open();
+    final plan = _plan();
+    await db.plans.save(plan);
+
+    final live = await db.sessions.start(
+      plan: plan,
+      planDayId: 'day-1',
+      startedAt: DateTime.utc(2026, 8, 15),
+    );
+    final late = await db.sessions.start(
+      plan: plan,
+      planDayId: 'day-1',
+      startedAt: DateTime.utc(2026, 8, 15, 23, 59, 59),
+    );
+    late.status = SessionStatus.completed;
+    late.endedAt = DateTime.utc(2026, 8, 15, 23, 59, 59);
+    await db.sessions.save(late);
+
+    final nextMidnight = await db.sessions.start(
+      plan: plan,
+      planDayId: 'day-1',
+      startedAt: DateTime.utc(2026, 8, 16),
+    );
+    nextMidnight.status = SessionStatus.completed;
+    nextMidnight.endedAt = DateTime.utc(2026, 8, 16, 1);
+    await db.sessions.save(nextMidnight);
+
+    final day = await db.sessions.forCalendarDay(
+      DateTime.utc(2026, 8, 15, 18, 30),
+    );
+    expect(day.map((s) => s.id), [live.id, late.id]);
+  });
+
+  test('completedNewestFirst without a plan id is global newest first',
+      () async {
+    final db = await open();
+    final planA = _plan();
+    await db.plans.save(planA);
+    final planB = WorkoutPlan.create(
+      title: 'other',
+      source: PlanSource.created,
+      createdAt: DateTime.utc(2026, 8, 1),
+      updatedAt: DateTime.utc(2026, 8, 1),
+      days: [
+        PlanDay.create(
+          dayId: 'day-1',
+          title: 'other day',
+          blocks: [
+            ExerciseBlock.create(
+              blockId: 'block-other',
+              kind: BlockKind.single,
+              exercises: [
+                ExercisePrescription.create(
+                  prescriptionId: 'p-other',
+                  title: 'kang squat',
+                  prescribedSets: 3,
+                  prescribedReps: 12,
+                ),
+              ],
+            ),
+          ],
+        ),
+      ],
+    );
+    await db.plans.save(planB);
+
+    final older = await db.sessions.start(
+      plan: planA,
+      planDayId: 'day-1',
+      startedAt: DateTime.utc(2026, 8, 10, 8),
+    );
+    older.status = SessionStatus.completed;
+    older.endedAt = DateTime.utc(2026, 8, 10, 9);
+    await db.sessions.save(older);
+
+    final newer = await db.sessions.start(
+      plan: planB,
+      planDayId: 'day-1',
+      startedAt: DateTime.utc(2026, 8, 12, 8),
+    );
+    newer.status = SessionStatus.completed;
+    newer.endedAt = DateTime.utc(2026, 8, 12, 9);
+    await db.sessions.save(newer);
+
+    await db.sessions.start(
+      plan: planA,
+      planDayId: 'day-1',
+      startedAt: DateTime.utc(2026, 8, 13, 8),
+    );
+
+    expect(
+      (await db.sessions.completedNewestFirst()).map((s) => s.id),
+      [newer.id, older.id],
+    );
+    expect((await db.sessions.lastCompleted())?.id, newer.id);
+  });
 }
 
 WorkoutPlan _plan() {

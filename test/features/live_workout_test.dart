@@ -177,6 +177,261 @@ void main() {
       findsOneWidget,
     );
   });
+
+  testWidgets(
+      'starting today again while that day is live resumes without a conflict',
+      (tester) async {
+    final repos = await bootstrap(tester);
+    await db(tester, () => repos.plans.save(_simplePlan()));
+
+    await launch(tester, AppRoutes.home);
+    await tester.tap(find.text("Start today's workout"));
+    await tester.pump();
+    await settle(tester);
+    expect(find.text('Bodyweight squat  ·  set 1 of 2'), findsOneWidget);
+
+    await tester.pageBack();
+    await tester.pump();
+    await settle(tester);
+
+    await tester.tap(find.text("Start today's workout"));
+    await tester.pump();
+    await settle(tester);
+
+    expect(find.text('A workout is already in progress'), findsNothing);
+    expect(find.text('Bodyweight squat  ·  set 1 of 2'), findsOneWidget);
+    expect(await db(tester, () => repos.sessions.inProgress()), isNotNull);
+  });
+
+  testWidgets('End then Finish keeps a partial session as completed',
+      (tester) async {
+    final repos = await bootstrap(tester);
+    await db(tester, () => repos.plans.save(_simplePlan()));
+
+    await launch(tester, AppRoutes.home);
+    await tester.tap(find.text("Start today's workout"));
+    await tester.pump();
+    await settle(tester);
+
+    await tester.tap(find.text('Log set'));
+    await tester.pump();
+    await settle(tester);
+    await settle(tester);
+
+    final end = find.byKey(const Key('end-workout'));
+    await tester.ensureVisible(end);
+    await tester.tap(end);
+    await tester.pump();
+    await settle(tester);
+    final finish = find.byKey(const Key('finish-workout'));
+    await tester.ensureVisible(finish);
+    await tester.tap(finish);
+    await tester.pump();
+    await settle(tester);
+
+    expect(find.text('Workout complete'), findsOneWidget);
+    expect(await db(tester, () => repos.sessions.inProgress()), isNull);
+    final completed = await db(tester, () => repos.sessions.lastCompleted());
+    expect(completed!.status, SessionStatus.completed);
+    expect(completed.exerciseLogs.single.sets, hasLength(1));
+    expect(completed.exerciseLogs.single.difficulty, isNull);
+  });
+
+  testWidgets('End then Discard abandons the session and returns home',
+      (tester) async {
+    final repos = await bootstrap(tester);
+    await db(tester, () => repos.plans.save(_simplePlan()));
+
+    await launch(tester, AppRoutes.home);
+    await tester.tap(find.text("Start today's workout"));
+    await tester.pump();
+    await settle(tester);
+    await settle(tester);
+
+    final end = find.byKey(const Key('end-workout'));
+    await tester.ensureVisible(end);
+    await tester.tap(end);
+    await tester.pump();
+    await settle(tester);
+    final discard = find.byKey(const Key('discard-workout'));
+    await tester.ensureVisible(discard);
+    await tester.tap(discard);
+    await tester.pump();
+    await settle(tester);
+
+    expect(find.byKey(const Key('continue-banner')), findsNothing);
+    expect(find.byKey(const Key('today-card')), findsOneWidget);
+    expect(await db(tester, () => repos.sessions.inProgress()), isNull);
+    expect(await db(tester, () => repos.sessions.lastCompleted()), isNull);
+  });
+
+  testWidgets('Keep going leaves the live session open', (tester) async {
+    final repos = await bootstrap(tester);
+    final plan = _simplePlan();
+    await db(tester, () => repos.plans.save(plan));
+    final session = await db(
+      tester,
+      () => repos.sessions.start(
+        plan: plan,
+        planDayId: 'day-1',
+        startedAt: DateTime.utc(2026, 8, 28, 12),
+      ),
+    );
+
+    await tester.pumpWidget(
+      GetMaterialApp(
+        home: LiveWorkoutPage(sessionId: session.id),
+      ),
+    );
+    await settle(tester);
+
+    await tester.tap(find.byKey(const Key('end-workout')));
+    await tester.pump();
+    await settle(tester);
+    await tester.tap(find.text('Keep going'));
+    await tester.pump();
+    await settle(tester);
+
+    expect(find.text('Log set'), findsOneWidget);
+    final stored = await db(tester, () => repos.sessions.byId(session.id));
+    expect(stored!.status, SessionStatus.inProgress);
+  });
+
+  testWidgets('a non-numeric weight is rejected before a set is written',
+      (tester) async {
+    final repos = await bootstrap(tester);
+    final plan = _simplePlan();
+    await db(tester, () => repos.plans.save(plan));
+    final session = await db(
+      tester,
+      () => repos.sessions.start(
+        plan: plan,
+        planDayId: 'day-1',
+        startedAt: DateTime.utc(2026, 8, 28, 12),
+      ),
+    );
+
+    await tester.pumpWidget(
+      GetMaterialApp(
+        home: LiveWorkoutPage(sessionId: session.id),
+      ),
+    );
+    await settle(tester);
+
+    await tester.enterText(find.byKey(const Key('weight-field')), 'heavy');
+    await tester.tap(find.text('Log set'));
+    await tester.pump();
+    await settle(tester);
+
+    expect(
+      find.text('Weight must be a number, or leave it empty.'),
+      findsOneWidget,
+    );
+    final stored = await db(tester, () => repos.sessions.byId(session.id));
+    expect(stored!.exerciseLogs.single.sets, isEmpty);
+    expect(stored.status, SessionStatus.inProgress);
+  });
+
+  testWidgets('Log time stores the prescribed hold when the timer never ran',
+      (tester) async {
+    final repos = await bootstrap(tester);
+    final plan = _durationPlan();
+    await db(tester, () => repos.plans.save(plan));
+    final session = await db(
+      tester,
+      () => repos.sessions.start(
+        plan: plan,
+        planDayId: 'day-1',
+        startedAt: DateTime.utc(2026, 8, 28, 12),
+      ),
+    );
+
+    await tester.pumpWidget(
+      GetMaterialApp(
+        home: LiveWorkoutPage(sessionId: session.id),
+      ),
+    );
+    await settle(tester);
+
+    expect(
+      find.text('Start the hold, then log the time you actually did.'),
+      findsOneWidget,
+    );
+    await tester.tap(find.text('Log time'));
+    await tester.pump();
+    await settle(tester);
+
+    expect(find.text('How hard was that? 1 easy · 5 hard'), findsOneWidget);
+    final stored = await db(tester, () => repos.sessions.byId(session.id));
+    expect(stored!.exerciseLogs.single.sets.single.durationSeconds, 30);
+  });
+
+  testWidgets('an empty session asks to end instead of showing a logger',
+      (tester) async {
+    final repos = await bootstrap(tester);
+    final now = DateTime.utc(2026, 8, 28, 12);
+    final plan = WorkoutPlan.create(
+      title: 'Empty',
+      source: PlanSource.created,
+      createdAt: now,
+      updatedAt: now,
+      days: [
+        PlanDay.create(dayId: 'day-1', title: 'Empty day'),
+      ],
+    );
+    await db(tester, () => repos.plans.save(plan));
+    final session = await db(
+      tester,
+      () => repos.sessions.start(
+        plan: plan,
+        planDayId: 'day-1',
+        startedAt: now,
+      ),
+    );
+
+    await tester.pumpWidget(
+      GetMaterialApp(
+        home: LiveWorkoutPage(sessionId: session.id),
+      ),
+    );
+    await settle(tester);
+
+    expect(
+      find.text('Nothing to log. End this workout or go back.'),
+      findsOneWidget,
+    );
+    expect(find.text('Log set'), findsNothing);
+  });
+}
+
+WorkoutPlan _durationPlan() {
+  final now = DateTime.utc(2026, 8, 28, 12);
+  return WorkoutPlan.create(
+    title: 'Holds',
+    source: PlanSource.created,
+    createdAt: now,
+    updatedAt: now,
+    days: [
+      PlanDay.create(
+        dayId: 'day-1',
+        title: 'Day 1 — Plank',
+        blocks: [
+          ExerciseBlock.create(
+            blockId: 'block-plank',
+            kind: BlockKind.single,
+            exercises: [
+              ExercisePrescription.create(
+                prescriptionId: 'p-plank',
+                title: 'Plank',
+                prescribedSets: 1,
+                prescribedDurationSeconds: 30,
+              ),
+            ],
+          ),
+        ],
+      ),
+    ],
+  );
 }
 
 WorkoutPlan _simplePlan() {

@@ -9,6 +9,7 @@ import 'package:gym_app/data/models/models.dart';
 import 'package:gym_app/data/plan_repository.dart';
 import 'package:gym_app/data/session_repository.dart';
 import 'package:gym_app/features/progress/progress_format.dart';
+import 'package:gym_app/features/progress/session_log_page.dart';
 import 'package:gym_app/main.dart';
 
 import '../helpers/isar_core.dart';
@@ -224,6 +225,78 @@ void main() {
     );
     expect(find.text(formatMonthTitle(next)), findsOneWidget);
     expect(find.text('No workouts this month.'), findsOneWidget);
+
+    await tester.tap(find.byKey(const Key('month-prev')));
+    await tester.pump();
+    await settle(tester);
+    await tester.tap(find.byKey(const Key('month-prev')));
+    await tester.pump();
+    await settle(tester);
+
+    final previous = DateTime.utc(
+      DateTime.now().toUtc().year,
+      DateTime.now().toUtc().month - 1,
+    );
+    expect(find.text(formatMonthTitle(previous)), findsOneWidget);
+    expect(find.text('No workouts this month.'), findsOneWidget);
+  });
+
+  testWidgets('a missing session log shows that it is gone', (tester) async {
+    await bootstrap(tester);
+
+    await tester.pumpWidget(
+      const GetMaterialApp(
+        home: SessionLogPage(sessionId: 999999),
+      ),
+    );
+    await settle(tester);
+
+    expect(find.text('This session is gone.'), findsOneWidget);
+    await tester.tap(find.text('Try again'));
+    await tester.pump();
+    await settle(tester);
+    expect(find.text('This session is gone.'), findsOneWidget);
+  });
+
+  testWidgets('an empty calendar day lists no workouts', (tester) async {
+    await bootstrap(tester);
+
+    await tester.pumpWidget(
+      GetMaterialApp(
+        home: DayLogPage(day: DateTime.utc(2026, 8, 15)),
+      ),
+    );
+    await settle(tester);
+
+    expect(find.text('No workouts this day.'), findsOneWidget);
+    expect(find.byKey(const Key('day-log-list')), findsNothing);
+  });
+
+  testWidgets('a live session gets a dot and opens with no sets logged',
+      (tester) async {
+    final repos = await bootstrap(tester);
+    final plan = _plan();
+    await db(tester, () => repos.plans.save(plan));
+    await db(
+      tester,
+      () => repos.sessions.start(
+        plan: plan,
+        planDayId: 'day-1',
+        startedAt: thisMonth(day: 8, hour: 9),
+      ),
+    );
+
+    await launch(tester, AppRoutes.home);
+    await openMonth(tester);
+
+    expect(find.byKey(const Key('month-dot-8')), findsOneWidget);
+    await tester.tap(find.byKey(const Key('month-day-8')));
+    await tester.pump();
+    await settle(tester);
+
+    expect(find.text('In progress'), findsOneWidget);
+    expect(find.text('No sets logged'), findsOneWidget);
+    expect(find.text('kang squat'), findsWidgets);
   });
 }
 
