@@ -44,6 +44,8 @@ class MyApp extends StatelessWidget {
     return GetMaterialApp(
       title: 'My Awesome Gym App',
       theme: appTheme,
+      // Linux debug banner sits on the AppBar and covers End / overflow actions.
+      debugShowCheckedModeBanner: false,
       initialRoute: initialRoute,
       builder: (context, child) {
         final galleryPicker = Get.isRegistered<ExerciseGalleryPicker>()
