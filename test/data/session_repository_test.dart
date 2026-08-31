@@ -424,6 +424,29 @@ void main() {
     expect((await db.sessions.lastCompleted())?.id, newer.id);
   });
 
+  test('a local startedAt is stored in UTC so the calendar day still matches',
+      () async {
+    final db = await open();
+    final plan = _plan();
+    await db.plans.save(plan);
+
+    final localStart = DateTime(2026, 8, 15, 10);
+    final session = await db.lifecycle.start(
+      plan: plan,
+      planDayId: 'day-1',
+      startedAt: localStart,
+    );
+
+    expect(session.startedAt.isUtc, isTrue);
+    expect(
+      session.startedAt.isAtSameMomentAs(localStart.toUtc()),
+      isTrue,
+    );
+
+    final onThatUtcDay = await db.sessions.forCalendarDay(session.startedAt);
+    expect(onThatUtcDay.map((row) => row.id), [session.id]);
+  });
+
   test('abandonInProgress is a no-op when nothing is live', () async {
     final db = await open();
     await db.lifecycle.abandonInProgress(

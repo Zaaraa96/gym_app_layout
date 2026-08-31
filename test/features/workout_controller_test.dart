@@ -358,6 +358,35 @@ void main() {
     expect(c.durationTimerStarted, isFalse);
     expect(c.durationRemainingSeconds, isNull);
   });
+
+  test('discarded sessions reject logs and a second startRest is a no-op',
+      () async {
+    final started = await startController();
+    final c = started.controller;
+    c.startRest();
+    expect(c.isResting, isTrue);
+    c.startRest();
+    expect(c.isResting, isTrue);
+    expect(c.restElapsedSeconds, 0);
+
+    await c.discard();
+    await expectLater(
+      c.logSet(reps: 10),
+      throwsA(
+        isA<WorkoutActionException>().having(
+          (e) => e.message,
+          'message',
+          contains('already ended'),
+        ),
+      ),
+    );
+    await expectLater(
+      c.finish(),
+      throwsA(isA<WorkoutActionException>()),
+    );
+    expect(c.session!.status, SessionStatus.abandoned);
+    expect(await started.sessions.inProgress(), isNull);
+  });
 }
 
 Future<void> _reachDurationHold(WorkoutController c) async {
