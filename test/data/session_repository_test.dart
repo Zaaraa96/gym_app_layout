@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'dart:io';
 
 import 'package:flutter_test/flutter_test.dart';
@@ -196,7 +197,40 @@ void main() {
     expect(day.map((s) => s.id), [earlier.id, later.id]);
   });
 
-  test('forCalendarDay uses UTC midnight bounds and keeps live sessions',
+  test('forCalendarDay drops abandoned sessions on that day', () async {
+    final db = await open();
+    final plan = _plan();
+    await db.plans.save(plan);
+
+    final discarded = await db.lifecycle.start(
+      plan: plan,
+      planDayId: 'day-1',
+      startedAt: DateTime.utc(2026, 8, 15, 9),
+    );
+    await db.lifecycle.abandonInProgress(
+      endedAt: DateTime.utc(2026, 8, 15, 9, 30),
+    );
+
+    final kept = await db.lifecycle.start(
+      plan: plan,
+      planDayId: 'day-1',
+      startedAt: DateTime.utc(2026, 8, 15, 10),
+    );
+    kept.status = SessionStatus.completed;
+    kept.endedAt = DateTime.utc(2026, 8, 15, 11);
+    await db.sessions.save(kept);
+
+    final day = await db.sessions.forCalendarDay(DateTime.utc(2026, 8, 15));
+    expect(day.map((s) => s.id), [kept.id]);
+    expect(day.every((s) => s.status != SessionStatus.abandoned), isTrue);
+    expect(
+      (await db.sessions.byId(discarded.id))!.status,
+      SessionStatus.abandoned,
+    );
+  });
+
+  test(
+      'forCalendarDay keeps live sessions, drops abandoned, and stops at midnight',
       () async {
     final db = await open();
     final plan = _plan();
@@ -211,14 +245,23 @@ void main() {
     late.endedAt = DateTime.utc(2026, 8, 15, 23, 59, 59);
     await db.sessions.save(late);
 
-    final nextMidnight = await db.lifecycle.start(
+    final nextDay = await db.lifecycle.start(
       plan: plan,
       planDayId: 'day-1',
       startedAt: DateTime.utc(2026, 8, 16),
     );
-    nextMidnight.status = SessionStatus.completed;
-    nextMidnight.endedAt = DateTime.utc(2026, 8, 16, 1);
-    await db.sessions.save(nextMidnight);
+    nextDay.status = SessionStatus.completed;
+    nextDay.endedAt = DateTime.utc(2026, 8, 16, 1);
+    await db.sessions.save(nextDay);
+
+    final abandoned = await db.lifecycle.start(
+      plan: plan,
+      planDayId: 'day-1',
+      startedAt: DateTime.utc(2026, 8, 15, 9),
+    );
+    abandoned.status = SessionStatus.abandoned;
+    abandoned.endedAt = DateTime.utc(2026, 8, 15, 10);
+    await db.sessions.save(abandoned);
 
     final live = await db.lifecycle.start(
       plan: plan,
@@ -230,6 +273,11 @@ void main() {
       DateTime.utc(2026, 8, 15, 18, 30),
     );
     expect(day.map((s) => s.id), [live.id, late.id]);
+    expect(
+      (await db.sessions.forCalendarDay(DateTime.utc(2026, 8, 16)))
+          .map((s) => s.id),
+      [nextDay.id],
+    );
   });
 
   test('lastCompleted is the newest completed session for that plan', () async {
@@ -440,6 +488,41 @@ void main() {
     expect(await db.sessions.unsynced(), isEmpty);
     expect((await db.sessions.byId(session.id))!.dirty, isFalse);
   });
+
+  test('watch fires on save and delete', () async {
+    final db = await open();
+    final session = WorkoutSession.create(
+      uuid: 'watched',
+      planId: 'plan-uuid',
+      planDayId: 'day-1',
+      planTitleSnapshot: 'plan 1',
+      dayTitleSnapshot: 'day 1',
+      startedAt: DateTime.utc(2026, 8, 15, 10),
+      updatedAt: DateTime.utc(2026, 8, 15, 10),
+      status: SessionStatus.completed,
+    );
+
+    await _expectWatchFires(db.sessions.watch(), () => db.sessions.save(session));
+    expect(session.id, isNot(0));
+    await _expectWatchFires(
+      db.sessions.watch(),
+      () => db.sessions.delete(session.id),
+    );
+    expect(await db.sessions.byId(session.id), isNull);
+  });
+}
+
+Future<void> _expectWatchFires(
+  Stream<void> stream,
+  Future<void> Function() action,
+) async {
+  final done = Completer<void>();
+  final sub = stream.listen((_) {
+    if (!done.isCompleted) done.complete();
+  });
+  await action();
+  await done.future.timeout(const Duration(seconds: 5));
+  await sub.cancel();
 }
 
 WorkoutPlan _plan() {

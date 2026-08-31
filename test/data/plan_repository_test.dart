@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'dart:io';
 
 import 'package:flutter_test/flutter_test.dart';
@@ -95,4 +96,33 @@ void main() {
     expect(await plans.byUuid('older'), isNull);
     expect(await plans.count(), 1);
   });
+
+  test('watch fires on save and delete', () async {
+    final plans = await open();
+    final plan = WorkoutPlan.create(
+      uuid: 'watched',
+      title: 'watched',
+      source: PlanSource.created,
+      createdAt: DateTime.utc(2026, 8, 1),
+      updatedAt: DateTime.utc(2026, 8, 1),
+    );
+
+    await _expectWatchFires(plans.watch(), () => plans.save(plan));
+    expect(plan.id, isNot(0));
+    await _expectWatchFires(plans.watch(), () => plans.delete(plan.id));
+    expect(await plans.byId(plan.id), isNull);
+  });
+}
+
+Future<void> _expectWatchFires(
+  Stream<void> stream,
+  Future<void> Function() action,
+) async {
+  final done = Completer<void>();
+  final sub = stream.listen((_) {
+    if (!done.isCompleted) done.complete();
+  });
+  await action();
+  await done.future.timeout(const Duration(seconds: 5));
+  await sub.cancel();
 }

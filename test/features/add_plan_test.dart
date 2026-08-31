@@ -105,7 +105,7 @@ void main() {
     expect(Get.currentRoute, AppRoutes.newPlan);
   });
 
-  testWidgets('whitespace-only title stays on the form', (tester) async {
+  testWidgets('whitespace-only title is treated as empty', (tester) async {
     await bootstrap(tester);
     await launch(tester, AppRoutes.newPlan);
 
@@ -115,5 +115,6 @@ void main() {
 
     expect(find.text('Add a title before saving'), findsOneWidget);
     expect(Get.currentRoute, AppRoutes.newPlan);
+    expect(await db(tester, Get.find<PlanRepository>().all), isEmpty);
   });
 }
