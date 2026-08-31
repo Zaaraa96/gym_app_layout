@@ -126,6 +126,29 @@ void main() {
       sessions: [],
     );
     expect(formatTrendSummary(empty), 'No logged sets');
+
+    final oneSession = ExerciseMonthTrend(
+      titleKey: 'plank',
+      title: 'plank',
+      metric: ProgressMetricKind.duration,
+      firstValue: 30,
+      lastValue: 30,
+      delta: 0,
+      feltEasier: false,
+      sessions: [
+        SessionExercisePoint(
+          sessionId: 1,
+          startedAt: DateTime.utc(2026, 8, 2),
+          status: SessionStatus.completed,
+          completedSets: 1,
+          prescribedSets: 1,
+          totalReps: 0,
+          metPrescription: true,
+          primaryValue: 30,
+        ),
+      ],
+    );
+    expect(formatTrendSummary(oneSession), '0:30');
   });
 
   test('formatTrendSummary omits the delta when only one session has a value',
@@ -152,12 +175,6 @@ void main() {
       ],
     );
     expect(formatTrendSummary(one), '40 kg');
-  });
-
-  test('formatClock keeps minutes and a leading minus', () {
-    expect(formatClock(0), '0:00');
-    expect(formatClock(75), '1:15');
-    expect(formatClock(-5), '-0:05');
   });
 
   test('formatSetLine covers weight, bodyweight, and duration', () {

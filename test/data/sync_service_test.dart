@@ -9,103 +9,107 @@ import 'package:gym_app/data/session_repository.dart';
 import 'package:gym_app/data/sync/sync_service.dart';
 
 void main() {
-  test('pull keeps the newer local plan and overwrites when remote wins',
-      () async {
-    final plans = _MemoryPlans();
-    final sessions = _MemorySessions();
-    final remotePlans = _MemoryRemotePlans();
-    final remoteSessions = _MemoryRemoteSessions();
+  test(
+    'pull keeps the newer local plan and overwrites when remote wins',
+    () async {
+      final plans = _MemoryPlans();
+      final sessions = _MemorySessions();
+      final remotePlans = _MemoryRemotePlans();
+      final remoteSessions = _MemoryRemoteSessions();
 
-    final local = _plan(
-      uuid: 'plan-1',
-      title: 'local',
-      updatedAt: DateTime.utc(2026, 8, 20),
-      dirty: true,
-    )..id = 1;
-    await plans.putSynced(local);
-    local.dirty = true;
-    await plans.saveKeepingTime(local);
+      final local = _plan(
+        uuid: 'plan-1',
+        title: 'local',
+        updatedAt: DateTime.utc(2026, 8, 20),
+        dirty: true,
+      )..id = 1;
+      await plans.putSynced(local);
+      local.dirty = true;
+      await plans.saveKeepingTime(local);
 
-    remotePlans.store[_plan(
-      uuid: 'plan-1',
-      title: 'remote-old',
-      updatedAt: DateTime.utc(2026, 8, 10),
-    ).uuid] = _plan(
-      uuid: 'plan-1',
-      title: 'remote-old',
-      updatedAt: DateTime.utc(2026, 8, 10),
-    );
+      remotePlans.store[_plan(
+        uuid: 'plan-1',
+        title: 'remote-old',
+        updatedAt: DateTime.utc(2026, 8, 10),
+      ).uuid] = _plan(
+        uuid: 'plan-1',
+        title: 'remote-old',
+        updatedAt: DateTime.utc(2026, 8, 10),
+      );
 
-    remotePlans.store['plan-2'] = _plan(
-      uuid: 'plan-2',
-      title: 'from-server',
-      updatedAt: DateTime.utc(2026, 8, 21),
-    );
+      remotePlans.store['plan-2'] = _plan(
+        uuid: 'plan-2',
+        title: 'from-server',
+        updatedAt: DateTime.utc(2026, 8, 21),
+      );
 
-    final sync = SyncService(
-      plans: plans,
-      sessions: sessions,
-      remotePlans: remotePlans,
-      remoteSessions: remoteSessions,
-    );
-    await sync.pull();
+      final sync = SyncService(
+        plans: plans,
+        sessions: sessions,
+        remotePlans: remotePlans,
+        remoteSessions: remoteSessions,
+      );
+      await sync.pull();
 
-    expect((await plans.byUuid('plan-1'))!.title, 'local');
-    expect((await plans.byUuid('plan-1'))!.id, 1);
-    expect((await plans.byUuid('plan-2'))!.title, 'from-server');
-    expect((await plans.byUuid('plan-2'))!.dirty, isFalse);
-    expect(await plans.count(), 2);
-  });
+      expect((await plans.byUuid('plan-1'))!.title, 'local');
+      expect((await plans.byUuid('plan-1'))!.id, 1);
+      expect((await plans.byUuid('plan-2'))!.title, 'from-server');
+      expect((await plans.byUuid('plan-2'))!.dirty, isFalse);
+      expect(await plans.count(), 2);
+    },
+  );
 
-  test('pull overwrites when remote is newer or tied and keeps the Isar id',
-      () async {
-    final plans = _MemoryPlans();
-    final sessions = _MemorySessions();
-    final remotePlans = _MemoryRemotePlans();
-    final remoteSessions = _MemoryRemoteSessions();
+  test(
+    'pull overwrites when remote is newer or tied and keeps the Isar id',
+    () async {
+      final plans = _MemoryPlans();
+      final sessions = _MemorySessions();
+      final remotePlans = _MemoryRemotePlans();
+      final remoteSessions = _MemoryRemoteSessions();
 
-    final localPlan = _plan(
-      uuid: 'plan-1',
-      title: 'local-old',
-      updatedAt: DateTime.utc(2026, 8, 10),
-    )..id = 42;
-    await plans.putSynced(localPlan);
+      final localPlan = _plan(
+        uuid: 'plan-1',
+        title: 'local-old',
+        updatedAt: DateTime.utc(2026, 8, 10),
+      )..id = 42;
+      await plans.putSynced(localPlan);
 
-    remotePlans.store['plan-1'] = _plan(
-      uuid: 'plan-1',
-      title: 'remote-new',
-      updatedAt: DateTime.utc(2026, 8, 10),
-    );
+      remotePlans.store['plan-1'] = _plan(
+        uuid: 'plan-1',
+        title: 'remote-new',
+        updatedAt: DateTime.utc(2026, 8, 10),
+      );
 
-    final localSession = _session(
-      uuid: 'sess-1',
-      planId: 'plan-1',
-      title: 'local-session',
-      updatedAt: DateTime.utc(2026, 8, 11, 8),
-    )..id = 7;
-    await sessions.putSynced(localSession);
+      final localSession = _session(
+        uuid: 'sess-1',
+        planId: 'plan-1',
+        title: 'local-session',
+        updatedAt: DateTime.utc(2026, 8, 11, 8),
+      )..id = 7;
+      await sessions.putSynced(localSession);
 
-    remoteSessions.store['sess-1'] = _session(
-      uuid: 'sess-1',
-      planId: 'plan-1',
-      title: 'remote-session',
-      updatedAt: DateTime.utc(2026, 8, 11, 9),
-    );
+      remoteSessions.store['sess-1'] = _session(
+        uuid: 'sess-1',
+        planId: 'plan-1',
+        title: 'remote-session',
+        updatedAt: DateTime.utc(2026, 8, 11, 9),
+      );
 
-    await SyncService(
-      plans: plans,
-      sessions: sessions,
-      remotePlans: remotePlans,
-      remoteSessions: remoteSessions,
-    ).pull();
+      await SyncService(
+        plans: plans,
+        sessions: sessions,
+        remotePlans: remotePlans,
+        remoteSessions: remoteSessions,
+      ).pull();
 
-    expect(await plans.count(), 1);
-    expect((await plans.byId(42))!.title, 'remote-new');
-    expect((await plans.byId(42))!.dirty, isFalse);
-    expect((await sessions.byId(7))!.planTitleSnapshot, 'remote-session');
-    expect((await sessions.byUuid('sess-1'))!.id, 7);
-    expect((await sessions.byId(7))!.dirty, isFalse);
-  });
+      expect(await plans.count(), 1);
+      expect((await plans.byId(42))!.title, 'remote-new');
+      expect((await plans.byId(42))!.dirty, isFalse);
+      expect((await sessions.byId(7))!.planTitleSnapshot, 'remote-session');
+      expect((await sessions.byUuid('sess-1'))!.id, 7);
+      expect((await sessions.byId(7))!.dirty, isFalse);
+    },
+  );
 
   test('pull keeps a newer local session', () async {
     final sessions = _MemorySessions();
@@ -166,6 +170,31 @@ void main() {
     expect((await sessions.byUuid('sess-1'))!.id, 7);
     expect((await sessions.byId(7))!.planTitleSnapshot, 'remote-tied');
     expect((await sessions.byId(7))!.dirty, isFalse);
+  });
+
+  test('pull inserts a remote-only session and keeps it clean', () async {
+    final sessions = _MemorySessions();
+    final remoteSessions = _MemoryRemoteSessions();
+    remoteSessions.store['sess-2'] = _session(
+      uuid: 'sess-2',
+      planId: 'plan-1',
+      title: 'from-server',
+      updatedAt: DateTime.utc(2026, 8, 21),
+    );
+
+    await SyncService(
+      plans: _MemoryPlans(),
+      sessions: sessions,
+      remotePlans: _MemoryRemotePlans(),
+      remoteSessions: remoteSessions,
+    ).pull();
+
+    final stored = await sessions.byUuid('sess-2');
+    expect(stored, isNotNull);
+    expect(stored!.planTitleSnapshot, 'from-server');
+    expect(stored.dirty, isFalse);
+    expect(stored.id, greaterThan(0));
+    expect(await sessions.unsynced(), isEmpty);
   });
 
   test('push flushes dirty rows and clears the dirty flag', () async {
@@ -336,76 +365,80 @@ void main() {
     expect(remotePlans.fetchCount, 1);
   });
 
-  test('a failed sync unsticks the running flag so a later sync can run',
-      () async {
-    final plans = _MemoryPlans();
-    final remotePlans = _FailOnceRemotePlans(
-      after: _plan(
-        uuid: 'plan-2',
-        title: 'from-server',
-        updatedAt: DateTime.utc(2026, 8, 21),
-      ),
-    );
-
-    final sync = SyncService(
-      plans: plans,
-      sessions: _MemorySessions(),
-      remotePlans: remotePlans,
-      remoteSessions: _MemoryRemoteSessions(),
-    );
-
-    await expectLater(sync.sync(), throwsA(isA<StateError>()));
-    expect(await plans.byUuid('plan-2'), isNull);
-    expect(remotePlans.fetchCount, 1);
-
-    await sync.sync();
-    expect(remotePlans.fetchCount, 2);
-    expect((await plans.byUuid('plan-2'))!.title, 'from-server');
-    expect((await plans.byUuid('plan-2'))!.dirty, isFalse);
-  });
-
-  test('push that fails on a session still keeps the flushed plan clean',
-      () async {
-    final plans = _MemoryPlans();
-    final sessions = _MemorySessions();
-    final remotePlans = _MemoryRemotePlans();
-    final plan = _plan(
-      uuid: 'plan-1',
-      title: 'draft',
-      updatedAt: DateTime.utc(2026, 8, 20),
-      dirty: true,
-    )..id = 1;
-    plans.rows[1] = plan;
-    final session = _session(
-      uuid: 'sess-1',
-      planId: 'plan-1',
-      title: 'draft-session',
-      updatedAt: DateTime.utc(2026, 8, 20, 11),
-      dirty: true,
-    )..id = 3;
-    sessions.rows[3] = session;
-
-    await expectLater(
-      SyncService(
-        plans: plans,
-        sessions: sessions,
-        remotePlans: remotePlans,
-        remoteSessions: _FailingRemoteSessions(),
-      ).push(),
-      throwsA(
-        isA<StateError>().having(
-          (e) => e.message,
-          'message',
-          'session write failed',
+  test(
+    'a failed sync unsticks the running flag so a later sync can run',
+    () async {
+      final plans = _MemoryPlans();
+      final remotePlans = _FailOnceRemotePlans(
+        after: _plan(
+          uuid: 'plan-2',
+          title: 'from-server',
+          updatedAt: DateTime.utc(2026, 8, 21),
         ),
-      ),
-    );
+      );
 
-    expect(plan.dirty, isFalse);
-    expect(remotePlans.store['plan-1']!.title, 'draft');
-    expect(session.dirty, isTrue);
-    expect((await sessions.unsynced()).map((row) => row.id), [3]);
-  });
+      final sync = SyncService(
+        plans: plans,
+        sessions: _MemorySessions(),
+        remotePlans: remotePlans,
+        remoteSessions: _MemoryRemoteSessions(),
+      );
+
+      await expectLater(sync.sync(), throwsA(isA<StateError>()));
+      expect(await plans.byUuid('plan-2'), isNull);
+      expect(remotePlans.fetchCount, 1);
+
+      await sync.sync();
+      expect(remotePlans.fetchCount, 2);
+      expect((await plans.byUuid('plan-2'))!.title, 'from-server');
+      expect((await plans.byUuid('plan-2'))!.dirty, isFalse);
+    },
+  );
+
+  test(
+    'push that fails on a session still keeps the flushed plan clean',
+    () async {
+      final plans = _MemoryPlans();
+      final sessions = _MemorySessions();
+      final remotePlans = _MemoryRemotePlans();
+      final plan = _plan(
+        uuid: 'plan-1',
+        title: 'draft',
+        updatedAt: DateTime.utc(2026, 8, 20),
+        dirty: true,
+      )..id = 1;
+      plans.rows[1] = plan;
+      final session = _session(
+        uuid: 'sess-1',
+        planId: 'plan-1',
+        title: 'draft-session',
+        updatedAt: DateTime.utc(2026, 8, 20, 11),
+        dirty: true,
+      )..id = 3;
+      sessions.rows[3] = session;
+
+      await expectLater(
+        SyncService(
+          plans: plans,
+          sessions: sessions,
+          remotePlans: remotePlans,
+          remoteSessions: _FailingRemoteSessions(),
+        ).push(),
+        throwsA(
+          isA<StateError>().having(
+            (e) => e.message,
+            'message',
+            'session write failed',
+          ),
+        ),
+      );
+
+      expect(plan.dirty, isFalse);
+      expect(remotePlans.store['plan-1']!.title, 'draft');
+      expect(session.dirty, isTrue);
+      expect((await sessions.unsynced()).map((row) => row.id), [3]);
+    },
+  );
 
   test('push keeps dirty rows when a remote write fails', () async {
     final plans = _MemoryPlans();
@@ -633,9 +666,9 @@ class _MemoryPlans implements PlanRepository {
 
   @override
   Future<List<WorkoutPlan>> unsynced() async => [
-        for (final plan in rows.values)
-          if (plan.dirty) plan,
-      ];
+    for (final plan in rows.values)
+      if (plan.dirty) plan,
+  ];
 
   @override
   Stream<void> watch({bool fireImmediately = false}) => const Stream.empty();
@@ -713,9 +746,9 @@ class _MemorySessions implements SessionRepository {
 
   @override
   Future<List<WorkoutSession>> unsynced() async => [
-        for (final session in rows.values)
-          if (session.dirty) session,
-      ];
+    for (final session in rows.values)
+      if (session.dirty) session,
+  ];
 
   @override
   Stream<void> watch({bool fireImmediately = false}) => const Stream.empty();
