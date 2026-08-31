@@ -485,6 +485,50 @@ void main() {
     expect(stored.status, SessionStatus.inProgress);
   });
 
+  testWidgets('Start rest and Reset rest toggle the rest controls',
+      (tester) async {
+    final repos = await bootstrap(tester);
+    final plan = _simplePlan();
+    await db(tester, () => repos.plans.save(plan));
+    final session = await db(
+      tester,
+      () => SessionLifecycle(repos.sessions).start(
+        plan: plan,
+        planDayId: 'day-1',
+        startedAt: DateTime.utc(2026, 8, 28, 12),
+      ),
+    );
+
+    await tester.pumpWidget(
+      GetMaterialApp(
+        home: LiveWorkoutPage(sessionId: session.id),
+      ),
+    );
+    await settle(tester);
+
+    expect(find.text('Rest  0:00'), findsOneWidget);
+    expect(find.text('Start rest'), findsOneWidget);
+
+    await tester.ensureVisible(find.text('Start rest'));
+    await tester.tap(find.text('Start rest'));
+    await tester.pump();
+
+    expect(find.text('Resting…'), findsOneWidget);
+    expect(find.text('Start rest'), findsNothing);
+
+    await tester.tap(find.text('Reset rest'));
+    await tester.pump();
+
+    expect(find.text('Start rest'), findsOneWidget);
+    expect(find.text('Resting…'), findsNothing);
+    expect(find.text('Rest  0:00'), findsOneWidget);
+    expect(await db(tester, () => repos.sessions.byId(session.id)), isNotNull);
+    expect(
+      (await db(tester, () => repos.sessions.byId(session.id)))!.status,
+      SessionStatus.inProgress,
+    );
+  });
+
   testWidgets('Keep going leaves the live session open', (tester) async {
     final repos = await bootstrap(tester);
     final plan = _simplePlan();

@@ -449,6 +449,49 @@ void main() {
     expect(find.text('Completed'), findsOneWidget);
     expect(find.text('No sets logged'), findsOneWidget);
   });
+
+  testWidgets('a logged duration hold shows the clock line on the session log',
+      (tester) async {
+    final repos = await bootstrap(tester);
+    final plan = _holdPlan();
+    await db(tester, () => repos.plans.save(plan));
+    await db(tester, () async {
+      final session = await SessionLifecycle(repos.sessions).start(
+        plan: plan,
+        planDayId: 'day-1',
+        startedAt: thisMonth(day: 18),
+      );
+      final log = session.exerciseLogs.single;
+      log.sets = [
+        SetLog.create(
+          setIndex: 1,
+          completedAt: thisMonth(day: 18, hour: 10),
+          durationSeconds: 35,
+        ),
+      ];
+      log.difficulty = 2;
+      log.completedAt = thisMonth(day: 18, hour: 10);
+      session.exerciseLogs = [log];
+      session.status = SessionStatus.completed;
+      session.endedAt = thisMonth(day: 18, hour: 11);
+      await repos.sessions.save(session);
+    });
+
+    await launch(tester, AppRoutes.home);
+    await openMonth(tester);
+
+    expect(find.text('shoot out'), findsOneWidget);
+    expect(find.text('0:35'), findsOneWidget);
+
+    await tester.tap(find.byKey(const Key('month-day-18')));
+    await tester.pump();
+    await settle(tester);
+
+    expect(find.text('Completed'), findsOneWidget);
+    expect(find.text('Set 1  0:35'), findsOneWidget);
+    expect(find.text('★2'), findsOneWidget);
+    expect(find.text('No sets logged'), findsNothing);
+  });
 }
 
 WorkoutPlan _holdPlan() {
