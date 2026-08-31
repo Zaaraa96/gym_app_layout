@@ -572,6 +572,78 @@ void main() {
     );
     expect(find.text('Log set'), findsNothing);
   });
+
+  testWidgets(
+      'an empty day starts when a common section is turned on',
+      (tester) async {
+    final plans = await bootstrap(tester);
+    final sessions = Get.find<SessionRepository>();
+    final now = DateTime.utc(2026, 8, 26, 12);
+    await db(
+      tester,
+      () => plans.save(
+        WorkoutPlan.create(
+          title: 'commons only',
+          source: PlanSource.created,
+          createdAt: now,
+          updatedAt: now,
+          days: [
+            PlanDay.create(dayId: 'day-empty', title: 'empty day'),
+          ],
+          commonSections: [
+            CommonSection.create(
+              sectionId: 'sec-abs',
+              title: 'abs',
+              blocks: [
+                ExerciseBlock.create(
+                  blockId: 'block-abs',
+                  kind: BlockKind.single,
+                  exercises: [
+                    ExercisePrescription.create(
+                      prescriptionId: 'p-plank',
+                      title: 'plank',
+                      prescribedSets: 1,
+                      prescribedDurationSeconds: 30,
+                    ),
+                  ],
+                ),
+              ],
+            ),
+          ],
+        ),
+      ),
+    );
+
+    await launch(tester, AppRoutes.home);
+    await tester.tap(find.text('commons only'));
+    await tester.pump();
+    await settle(tester);
+    await tester.tap(find.byKey(const Key('day-card-day-empty')));
+    await tester.pump();
+    await settle(tester);
+
+    final start = find.widgetWithText(ElevatedButton, 'Start workout');
+    await tester.ensureVisible(start);
+    await tester.tap(start);
+    await tester.pump();
+    await settle(tester);
+    expect(find.text('Include today'), findsOneWidget);
+
+    await tester.tap(find.byKey(const Key('include-section-sec-abs')));
+    await tester.pump();
+    await tester.tap(find.byKey(const Key('confirm-include')));
+    await tester.pump();
+    await settle(tester);
+
+    expect(find.text('Log time'), findsOneWidget);
+    expect(find.text('Log set'), findsNothing);
+    expect(find.text('plank  ·  set 1 of 1'), findsOneWidget);
+    final live = await db(tester, () => sessions.inProgress());
+    expect(live!.includedCommonSectionIds, ['sec-abs']);
+    expect(live.exerciseLogs.single.exerciseTitle, 'plank');
+    expect(live.exerciseLogs.single.fromCommonSection, isTrue);
+    expect(live.planDayId, 'day-empty');
+  });
 }
 
 WorkoutPlan _twoDayPlan() {

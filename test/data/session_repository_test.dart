@@ -422,6 +422,13 @@ void main() {
       [newer.id, older.id],
     );
     expect((await db.sessions.lastCompleted())?.id, newer.id);
+    expect((await db.sessions.lastCompleted(planId: plan.uuid))?.id, older.id);
+    expect((await db.sessions.lastCompleted(planId: other.uuid))?.id, newer.id);
+    expect(
+      (await db.sessions.completedNewestFirst(planId: plan.uuid))
+          .map((s) => s.id),
+      [older.id],
+    );
   });
 
   test('abandonInProgress is a no-op when nothing is live', () async {

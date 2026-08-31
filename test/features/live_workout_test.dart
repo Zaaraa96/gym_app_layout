@@ -484,6 +484,118 @@ void main() {
     expect(stored!.exerciseLogs.single.sets, isEmpty);
     expect(stored.status, SessionStatus.inProgress);
   });
+
+  testWidgets(
+      'empty reps use the prescription, empty weight is bodyweight, and extras show',
+      (tester) async {
+    final repos = await bootstrap(tester);
+    final plan = _simplePlan();
+    await db(tester, () => repos.plans.save(plan));
+    final session = await db(
+      tester,
+      () => SessionLifecycle(repos.sessions).start(
+        plan: plan,
+        planDayId: 'day-1',
+        startedAt: DateTime.utc(2026, 8, 28, 12),
+      ),
+    );
+
+    await tester.pumpWidget(
+      GetMaterialApp(
+        home: LiveWorkoutPage(sessionId: session.id),
+      ),
+    );
+    await settle(tester);
+
+    await tester.enterText(find.byKey(const Key('reps-field')), '');
+    await tester.tap(find.text('Log set'));
+    await tester.pump();
+    await settle(tester);
+
+    expect(find.text('Bodyweight squat  ·  set 2 of 2'), findsOneWidget);
+    var stored = await db(tester, () => repos.sessions.byId(session.id));
+    expect(stored!.exerciseLogs.single.sets, hasLength(1));
+    expect(stored.exerciseLogs.single.sets.single.reps, 10);
+    expect(stored.exerciseLogs.single.sets.single.weightKg, isNull);
+
+    await tester.enterText(find.byKey(const Key('weight-field')), '22.5');
+    await tester.tap(find.text('Log set'));
+    await tester.pump();
+    await settle(tester);
+
+    expect(find.text('Bodyweight squat  ·  set 3  ·  extra'), findsOneWidget);
+    expect(find.text('How hard was that? 1 easy · 5 hard'), findsOneWidget);
+    stored = await db(tester, () => repos.sessions.byId(session.id));
+    expect(stored!.exerciseLogs.single.sets, hasLength(2));
+    expect(stored.exerciseLogs.single.sets.last.reps, 10);
+    expect(stored.exerciseLogs.single.sets.last.weightKg, 22.5);
+    expect(stored.status, SessionStatus.inProgress);
+  });
+
+  testWidgets('reopening a live session prefills the last logged weight',
+      (tester) async {
+    final repos = await bootstrap(tester);
+    await db(tester, () => repos.plans.save(_simplePlan()));
+
+    await launch(tester, AppRoutes.home);
+    await tester.tap(find.text("Start today's workout"));
+    await tester.pump();
+    await settle(tester);
+
+    await tester.enterText(find.byKey(const Key('weight-field')), '40');
+    await tester.tap(find.text('Log set'));
+    await tester.pump();
+    await settle(tester);
+
+    await tester.pageBack();
+    await tester.pump();
+    await settle(tester);
+
+    await tester.tap(find.text('Continue workout'));
+    await tester.pump();
+    await settle(tester);
+
+    expect(find.text('Bodyweight squat  ·  set 2 of 2'), findsOneWidget);
+    final weight = tester.widget<TextFormField>(
+      find.descendant(
+        of: find.byKey(const Key('weight-field')),
+        matching: find.byType(TextFormField),
+      ),
+    );
+    expect(weight.controller!.text, '40');
+  });
+
+  testWidgets('Done after a completed workout returns home', (tester) async {
+    final repos = await bootstrap(tester);
+    await db(tester, () => repos.plans.save(_simplePlan()));
+
+    await launch(tester, AppRoutes.home);
+    await tester.tap(find.text("Start today's workout"));
+    await tester.pump();
+    await settle(tester);
+
+    await tester.tap(find.text('Log set'));
+    await tester.pump();
+    await settle(tester);
+    await tester.tap(find.text('Log set'));
+    await tester.pump();
+    await settle(tester);
+    await tester.tap(find.byKey(const Key('rate-3')));
+    await tester.pump();
+    await settle(tester);
+
+    expect(find.text('Workout complete'), findsOneWidget);
+    await tester.tap(find.text('Done'));
+    await tester.pump();
+    await settle(tester);
+
+    expect(find.byKey(const Key('today-card')), findsOneWidget);
+    expect(find.byKey(const Key('continue-banner')), findsNothing);
+    expect(await db(tester, () => repos.sessions.inProgress()), isNull);
+    final completed = await db(tester, () => repos.sessions.lastCompleted());
+    expect(completed!.status, SessionStatus.completed);
+    expect(completed.exerciseLogs.single.difficulty, 3);
+  });
 }
 
 WorkoutPlan _durationPlan() {

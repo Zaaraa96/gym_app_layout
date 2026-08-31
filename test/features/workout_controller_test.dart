@@ -358,6 +358,55 @@ void main() {
     expect(c.durationTimerStarted, isFalse);
     expect(c.durationRemainingSeconds, isNull);
   });
+
+  test('zero reps are rejected and duration logs cannot take a set', () async {
+    final started = await startController();
+    final c = started.controller;
+    expect(c.canLogSet(c.activeLog!), isTrue);
+    expect(c.canLogTime(c.activeLog!), isFalse);
+    await expectLater(
+      c.logSet(reps: 0),
+      throwsA(
+        isA<WorkoutActionException>().having(
+          (e) => e.message,
+          'message',
+          contains('Reps are required'),
+        ),
+      ),
+    );
+
+    await _reachDurationHold(c);
+    expect(c.canLogSet(c.activeLog!), isFalse);
+    expect(c.canLogTime(c.activeLog!), isTrue);
+    await expectLater(
+      c.logSet(reps: 8),
+      throwsA(
+        isA<WorkoutActionException>().having(
+          (e) => e.message,
+          'message',
+          contains('cannot take a set'),
+        ),
+      ),
+    );
+  });
+
+  test('extras bump the header set index after prescribed work', () async {
+    final started = await startController(
+      plan: _singlePlan(),
+      commons: const [],
+    );
+    final c = started.controller;
+    expect(c.headerSetIndex, 1);
+    expect(c.headerPrescribedSets, 2);
+    expect(c.inExtrasPhase, isFalse);
+
+    await c.logSet(reps: 10);
+    expect(c.headerSetIndex, 2);
+    await c.logSet(reps: 10);
+    expect(c.inExtrasPhase, isTrue);
+    expect(c.headerSetIndex, 3);
+    expect(c.headerPrescribedSets, 2);
+  });
 }
 
 Future<void> _reachDurationHold(WorkoutController c) async {
