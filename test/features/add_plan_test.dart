@@ -104,4 +104,16 @@ void main() {
     expect(find.text('Add a title before saving'), findsOneWidget);
     expect(Get.currentRoute, AppRoutes.newPlan);
   });
+
+  testWidgets('whitespace-only title is treated as empty', (tester) async {
+    await bootstrap(tester);
+    await launch(tester, AppRoutes.newPlan);
+
+    await tester.enterText(find.byType(TextFormField).first, '   ');
+    await tester.tap(find.text('save'));
+    await tester.pump();
+
+    expect(find.text('Add a title before saving'), findsOneWidget);
+    expect(Get.currentRoute, AppRoutes.newPlan);
+  });
 }

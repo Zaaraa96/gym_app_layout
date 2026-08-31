@@ -441,6 +441,36 @@ void main() {
     expect(stillLive.status, SessionStatus.inProgress);
   });
 
+  testWidgets('cancel on Include today does not start a session', (tester) async {
+    final plans = await bootstrap(tester);
+    final sessions = Get.find<SessionRepository>();
+    await db(tester, () => plans.save(samplePlan()));
+
+    await launch(tester, AppRoutes.home);
+    await tester.tap(find.text('plan 1'));
+    await tester.pump();
+    await settle(tester);
+    await tester.tap(find.byKey(const Key('day-card-day-1')));
+    await tester.pump();
+    await settle(tester);
+
+    await tester.tap(find.text('Start workout'));
+    await tester.pump();
+    await settle(tester);
+    expect(find.text('Include today'), findsOneWidget);
+
+    final cancel = find.widgetWithText(TextButton, 'Cancel');
+    await tester.ensureVisible(cancel);
+    await tester.tap(cancel);
+    await tester.pump();
+    await settle(tester);
+
+    expect(find.text('Include today'), findsNothing);
+    expect(find.text('Start workout'), findsOneWidget);
+    expect(find.text('Log set'), findsNothing);
+    expect(await db(tester, () => sessions.inProgress()), isNull);
+  });
+
   testWidgets('turning on a common section copies it into the live session',
       (tester) async {
     final plans = await bootstrap(tester);

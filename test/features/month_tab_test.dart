@@ -193,6 +193,66 @@ void main() {
     expect(find.text('Set 1  50 kg × 10'), findsOneWidget);
   });
 
+  testWidgets(
+      'an in-progress session still gets a calendar dot and opens as live',
+      (tester) async {
+    final repos = await bootstrap(tester);
+    final plan = _plan();
+    await db(tester, () => repos.plans.save(plan));
+    await db(
+      tester,
+      () => SessionLifecycle(repos.sessions).start(
+        plan: plan,
+        planDayId: 'day-1',
+        startedAt: thisMonth(day: 15),
+      ),
+    );
+
+    await launch(tester, AppRoutes.home);
+    await openMonth(tester);
+
+    expect(find.byKey(const Key('month-dot-15')), findsOneWidget);
+    expect(find.text('No workouts this month.'), findsNothing);
+    expect(find.text('kang squat'), findsOneWidget);
+
+    await tester.tap(find.byKey(const Key('month-day-15')));
+    await tester.pump();
+    await settle(tester);
+
+    expect(find.text('In progress'), findsOneWidget);
+    expect(find.text('No sets logged'), findsOneWidget);
+    expect(find.text('Completed'), findsNothing);
+  });
+
+  testWidgets('month tab picks up a session that lands after the first load',
+      (tester) async {
+    final repos = await bootstrap(tester);
+    final plan = _plan();
+    await db(tester, () => repos.plans.save(plan));
+
+    await launch(tester, AppRoutes.home);
+    await openMonth(tester);
+    expect(find.text('No workouts this month.'), findsOneWidget);
+    expect(find.byKey(const Key('month-dot-15')), findsNothing);
+
+    await db(
+      tester,
+      () => _complete(
+        repos.sessions,
+        plan: plan,
+        startedAt: thisMonth(day: 15),
+        weight: 40,
+        reps: 12,
+        difficulty: 3,
+      ),
+    );
+    await settle(tester);
+
+    expect(find.byKey(const Key('month-dot-15')), findsOneWidget);
+    expect(find.text('kang squat'), findsOneWidget);
+    expect(find.text('No workouts this month.'), findsNothing);
+  });
+
   testWidgets('abandoned sessions do not appear and next month is empty',
       (tester) async {
     final repos = await bootstrap(tester);
