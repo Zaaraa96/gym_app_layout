@@ -899,6 +899,145 @@ void main() {
     expect(stored.single.commonSections, isEmpty);
   });
 
+  testWidgets('cancel rename and a whitespace title leave the plan name',
+      (tester) async {
+    final plans = await bootstrap(tester);
+    await db(tester, () => plans.save(samplePlan()));
+    await launch(tester, AppRoutes.home);
+
+    await tester.tap(find.text('Push week'));
+    await tester.pump();
+    await settle(tester);
+
+    await tester.tap(find.byTooltip('Rename plan'));
+    await tester.pump();
+    await tester.tap(find.widgetWithText(TextButton, 'Cancel'));
+    await tester.pump();
+    await settle(tester);
+    expect(find.text('Push week'), findsWidgets);
+
+    await tester.tap(find.byTooltip('Rename plan'));
+    await tester.pump();
+    await tester.enterText(
+      find.descendant(
+        of: find.byType(AlertDialog),
+        matching: find.byType(TextFormField),
+      ),
+      '   ',
+    );
+    await tester.tap(find.widgetWithText(FilledButton, 'Save'));
+    await tester.pump();
+    await settle(tester);
+
+    expect(find.text('Push week'), findsWidgets);
+    final stored = await db(tester, plans.all);
+    expect(stored.single.title, 'Push week');
+  });
+
+  testWidgets('cancel on add-day does not write a day', (tester) async {
+    final plans = await bootstrap(tester);
+    await db(tester, () => plans.save(samplePlan()));
+    await launch(tester, AppRoutes.home);
+
+    await tester.tap(find.text('Push week'));
+    await tester.pump();
+    await settle(tester);
+
+    await tester.tap(find.byKey(const Key('add-day')));
+    await tester.pump();
+    await tester.enterText(
+      find
+          .descendant(
+            of: find.byType(AlertDialog),
+            matching: find.byType(TextFormField),
+          )
+          .first,
+      'Should not save',
+    );
+    await tester.tap(find.widgetWithText(TextButton, 'Cancel'));
+    await tester.pump();
+    await settle(tester);
+
+    expect(find.text('Should not save'), findsNothing);
+    expect(find.text('Day 1'), findsOneWidget);
+    final stored = await db(tester, plans.all);
+    expect(stored.single.days, hasLength(1));
+    expect(stored.single.days.single.title, 'Day 1');
+  });
+
+  testWidgets('cancel on delete section leaves the section', (tester) async {
+    final plans = await bootstrap(tester);
+    final now = DateTime.utc(2026, 8, 24, 12);
+    await db(
+      tester,
+      () => plans.save(
+        WorkoutPlan.create(
+          title: 'Push week',
+          source: PlanSource.created,
+          createdAt: now,
+          updatedAt: now,
+          days: [
+            PlanDay.create(dayId: 'day-1', title: 'Day 1'),
+          ],
+          commonSections: [
+            CommonSection.create(
+              sectionId: 'sec-abs',
+              title: 'abs',
+            ),
+          ],
+        ),
+      ),
+    );
+    await launch(tester, AppRoutes.home);
+    await tester.tap(find.text('Push week'));
+    await tester.pump();
+    await settle(tester);
+
+    expect(find.byKey(const Key('common-section-sec-abs')), findsOneWidget);
+    await tester.tap(find.byTooltip('Delete section'));
+    await tester.pump();
+    await tester.tap(find.widgetWithText(TextButton, 'Cancel'));
+    await tester.pump();
+    await settle(tester);
+
+    expect(find.byKey(const Key('common-section-sec-abs')), findsOneWidget);
+    final stored = await db(tester, plans.all);
+    expect(stored.single.commonSections, hasLength(1));
+    expect(stored.single.commonSections.single.title, 'abs');
+  });
+
+  testWidgets('cancel on add exercise does not persist a typed name',
+      (tester) async {
+    final plans = await bootstrap(tester);
+    await db(tester, () => plans.save(samplePlan()));
+    await launch(tester, AppRoutes.home);
+
+    await tester.tap(find.text('Push week'));
+    await tester.pump();
+    await settle(tester);
+    await tester.tap(find.byKey(const Key('day-card-day-1')));
+    await tester.pump();
+    await settle(tester);
+    await tester.tap(find.text('Edit day'));
+    await tester.pump();
+    await settle(tester);
+
+    await tester.tap(find.text('Add exercise'));
+    await tester.pump();
+    await tester.enterText(
+      find.widgetWithText(TextFormField, 'exercise name'),
+      'ghost squat',
+    );
+    await tester.tap(find.widgetWithText(TextButton, 'Cancel'));
+    await tester.pump();
+    await settle(tester);
+
+    expect(find.text('ghost squat'), findsNothing);
+    expect(find.text('Save exercise'), findsNothing);
+    final stored = await db(tester, plans.all);
+    expect(stored.single.days.single.blocks, isEmpty);
+  });
+
   testWidgets(
       'editing an exercise keeps its prescription id and updates the title',
       (tester) async {
@@ -1159,3 +1298,4 @@ void main() {
     expect(stored.single.commonSections.single.title, 'Section 1');
   });
 }
+

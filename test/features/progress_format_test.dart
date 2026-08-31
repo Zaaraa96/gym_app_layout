@@ -209,5 +209,52 @@ void main() {
       ),
       'Set 1  0:35',
     );
+    expect(
+      formatSetLine(
+        SetLog.create(
+          setIndex: 3,
+          completedAt: DateTime.utc(2026, 8, 1),
+          reps: 8,
+          weightKg: 0,
+        ),
+      ),
+      'Set 3  0 kg × 8',
+    );
+  });
+
+  test('formatTrendSummary shows no change when two sessions have the same load',
+      () {
+    final flat = ExerciseMonthTrend(
+      titleKey: 'kang squat',
+      title: 'kang squat',
+      metric: ProgressMetricKind.weight,
+      firstValue: 40,
+      lastValue: 40,
+      delta: 0,
+      feltEasier: true,
+      sessions: [
+        SessionExercisePoint(
+          sessionId: 1,
+          startedAt: DateTime.utc(2026, 8, 2),
+          status: SessionStatus.completed,
+          completedSets: 1,
+          prescribedSets: 3,
+          totalReps: 12,
+          metPrescription: false,
+          primaryValue: 40,
+        ),
+        SessionExercisePoint(
+          sessionId: 2,
+          startedAt: DateTime.utc(2026, 8, 20),
+          status: SessionStatus.completed,
+          completedSets: 1,
+          prescribedSets: 3,
+          totalReps: 12,
+          metPrescription: false,
+          primaryValue: 40,
+        ),
+      ],
+    );
+    expect(formatTrendSummary(flat), '40 kg  ·  no change');
   });
 }

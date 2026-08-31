@@ -812,6 +812,50 @@ void main() {
     expect(find.text('Log set'), findsNothing);
   });
 
+  testWidgets('after prescribed sets the header marks extras, not set of N',
+      (tester) async {
+    final repos = await bootstrap(tester);
+    final plan = _simplePlan();
+    await db(tester, () => repos.plans.save(plan));
+    final session = await db(
+      tester,
+      () => SessionLifecycle(repos.sessions).start(
+        plan: plan,
+        planDayId: 'day-1',
+        startedAt: DateTime.utc(2026, 8, 28, 12),
+      ),
+    );
+
+    await tester.pumpWidget(
+      GetMaterialApp(
+        home: LiveWorkoutPage(sessionId: session.id),
+      ),
+    );
+    await settle(tester);
+
+    await tester.tap(find.text('Log set'));
+    await tester.pump();
+    await settle(tester);
+    await tester.tap(find.text('Log set'));
+    await tester.pump();
+    await settle(tester);
+
+    expect(find.text('Bodyweight squat  ·  set 3  ·  extra'), findsOneWidget);
+    expect(find.text('Bodyweight squat  ·  set 3 of 2'), findsNothing);
+    expect(find.text('How hard was that? 1 easy · 5 hard'), findsOneWidget);
+    expect(find.text('Log set'), findsOneWidget);
+
+    await tester.tap(find.text('Log set'));
+    await tester.pump();
+    await settle(tester);
+
+    expect(find.text('Bodyweight squat  ·  set 4  ·  extra'), findsOneWidget);
+    final stored = await db(tester, () => repos.sessions.byId(session.id));
+    expect(stored!.status, SessionStatus.inProgress);
+    expect(stored.exerciseLogs.single.sets, hasLength(3));
+    expect(stored.exerciseLogs.single.difficulty, isNull);
+  });
+
   testWidgets(
     'empty reps use the prescription, empty weight is bodyweight, and extras show',
     (tester) async {

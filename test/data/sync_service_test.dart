@@ -142,6 +142,36 @@ void main() {
     expect((await sessions.byId(3))!.dirty, isTrue);
   });
 
+  test('pull overwrites a tied session and keeps the local Isar id', () async {
+    final sessions = _MemorySessions();
+    final remoteSessions = _MemoryRemoteSessions();
+    final local = _session(
+      uuid: 'sess-1',
+      planId: 'plan-1',
+      title: 'local-tied',
+      updatedAt: DateTime.utc(2026, 8, 11, 9),
+    )..id = 7;
+    await sessions.putSynced(local);
+
+    remoteSessions.store['sess-1'] = _session(
+      uuid: 'sess-1',
+      planId: 'plan-1',
+      title: 'remote-tied',
+      updatedAt: DateTime.utc(2026, 8, 11, 9),
+    );
+
+    await SyncService(
+      plans: _MemoryPlans(),
+      sessions: sessions,
+      remotePlans: _MemoryRemotePlans(),
+      remoteSessions: remoteSessions,
+    ).pull();
+
+    expect((await sessions.byUuid('sess-1'))!.id, 7);
+    expect((await sessions.byId(7))!.planTitleSnapshot, 'remote-tied');
+    expect((await sessions.byId(7))!.dirty, isFalse);
+  });
+
   test('pull inserts a remote-only session and keeps it clean', () async {
     final sessions = _MemorySessions();
     final remoteSessions = _MemoryRemoteSessions();

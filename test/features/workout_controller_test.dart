@@ -476,6 +476,51 @@ void main() {
     expect(c.headerSetIndex, 3);
     expect(c.headerPrescribedSets, 2);
   });
+
+  test('finish stops a running duration timer and later rates are rejected',
+      () async {
+    final started = await startController();
+    final c = started.controller;
+    await _reachDurationHold(c);
+
+    c.startDurationCountdown();
+    expect(c.isDurationRunning, isTrue);
+    await c.finish();
+    expect(c.isDurationRunning, isFalse);
+    expect(c.session!.status, SessionStatus.completed);
+    expect(c.session!.exerciseLogs.last.sets, isEmpty);
+    await expectLater(
+      c.rate(2),
+      throwsA(
+        isA<WorkoutActionException>().having(
+          (e) => e.toString(),
+          'toString',
+          contains('already ended'),
+        ),
+      ),
+    );
+  });
+
+  test('a second rate on the same log is rejected while the session stays live',
+      () async {
+    final started = await startController();
+    final c = started.controller;
+    for (var i = 0; i < 6; i++) {
+      await c.logSet(reps: 12);
+    }
+    expect(c.canRate(c.session!.exerciseLogs[0]), isTrue);
+    await c.rate(3, log: c.session!.exerciseLogs[0]);
+    expect(c.session!.exerciseLogs[0].difficulty, 3);
+    expect(c.session!.status, SessionStatus.inProgress);
+
+    await expectLater(
+      c.rate(5, log: c.session!.exerciseLogs[0]),
+      throwsA(isA<WorkoutActionException>()),
+    );
+    expect(c.session!.exerciseLogs[0].difficulty, 3);
+    expect(c.canRate(c.session!.exerciseLogs[0]), isFalse);
+    expect(c.session!.status, SessionStatus.inProgress);
+  });
 }
 
 Future<void> _reachDurationHold(WorkoutController c) async {
