@@ -591,6 +591,25 @@ void main() {
       ),
     );
   });
+
+  test('an empty common-plan array is a plan with no extras, not an error', () {
+    final plan = importer.import('''
+{
+  "name": "solo",
+  "basic-plan": [{
+    "name": "day 1",
+    "exercises": [{
+      "type": "single",
+      "exercise": { "title": "squat", "sets": 3, "times": 8, "duration": null }
+    }]
+  }],
+  "common-plan": []
+}
+''');
+    expect(plan.commonSections, isEmpty);
+    expect(plan.days, hasLength(1));
+    expect(plan.days.single.blocks.single.exercises.single.title, 'squat');
+  });
 }
 
 var _ids = 0;
