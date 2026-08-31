@@ -7,6 +7,7 @@ import 'package:gym_app/common/app_routes.dart';
 import 'package:gym_app/data/isar_service.dart';
 import 'package:gym_app/data/models/models.dart';
 import 'package:gym_app/data/plan_repository.dart';
+import 'package:gym_app/data/session_lifecycle.dart';
 import 'package:gym_app/data/session_repository.dart';
 import 'package:gym_app/features/progress/progress_format.dart';
 import 'package:gym_app/main.dart';
@@ -203,7 +204,7 @@ void main() {
     final plan = _plan();
     await db(tester, () => repos.plans.save(plan));
     await db(tester, () async {
-      final session = await repos.sessions.start(
+      final session = await SessionLifecycle(repos.sessions).start(
         plan: plan,
         planDayId: 'day-1',
         startedAt: thisMonth(day: 12),
@@ -238,7 +239,7 @@ void main() {
     await db(tester, () => repos.plans.save(plan));
     await db(
       tester,
-      () => repos.sessions.start(
+      () => SessionLifecycle(repos.sessions).start(
         plan: plan,
         planDayId: 'day-1',
         startedAt: thisMonth(day: 8),
@@ -327,7 +328,7 @@ void main() {
     final plan = _holdPlan();
     await db(tester, () => repos.plans.save(plan));
     await db(tester, () async {
-      final session = await repos.sessions.start(
+      final session = await SessionLifecycle(repos.sessions).start(
         plan: plan,
         planDayId: 'day-1',
         startedAt: thisMonth(day: 18),
@@ -427,7 +428,7 @@ Future<WorkoutSession> _complete(
   String dayId = 'day-1',
   int? difficulty,
 }) async {
-  final session = await sessions.start(
+  final session = await SessionLifecycle(sessions).start(
     plan: plan,
     planDayId: dayId,
     startedAt: startedAt,

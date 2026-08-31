@@ -111,6 +111,9 @@ void main() {
     expect(kindForPath('still.PNG'), ExerciseMediaKind.image);
     expect(kindForPath('form.mp4'), ExerciseMediaKind.video);
     expect(kindForPath('form.webm'), ExerciseMediaKind.video);
+    expect(kindForPath('clip.MOV'), ExerciseMediaKind.video);
+    expect(kindForPath('clip.avi'), ExerciseMediaKind.video);
+    expect(kindForPath('clip.mkv'), ExerciseMediaKind.video);
     expect(
       kindForNetworkUrl('https://cdn.example.com/form.gif?token=abc'),
       ExerciseMediaKind.gif,
@@ -119,6 +122,20 @@ void main() {
       kindForNetworkUrl('https://cdn.example.com/form.mp4?exp=1'),
       ExerciseMediaKind.video,
     );
+
+    final gif = assetMediaRef('assets/image/exercises/gifs/plank.gif');
+    expect(gif.kind, ExerciseMediaKind.gif);
+    expect(gif.source, ExerciseMediaSource.asset);
+    expect(gif.isSvg, isFalse);
+
+    final local = ExerciseMediaRef(
+      uri: '/tmp/photo.jpg',
+      source: ExerciseMediaSource.gallery,
+      kind: ExerciseMediaKind.image,
+    );
+    expect(local.isLocalFile, isTrue);
+    expect(local.isNetwork, isFalse);
+    expect(local.isVideo, isFalse);
   });
 
   test('applying an asset keeps svgPath; gallery and network clear it', () {
