@@ -338,6 +338,30 @@ void main() {
       ],
     );
     expect(oneSession.exercises.single.feltEasier, isFalse);
+
+    final gotHarder = service.fold(
+      month: DateTime.utc(2026, 8),
+      sessions: [
+        _session(
+          id: 1,
+          startedAt: DateTime.utc(2026, 8, 2),
+          logs: [
+            _repLog(
+                title: 'kang squat', reps: [12], weight: 40, difficulty: 2)
+          ],
+        ),
+        _session(
+          id: 2,
+          startedAt: DateTime.utc(2026, 8, 20),
+          logs: [
+            _repLog(
+                title: 'kang squat', reps: [12], weight: 45, difficulty: 4)
+          ],
+        ),
+      ],
+    );
+    expect(gotHarder.exercises.single.feltEasier, isFalse);
+    expect(gotHarder.exercises.single.delta, 5);
   });
 
   test('first-seen exercise order, last title, and empty duration sets stay null',

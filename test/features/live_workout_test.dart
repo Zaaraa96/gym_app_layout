@@ -813,13 +813,7 @@ void main() {
     await settle(tester);
 
     expect(find.text('Bodyweight squat  ·  set 2 of 2'), findsOneWidget);
-    final weight = tester.widget<TextFormField>(
-      find.descendant(
-        of: find.byKey(const Key('weight-field')),
-        matching: find.byType(TextFormField),
-      ),
-    );
-    expect(weight.controller!.text, '40');
+    expect(_weightText(tester), '40');
   });
 
   testWidgets('Done after a completed workout returns home', (tester) async {
@@ -853,22 +847,90 @@ void main() {
     expect(completed!.status, SessionStatus.completed);
     expect(completed.exerciseLogs.single.difficulty, 3);
   });
+
+  testWidgets('opening a live session prefills the last logged weight', (
+    tester,
+  ) async {
+    final repos = await bootstrap(tester);
+    final plan = _simplePlan();
+    await db(tester, () => repos.plans.save(plan));
+    final fractional = await db(tester, () async {
+      final session = await SessionLifecycle(repos.sessions).start(
+        plan: plan,
+        planDayId: 'day-1',
+        startedAt: DateTime.utc(2026, 8, 28, 12),
+      );
+      final log = session.exerciseLogs.single;
+      log.sets = [
+        SetLog.create(
+          setIndex: 1,
+          completedAt: DateTime.utc(2026, 8, 28, 12, 5),
+          reps: 10,
+          weightKg: 40.5,
+        ),
+      ];
+      session.exerciseLogs = [log];
+      await repos.sessions.save(session);
+      return session;
+    });
+
+    await tester.pumpWidget(
+      GetMaterialApp(home: LiveWorkoutPage(sessionId: fractional.id)),
+    );
+    await settle(tester);
+
+    expect(_weightText(tester), '40.5');
+
+    await tester.pumpWidget(const SizedBox.shrink());
+    await tester.pump();
+
+    await db(tester, () async {
+      final log = fractional.exerciseLogs.single;
+      log.sets = [
+        SetLog.create(
+          setIndex: 1,
+          completedAt: DateTime.utc(2026, 8, 28, 12, 5),
+          reps: 10,
+          weightKg: 40,
+        ),
+      ];
+      fractional.exerciseLogs = [log];
+      await repos.sessions.save(fractional);
+    });
+
+    await tester.pumpWidget(
+      GetMaterialApp(home: LiveWorkoutPage(sessionId: fractional.id)),
+    );
+    await settle(tester);
+
+    expect(_weightText(tester), '40');
+  });
+}
+
+String _weightText(WidgetTester tester) {
+  final field = tester.widget<TextFormField>(
+    find.descendant(
+      of: find.byKey(const Key('weight-field')),
+      matching: find.byType(TextFormField),
+    ),
+  );
+  return field.controller!.text;
 }
 
 WorkoutPlan _twoDayPlan() {
   final now = DateTime.utc(2026, 8, 28, 12);
   ExerciseBlock single(String id, String title) => ExerciseBlock.create(
-    blockId: 'block-$id',
-    kind: BlockKind.single,
-    exercises: [
-      ExercisePrescription.create(
-        prescriptionId: 'p-$id',
-        title: title,
-        prescribedSets: 2,
-        prescribedReps: 10,
-      ),
-    ],
-  );
+        blockId: 'block-$id',
+        kind: BlockKind.single,
+        exercises: [
+          ExercisePrescription.create(
+            prescriptionId: 'p-$id',
+            title: title,
+            prescribedSets: 2,
+            prescribedReps: 10,
+          ),
+        ],
+      );
   return WorkoutPlan.create(
     title: 'A/B',
     source: PlanSource.created,
