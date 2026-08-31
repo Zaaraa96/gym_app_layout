@@ -213,4 +213,56 @@ void main() {
     );
     expect(await emptySource.fetchAll(), isEmpty);
   });
+
+  test('PUT 201 is success and empty endedAt is not treated as a parse error',
+      () async {
+    http.Request? captured;
+    final created = HttpRemotePlanDataSource(
+      baseUrl: 'https://api.example',
+      client: MockClient((request) async {
+        captured = request;
+        return http.Response('', 201);
+      }),
+    );
+    await created.upsert(plan);
+    expect(captured!.method, 'PUT');
+    expect(captured!.url.path, '/plans/plan-uuid');
+
+    final sessionJson = SessionDto.fromEntity(session).toJson();
+    sessionJson['endedAt'] = '';
+    sessionJson['exerciseLogs'] = [
+      {
+        'prescriptionId': 'p-1',
+        'blockId': 'block-1',
+        'blockKind': 'single',
+        'fromCommonSection': false,
+        'exerciseTitle': 'plank',
+        'exerciseTitleKey': 'plank',
+        'prescribedSets': 1,
+        'prescribedDurationSeconds': 30,
+        'sets': [
+          {
+            'setIndex': 1,
+            'completedAt': '2026-08-15T10:05:00.000Z',
+            'durationSeconds': 28,
+          },
+        ],
+      },
+    ];
+    final sessions = HttpRemoteSessionDataSource(
+      baseUrl: 'https://api.example',
+      client: MockClient(
+        (_) async => http.Response(
+          jsonEncode([sessionJson]),
+          200,
+          headers: {'content-type': 'application/json'},
+        ),
+      ),
+    );
+    final fetched = await sessions.fetchAll();
+    expect(fetched, hasLength(1));
+    expect(fetched.single.endedAt, isNull);
+    expect(fetched.single.exerciseLogs.single.sets.single.durationSeconds, 28);
+    expect(fetched.single.exerciseLogs.single.prescribedDurationSeconds, 30);
+  });
 }

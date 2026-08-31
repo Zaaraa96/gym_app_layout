@@ -203,6 +203,52 @@ void main() {
     expect(progress.exercises.single.lastValue, 40);
   });
 
+  test('weight beats duration and the heaviest set wins, not the last', () {
+    final progress = service.fold(
+      month: DateTime.utc(2026, 8),
+      sessions: [
+        _session(
+          id: 1,
+          startedAt: DateTime.utc(2026, 8, 5),
+          logs: [
+            ExerciseLog.create(
+              prescriptionId: 'p-plank',
+              blockId: 'block-abs',
+              blockKind: BlockKind.single,
+              fromCommonSection: true,
+              exerciseTitle: 'plank',
+              exerciseTitleKey: 'plank',
+              prescribedSets: 1,
+              prescribedDurationSeconds: 30,
+              difficulty: 4,
+              completedAt: DateTime.utc(2026, 8, 5),
+              sets: [
+                SetLog.create(
+                  setIndex: 1,
+                  completedAt: DateTime.utc(2026, 8, 5),
+                  durationSeconds: 30,
+                  weightKg: 40,
+                ),
+                SetLog.create(
+                  setIndex: 2,
+                  completedAt: DateTime.utc(2026, 8, 5),
+                  durationSeconds: 45,
+                  weightKg: 35,
+                ),
+              ],
+            ),
+          ],
+        ),
+      ],
+    );
+    final row = progress.exercises.single;
+    expect(row.metric, ProgressMetricKind.weight);
+    expect(row.firstValue, 40);
+    expect(row.lastValue, 40);
+    expect(row.sessions.single.metPrescription, isTrue);
+    expect(row.sessions.single.totalReps, 0);
+  });
+
   test('felt easier needs two rated sessions and the same or better load', () {
     final sameLoadEasier = service.fold(
       month: DateTime.utc(2026, 8),
