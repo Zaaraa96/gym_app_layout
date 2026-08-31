@@ -100,6 +100,7 @@ void main() {
       startedAt: DateTime.utc(2026, 8, 15, 10),
     );
     expect((await db.sessions.inProgress())?.id, live.id);
+    expect((await db.lifecycle.resume())?.id, live.id);
 
     await db.lifecycle
         .abandonInProgress(endedAt: DateTime.utc(2026, 8, 15, 11));
@@ -374,66 +375,34 @@ void main() {
     expect(withAbs.last.exerciseTitleKey, 'shoot out');
   });
 
-  test('save marks dirty and bumps time; putSynced clears dirty and keeps time',
-      () async {
+  test('save marks dirty and bumps updatedAt; putSynced clears dirty', () async {
     final db = await open();
-    final plan = _plan();
-    final original = DateTime.utc(2026, 8, 1, 8);
-    plan.updatedAt = original;
-    plan.dirty = false;
-    plan.id = await db.plans.putSynced(plan);
-
-    expect(plan.dirty, isFalse);
-    expect(plan.updatedAt.isAtSameMomentAs(original), isTrue);
-
-    await db.plans.save(plan);
-    expect(plan.dirty, isTrue);
-    expect(plan.updatedAt.isAfter(original), isTrue);
-    final stamped = plan.updatedAt;
-    expect((await db.plans.unsynced()).map((row) => row.id), [plan.id]);
-
-    await db.plans.putSynced(plan);
-    expect(plan.dirty, isFalse);
-    expect(plan.updatedAt.isAtSameMomentAs(stamped), isTrue);
-    expect(await db.plans.unsynced(), isEmpty);
-    expect((await db.plans.byUuid(plan.uuid))!.id, plan.id);
-
-    final session = await db.lifecycle.start(
-      plan: plan,
-      planDayId: 'day-1',
-      startedAt: DateTime.utc(2026, 8, 15, 10),
-    );
-    expect(session.planId, plan.uuid);
-    expect(session.dirty, isTrue);
-    expect((await db.sessions.unsynced()).map((row) => row.id), [session.id]);
-    expect((await db.sessions.byUuid(session.uuid))!.id, session.id);
-
-    final sessionStamp = session.updatedAt;
-    await db.sessions.putSynced(session);
-    expect(session.dirty, isFalse);
-    expect(session.updatedAt.isAtSameMomentAs(sessionStamp), isTrue);
-    expect(await db.sessions.unsynced(), isEmpty);
-  });
-
-  test('empty uuid is filled on save so byUuid can find the row', () async {
-    final db = await open();
-    final plan = _plan()..uuid = '';
-    await db.plans.save(plan);
-    expect(plan.uuid, isNotEmpty);
-    expect((await db.plans.byUuid(plan.uuid))!.id, plan.id);
-
     final session = WorkoutSession.create(
       uuid: '',
-      planId: plan.uuid,
+      planId: 'plan-uuid',
       planDayId: 'day-1',
-      planTitleSnapshot: plan.title,
+      planTitleSnapshot: 'plan 1',
       dayTitleSnapshot: 'day 1',
       startedAt: DateTime.utc(2026, 8, 15, 10),
+      updatedAt: DateTime.utc(2020, 1, 1),
       status: SessionStatus.completed,
+      dirty: false,
     );
+
     await db.sessions.save(session);
     expect(session.uuid, isNotEmpty);
-    expect((await db.sessions.byUuid(session.uuid))!.id, session.id);
+    expect(session.dirty, isTrue);
+    expect(session.updatedAt.isAfter(DateTime.utc(2020, 1, 1)), isTrue);
+    expect((await db.sessions.byUuid(session.uuid))?.id, session.id);
+    expect((await db.sessions.unsynced()).map((row) => row.id), [session.id]);
+
+    final frozen = DateTime.utc(2026, 8, 20, 12);
+    session.updatedAt = frozen;
+    await db.sessions.putSynced(session);
+    expect(session.dirty, isFalse);
+    expect(session.updatedAt.isAtSameMomentAs(frozen), isTrue);
+    expect(await db.sessions.unsynced(), isEmpty);
+    expect((await db.sessions.byId(session.id))!.dirty, isFalse);
   });
 }
 

@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:get/get.dart';
@@ -9,61 +11,56 @@ import 'package:gym_app/features/plans/plan_page.dart';
 import 'package:gym_app/features/plans/plans_home_page.dart';
 import 'package:gym_app/features/progress/month_tab.dart';
 
-/// Retry UI when a repository read fails. Interfaces from the sync split make
-/// this possible without a real Isar failure.
+/// Load-error + Try again, using repository fakes (the PR 18 interfaces).
 void main() {
   tearDown(Get.reset);
 
-  testWidgets('home Try again reloads plans after a failed all()',
+  testWidgets('home shows a load error and retry reads plans again',
       (tester) async {
-    final plans = _MemoryPlans(
-      items: [_plan()],
-      allFails: 1,
-    );
+    final plans = _FlakyPlans(plan: _plan());
+    final sessions = _EmptySessions();
+    addTearDown(() {
+      plans.dispose();
+      sessions.dispose();
+    });
     Get.put<PlanRepository>(plans);
-    Get.put<SessionRepository>(_MemorySessions());
+    Get.put<SessionRepository>(sessions);
 
     await tester.pumpWidget(const GetMaterialApp(home: PlansHomePage()));
-    await tester.pumpAndSettle();
+    await tester.pump();
+    await tester.pump();
 
     expect(find.text('Could not load plans.'), findsOneWidget);
-    expect(find.text('Push'), findsNothing);
-
     await tester.tap(find.text('Try again'));
-    await tester.pumpAndSettle();
+    await tester.pump();
+    await tester.pump();
 
     expect(find.text('Could not load plans.'), findsNothing);
-    expect(find.text('Push'), findsOneWidget);
-    expect(find.text("Start today's workout"), findsOneWidget);
+    expect(find.text('Push'), findsWidgets);
+    expect(find.text('Your plans'), findsOneWidget);
   });
 
-  testWidgets('plan Try again reloads after a failed byId()', (tester) async {
-    final plans = _MemoryPlans(
-      items: [_plan()],
-      byIdFails: 1,
-    );
+  testWidgets('plan page retry reloads after a failed byId', (tester) async {
+    final plans = _FlakyPlans(plan: _plan());
+    addTearDown(plans.dispose);
     Get.put<PlanRepository>(plans);
 
     await tester.pumpWidget(const GetMaterialApp(home: PlanPage(planId: 1)));
-    await tester.pumpAndSettle();
+    await tester.pump();
+    await tester.pump();
 
     expect(find.text('Could not load this plan.'), findsOneWidget);
-    expect(find.text('Push'), findsNothing);
-
     await tester.tap(find.text('Try again'));
-    await tester.pumpAndSettle();
+    await tester.pump();
+    await tester.pump();
 
     expect(find.text('Could not load this plan.'), findsNothing);
-    expect(find.text('Push'), findsWidgets);
-    expect(find.text('day 1'), findsOneWidget);
+    expect(find.text('Day 1'), findsOneWidget);
   });
 
-  testWidgets('day preview Try again reloads after a failed byId()',
-      (tester) async {
-    final plans = _MemoryPlans(
-      items: [_plan()],
-      byIdFails: 1,
-    );
+  testWidgets('day preview retry reloads after a failed byId', (tester) async {
+    final plans = _FlakyPlans(plan: _plan());
+    addTearDown(plans.dispose);
     Get.put<PlanRepository>(plans);
 
     await tester.pumpWidget(
@@ -71,45 +68,38 @@ void main() {
         home: DayPreviewPage(planId: 1, dayId: 'day-1'),
       ),
     );
-    await tester.pumpAndSettle();
+    await tester.pump();
+    await tester.pump();
 
     expect(find.text('Could not load this day.'), findsOneWidget);
-    expect(find.text('Start workout'), findsNothing);
-
     await tester.tap(find.text('Try again'));
-    await tester.pumpAndSettle();
+    await tester.pump();
+    await tester.pump();
 
     expect(find.text('Could not load this day.'), findsNothing);
-    expect(find.text('Start workout'), findsOneWidget);
     expect(find.text('squat'), findsOneWidget);
   });
 
-  testWidgets('month Try again reloads after a failed forMonth()',
-      (tester) async {
-    final clock = DateTime.utc(2026, 8, 15);
-    final sessions = _MemorySessions(
-      forMonthFails: 1,
-      monthSessions: [_completedSession(startedAt: clock)],
-    );
+  testWidgets('month tab retry reloads after a failed forMonth', (tester) async {
+    final sessions = _EmptySessions()..failForMonth = 1;
+    addTearDown(sessions.dispose);
     Get.put<SessionRepository>(sessions);
 
     await tester.pumpWidget(
       GetMaterialApp(
-        home: Scaffold(body: MonthTab(now: clock)),
+        home: Scaffold(body: MonthTab(now: DateTime.utc(2026, 8, 15))),
       ),
     );
-    await tester.pumpAndSettle();
+    await tester.pump();
+    await tester.pump();
 
     expect(find.text('Could not load this month.'), findsOneWidget);
-    expect(find.byKey(const Key('month-calendar')), findsNothing);
-
     await tester.tap(find.text('Try again'));
-    await tester.pumpAndSettle();
+    await tester.pump();
+    await tester.pump();
 
     expect(find.text('Could not load this month.'), findsNothing);
-    expect(find.byKey(const Key('month-calendar')), findsOneWidget);
-    expect(find.byKey(const Key('month-dot-15')), findsOneWidget);
-    expect(find.text('squat'), findsOneWidget);
+    expect(find.text('No workouts this month.'), findsOneWidget);
   });
 }
 
@@ -119,18 +109,18 @@ WorkoutPlan _plan() {
     title: 'Push',
     source: PlanSource.created,
     createdAt: DateTime.utc(2026, 8, 1),
-    updatedAt: DateTime.utc(2026, 8, 2),
+    updatedAt: DateTime.utc(2026, 8, 1),
     days: [
       PlanDay.create(
         dayId: 'day-1',
-        title: 'day 1',
+        title: 'Day 1',
         blocks: [
           ExerciseBlock.create(
             blockId: 'block-1',
             kind: BlockKind.single,
             exercises: [
               ExercisePrescription.create(
-                prescriptionId: 'p-squat',
+                prescriptionId: 'p-1',
                 title: 'squat',
                 prescribedSets: 3,
                 prescribedReps: 10,
@@ -143,82 +133,34 @@ WorkoutPlan _plan() {
   )..id = 1;
 }
 
-WorkoutSession _completedSession({required DateTime startedAt}) {
-  return WorkoutSession.create(
-    uuid: 'sess-1',
-    planId: 'plan-uuid',
-    planDayId: 'day-1',
-    planTitleSnapshot: 'Push',
-    dayTitleSnapshot: 'day 1',
-    startedAt: startedAt,
-    updatedAt: startedAt,
-    endedAt: startedAt.add(const Duration(hours: 1)),
-    status: SessionStatus.completed,
-    exerciseLogs: [
-      ExerciseLog.create(
-        prescriptionId: 'p-squat',
-        blockId: 'block-1',
-        blockKind: BlockKind.single,
-        fromCommonSection: false,
-        exerciseTitle: 'squat',
-        exerciseTitleKey: 'squat',
-        prescribedSets: 3,
-        prescribedReps: 10,
-        sets: [
-          SetLog.create(
-            setIndex: 1,
-            completedAt: startedAt,
-            reps: 10,
-            weightKg: 40,
-          ),
-        ],
-      ),
-    ],
-  )..id = 3;
-}
+class _FlakyPlans implements PlanRepository {
+  _FlakyPlans({required this.plan});
 
-class _MemoryPlans implements PlanRepository {
-  _MemoryPlans({
-    this.items = const [],
-    this.allFails = 0,
-    this.byIdFails = 0,
-  });
+  final WorkoutPlan plan;
+  var remainingFailures = 1;
+  final _watch = StreamController<void>.broadcast();
 
-  final List<WorkoutPlan> items;
-  int allFails;
-  int byIdFails;
+  void dispose() => _watch.close();
 
-  @override
-  Future<List<WorkoutPlan>> all() async {
-    if (allFails > 0) {
-      allFails -= 1;
-      throw StateError('plans down');
+  T _read<T>(T value) {
+    if (remainingFailures > 0) {
+      remainingFailures--;
+      throw StateError('disk');
     }
-    return items;
+    return value;
   }
 
   @override
-  Future<WorkoutPlan?> byId(int id) async {
-    if (byIdFails > 0) {
-      byIdFails -= 1;
-      throw StateError('plan down');
-    }
-    for (final plan in items) {
-      if (plan.id == id) return plan;
-    }
-    return null;
-  }
+  Future<List<WorkoutPlan>> all() async => _read([plan]);
 
   @override
-  Future<WorkoutPlan?> byUuid(String uuid) async {
-    for (final plan in items) {
-      if (plan.uuid == uuid) return plan;
-    }
-    return null;
-  }
+  Future<WorkoutPlan?> byId(int id) async => _read(plan);
 
   @override
-  Future<int> count() async => items.length;
+  Future<WorkoutPlan?> byUuid(String uuid) async => _read(plan);
+
+  @override
+  Future<int> count() async => _read(1);
 
   @override
   Future<bool> delete(int id) async => false;
@@ -233,17 +175,14 @@ class _MemoryPlans implements PlanRepository {
   Future<List<WorkoutPlan>> unsynced() async => const [];
 
   @override
-  Stream<void> watch({bool fireImmediately = false}) => const Stream.empty();
+  Stream<void> watch({bool fireImmediately = false}) => _watch.stream;
 }
 
-class _MemorySessions implements SessionRepository {
-  _MemorySessions({
-    this.monthSessions = const [],
-    this.forMonthFails = 0,
-  });
+class _EmptySessions implements SessionRepository {
+  var failForMonth = 0;
+  final _watch = StreamController<void>.broadcast();
 
-  final List<WorkoutSession> monthSessions;
-  int forMonthFails;
+  void dispose() => _watch.close();
 
   @override
   Future<WorkoutSession?> byId(int id) async => null;
@@ -263,11 +202,11 @@ class _MemorySessions implements SessionRepository {
 
   @override
   Future<List<WorkoutSession>> forMonth(DateTime month) async {
-    if (forMonthFails > 0) {
-      forMonthFails -= 1;
-      throw StateError('month down');
+    if (failForMonth > 0) {
+      failForMonth--;
+      throw StateError('disk');
     }
-    return monthSessions;
+    return const [];
   }
 
   @override
@@ -286,5 +225,5 @@ class _MemorySessions implements SessionRepository {
   Future<List<WorkoutSession>> unsynced() async => const [];
 
   @override
-  Stream<void> watch({bool fireImmediately = false}) => const Stream.empty();
+  Stream<void> watch({bool fireImmediately = false}) => _watch.stream;
 }

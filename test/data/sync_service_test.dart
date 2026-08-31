@@ -51,8 +51,91 @@ void main() {
     await sync.pull();
 
     expect((await plans.byUuid('plan-1'))!.title, 'local');
+    expect((await plans.byUuid('plan-1'))!.id, 1);
     expect((await plans.byUuid('plan-2'))!.title, 'from-server');
     expect((await plans.byUuid('plan-2'))!.dirty, isFalse);
+    expect(await plans.count(), 2);
+  });
+
+  test('pull overwrites when remote is newer or tied and keeps the Isar id',
+      () async {
+    final plans = _MemoryPlans();
+    final sessions = _MemorySessions();
+    final remotePlans = _MemoryRemotePlans();
+    final remoteSessions = _MemoryRemoteSessions();
+
+    final localPlan = _plan(
+      uuid: 'plan-1',
+      title: 'local-old',
+      updatedAt: DateTime.utc(2026, 8, 10),
+    )..id = 42;
+    await plans.putSynced(localPlan);
+
+    remotePlans.store['plan-1'] = _plan(
+      uuid: 'plan-1',
+      title: 'remote-new',
+      updatedAt: DateTime.utc(2026, 8, 10),
+    );
+
+    final localSession = _session(
+      uuid: 'sess-1',
+      planId: 'plan-1',
+      title: 'local-session',
+      updatedAt: DateTime.utc(2026, 8, 11, 8),
+    )..id = 7;
+    await sessions.putSynced(localSession);
+
+    remoteSessions.store['sess-1'] = _session(
+      uuid: 'sess-1',
+      planId: 'plan-1',
+      title: 'remote-session',
+      updatedAt: DateTime.utc(2026, 8, 11, 9),
+    );
+
+    await SyncService(
+      plans: plans,
+      sessions: sessions,
+      remotePlans: remotePlans,
+      remoteSessions: remoteSessions,
+    ).pull();
+
+    expect(await plans.count(), 1);
+    expect((await plans.byId(42))!.title, 'remote-new');
+    expect((await plans.byId(42))!.dirty, isFalse);
+    expect((await sessions.byId(7))!.planTitleSnapshot, 'remote-session');
+    expect((await sessions.byUuid('sess-1'))!.id, 7);
+    expect((await sessions.byId(7))!.dirty, isFalse);
+  });
+
+  test('pull keeps a newer local session', () async {
+    final sessions = _MemorySessions();
+    final remoteSessions = _MemoryRemoteSessions();
+    final local = _session(
+      uuid: 'sess-1',
+      planId: 'plan-1',
+      title: 'local-newer',
+      updatedAt: DateTime.utc(2026, 8, 20),
+    )..id = 3;
+    await sessions.putSynced(local);
+    local.dirty = true;
+    await sessions.saveKeepingTime(local);
+
+    remoteSessions.store['sess-1'] = _session(
+      uuid: 'sess-1',
+      planId: 'plan-1',
+      title: 'remote-old',
+      updatedAt: DateTime.utc(2026, 8, 10),
+    );
+
+    await SyncService(
+      plans: _MemoryPlans(),
+      sessions: sessions,
+      remotePlans: _MemoryRemotePlans(),
+      remoteSessions: remoteSessions,
+    ).pull();
+
+    expect((await sessions.byId(3))!.planTitleSnapshot, 'local-newer');
+    expect((await sessions.byId(3))!.dirty, isTrue);
   });
 
   test('push flushes dirty rows and clears the dirty flag', () async {
@@ -119,101 +202,108 @@ void main() {
     expect(plan.dirty, isTrue);
   });
 
-  test('pull overwrites a local session when remote is newer and keeps the Isar id',
-      () async {
-    final sessions = _MemorySessions();
-    final remoteSessions = _MemoryRemoteSessions();
-
-    final local = WorkoutSession.create(
-      uuid: 'sess-1',
-      planId: 'plan-1',
-      planDayId: 'day-1',
-      planTitleSnapshot: 'draft',
-      dayTitleSnapshot: 'local-day',
-      startedAt: DateTime.utc(2026, 8, 20, 10),
-      updatedAt: DateTime.utc(2026, 8, 20, 11),
-      status: SessionStatus.inProgress,
-      dirty: true,
-    )..id = 9;
-    sessions.rows[9] = local;
-
-    remoteSessions.store['sess-1'] = WorkoutSession.create(
-      uuid: 'sess-1',
-      planId: 'plan-1',
-      planDayId: 'day-1',
-      planTitleSnapshot: 'draft',
-      dayTitleSnapshot: 'remote-day',
-      startedAt: DateTime.utc(2026, 8, 20, 10),
-      updatedAt: DateTime.utc(2026, 8, 21, 9),
-      status: SessionStatus.completed,
-    );
-
-    await SyncService(
-      plans: _MemoryPlans(),
-      sessions: sessions,
-      remotePlans: _MemoryRemotePlans(),
-      remoteSessions: remoteSessions,
-    ).pull();
-
-    final stored = await sessions.byUuid('sess-1');
-    expect(stored!.id, 9);
-    expect(stored.dayTitleSnapshot, 'remote-day');
-    expect(stored.status, SessionStatus.completed);
-    expect(stored.dirty, isFalse);
-  });
-
-  test('sync is a no-op when disabled', () async {
-    final remotePlans = _MemoryRemotePlans();
-    remotePlans.store['plan-1'] = _plan(
-      uuid: 'plan-1',
-      title: 'from-server',
-      updatedAt: DateTime.utc(2026, 8, 21),
-    );
+  test('push is a no-op when offline even if called directly', () async {
     final plans = _MemoryPlans();
-    final dirty = _plan(
-      uuid: 'plan-2',
+    final remotePlans = _MemoryRemotePlans();
+    final plan = _plan(
+      uuid: 'plan-1',
       title: 'draft',
       updatedAt: DateTime.utc(2026, 8, 20),
       dirty: true,
     )..id = 1;
-    plans.rows[1] = dirty;
+    plans.rows[1] = plan;
 
     await SyncService(
       plans: plans,
       sessions: _MemorySessions(),
       remotePlans: remotePlans,
       remoteSessions: _MemoryRemoteSessions(),
-      enabled: false,
-    ).sync();
+      isOnline: () async => false,
+    ).push();
 
-    expect(await plans.byUuid('plan-1'), isNull);
-    expect(dirty.dirty, isTrue);
+    expect(remotePlans.store, isEmpty);
+    expect(plan.dirty, isTrue);
   });
 
-  test('sync skips a second call while one is already running', () async {
-    final entered = Completer<void>();
-    final release = Completer<void>();
-    var fetches = 0;
-    final remotePlans = _LatchRemotePlans(() async {
-      fetches += 1;
-      if (!entered.isCompleted) entered.complete();
-      await release.future;
-      return const <WorkoutPlan>[];
-    });
+  test('disabled sync never pulls or pushes', () async {
+    final plans = _MemoryPlans();
+    final remotePlans = _MemoryRemotePlans();
+    final plan = _plan(
+      uuid: 'plan-1',
+      title: 'draft',
+      updatedAt: DateTime.utc(2026, 8, 20),
+      dirty: true,
+    )..id = 1;
+    plans.rows[1] = plan;
+    remotePlans.store['plan-2'] = _plan(
+      uuid: 'plan-2',
+      title: 'from-server',
+      updatedAt: DateTime.utc(2026, 8, 21),
+    );
 
+    final sync = SyncService(
+      plans: plans,
+      sessions: _MemorySessions(),
+      remotePlans: remotePlans,
+      remoteSessions: _MemoryRemoteSessions(),
+      enabled: false,
+    );
+    await sync.sync();
+    await sync.pull();
+    await sync.push();
+
+    expect(await plans.byUuid('plan-2'), isNull);
+    expect(plan.dirty, isTrue);
+  });
+
+  test('sync pulls remote rows then flushes dirty local rows', () async {
+    final plans = _MemoryPlans();
+    final remotePlans = _MemoryRemotePlans();
+    final local = _plan(
+      uuid: 'plan-local',
+      title: 'draft',
+      updatedAt: DateTime.utc(2026, 8, 20),
+      dirty: true,
+    )..id = 1;
+    plans.rows[1] = local;
+    remotePlans.store['plan-remote'] = _plan(
+      uuid: 'plan-remote',
+      title: 'from-server',
+      updatedAt: DateTime.utc(2026, 8, 21),
+    );
+
+    await SyncService(
+      plans: plans,
+      sessions: _MemorySessions(),
+      remotePlans: remotePlans,
+      remoteSessions: _MemoryRemoteSessions(),
+    ).sync();
+
+    expect((await plans.byUuid('plan-remote'))!.title, 'from-server');
+    expect(remotePlans.store['plan-local']!.title, 'draft');
+    expect((await plans.byUuid('plan-local'))!.dirty, isFalse);
+  });
+
+  test('sync ignores a second call while the first is still running', () async {
+    final gate = Completer<void>();
+    final started = Completer<void>();
+    final remotePlans = _GateRemotePlans(onFetch: started, gate: gate);
     final sync = SyncService(
       plans: _MemoryPlans(),
       sessions: _MemorySessions(),
       remotePlans: remotePlans,
       remoteSessions: _MemoryRemoteSessions(),
     );
+
     final first = sync.sync();
-    await entered.future;
-    await sync.sync();
-    expect(fetches, 1);
-    release.complete();
+    await started.future;
+    final second = sync.sync();
+    await second;
+    expect(remotePlans.fetchCount, 1);
+
+    gate.complete();
     await first;
-    expect(fetches, 1);
+    expect(remotePlans.fetchCount, 1);
   });
 }
 
@@ -233,13 +323,40 @@ WorkoutPlan _plan({
   );
 }
 
-class _LatchRemotePlans implements RemotePlanDataSource {
-  _LatchRemotePlans(this._fetchAll);
+WorkoutSession _session({
+  required String uuid,
+  required String planId,
+  required String title,
+  required DateTime updatedAt,
+  bool dirty = false,
+}) {
+  return WorkoutSession.create(
+    uuid: uuid,
+    dirty: dirty,
+    planId: planId,
+    planDayId: 'day-1',
+    planTitleSnapshot: title,
+    dayTitleSnapshot: 'day 1',
+    startedAt: DateTime.utc(2026, 8, 10),
+    updatedAt: updatedAt,
+    status: SessionStatus.completed,
+  );
+}
 
-  final Future<List<WorkoutPlan>> Function() _fetchAll;
+class _GateRemotePlans implements RemotePlanDataSource {
+  _GateRemotePlans({required this.onFetch, required this.gate});
+
+  final Completer<void> onFetch;
+  final Completer<void> gate;
+  var fetchCount = 0;
 
   @override
-  Future<List<WorkoutPlan>> fetchAll() => _fetchAll();
+  Future<List<WorkoutPlan>> fetchAll() async {
+    fetchCount++;
+    if (!onFetch.isCompleted) onFetch.complete();
+    await gate.future;
+    return const [];
+  }
 
   @override
   Future<void> upsert(WorkoutPlan plan) async {}
@@ -300,9 +417,7 @@ class _MemoryPlans implements PlanRepository {
   @override
   Future<int> putSynced(WorkoutPlan plan) async {
     plan.dirty = false;
-    if (plan.id == 0 || !rows.containsKey(plan.id)) {
-      plan.id = _seq++;
-    }
+    plan.id = _assignId(plan.id);
     rows[plan.id] = plan;
     return plan.id;
   }
@@ -319,9 +434,20 @@ class _MemoryPlans implements PlanRepository {
 
   Future<int> saveKeepingTime(WorkoutPlan plan) async {
     plan.dirty = true;
-    if (plan.id == 0) plan.id = _seq++;
+    plan.id = _assignId(plan.id);
     rows[plan.id] = plan;
     return plan.id;
+  }
+
+  int _assignId(int current) {
+    if (current > 0) {
+      if (current >= _seq) _seq = current + 1;
+      return current;
+    }
+    while (rows.containsKey(_seq)) {
+      _seq++;
+    }
+    return _seq++;
   }
 
   @override
@@ -371,9 +497,7 @@ class _MemorySessions implements SessionRepository {
   @override
   Future<int> putSynced(WorkoutSession session) async {
     session.dirty = false;
-    if (session.id == 0 || !rows.containsKey(session.id)) {
-      session.id = _seq++;
-    }
+    session.id = _assignId(session.id);
     rows[session.id] = session;
     return session.id;
   }
@@ -386,6 +510,24 @@ class _MemorySessions implements SessionRepository {
       session.dirty = true;
       return id;
     });
+  }
+
+  Future<int> saveKeepingTime(WorkoutSession session) async {
+    session.dirty = true;
+    session.id = _assignId(session.id);
+    rows[session.id] = session;
+    return session.id;
+  }
+
+  int _assignId(int current) {
+    if (current > 0) {
+      if (current >= _seq) _seq = current + 1;
+      return current;
+    }
+    while (rows.containsKey(_seq)) {
+      _seq++;
+    }
+    return _seq++;
   }
 
   @override
