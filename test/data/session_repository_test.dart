@@ -69,6 +69,9 @@ void main() {
     );
 
     expect(session.status, SessionStatus.inProgress);
+    expect(session.planId, plan.uuid);
+    expect(session.uuid, isNotEmpty);
+    expect(session.dirty, isTrue);
     expect(session.planTitleSnapshot, 'plan 1');
     expect(session.dayTitleSnapshot, 'day 1- 4sar');
     expect(session.includedCommonSectionIds, ['sec-abs']);
@@ -307,7 +310,7 @@ void main() {
       required WorkoutPlan onPlan,
       required DateTime at,
     }) async {
-      final session = await db.sessions.start(
+      final session = await db.lifecycle.start(
         plan: onPlan,
         planDayId: 'day-1',
         startedAt: at,
@@ -326,7 +329,7 @@ void main() {
       onPlan: other,
       at: DateTime.utc(2026, 8, 12, 8),
     );
-    await db.sessions.start(
+    await db.lifecycle.start(
       plan: plan,
       planDayId: 'day-1',
       startedAt: DateTime.utc(2026, 8, 13, 8),
@@ -341,7 +344,7 @@ void main() {
 
   test('abandonInProgress is a no-op when nothing is live', () async {
     final db = await open();
-    await db.sessions.abandonInProgress(
+    await db.lifecycle.abandonInProgress(
       endedAt: DateTime.utc(2026, 8, 15, 11),
     );
     expect(await db.sessions.inProgress(), isNull);
@@ -369,6 +372,68 @@ void main() {
     expect(withAbs.last.fromCommonSection, isTrue);
     expect(withAbs.last.prescribedDurationSeconds, 30);
     expect(withAbs.last.exerciseTitleKey, 'shoot out');
+  });
+
+  test('save marks dirty and bumps time; putSynced clears dirty and keeps time',
+      () async {
+    final db = await open();
+    final plan = _plan();
+    final original = DateTime.utc(2026, 8, 1, 8);
+    plan.updatedAt = original;
+    plan.dirty = false;
+    plan.id = await db.plans.putSynced(plan);
+
+    expect(plan.dirty, isFalse);
+    expect(plan.updatedAt.isAtSameMomentAs(original), isTrue);
+
+    await db.plans.save(plan);
+    expect(plan.dirty, isTrue);
+    expect(plan.updatedAt.isAfter(original), isTrue);
+    final stamped = plan.updatedAt;
+    expect((await db.plans.unsynced()).map((row) => row.id), [plan.id]);
+
+    await db.plans.putSynced(plan);
+    expect(plan.dirty, isFalse);
+    expect(plan.updatedAt.isAtSameMomentAs(stamped), isTrue);
+    expect(await db.plans.unsynced(), isEmpty);
+    expect((await db.plans.byUuid(plan.uuid))!.id, plan.id);
+
+    final session = await db.lifecycle.start(
+      plan: plan,
+      planDayId: 'day-1',
+      startedAt: DateTime.utc(2026, 8, 15, 10),
+    );
+    expect(session.planId, plan.uuid);
+    expect(session.dirty, isTrue);
+    expect((await db.sessions.unsynced()).map((row) => row.id), [session.id]);
+    expect((await db.sessions.byUuid(session.uuid))!.id, session.id);
+
+    final sessionStamp = session.updatedAt;
+    await db.sessions.putSynced(session);
+    expect(session.dirty, isFalse);
+    expect(session.updatedAt.isAtSameMomentAs(sessionStamp), isTrue);
+    expect(await db.sessions.unsynced(), isEmpty);
+  });
+
+  test('empty uuid is filled on save so byUuid can find the row', () async {
+    final db = await open();
+    final plan = _plan()..uuid = '';
+    await db.plans.save(plan);
+    expect(plan.uuid, isNotEmpty);
+    expect((await db.plans.byUuid(plan.uuid))!.id, plan.id);
+
+    final session = WorkoutSession.create(
+      uuid: '',
+      planId: plan.uuid,
+      planDayId: 'day-1',
+      planTitleSnapshot: plan.title,
+      dayTitleSnapshot: 'day 1',
+      startedAt: DateTime.utc(2026, 8, 15, 10),
+      status: SessionStatus.completed,
+    );
+    await db.sessions.save(session);
+    expect(session.uuid, isNotEmpty);
+    expect((await db.sessions.byUuid(session.uuid))!.id, session.id);
   });
 }
 
