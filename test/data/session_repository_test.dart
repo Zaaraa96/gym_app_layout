@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'dart:io';
 
 import 'package:flutter_test/flutter_test.dart';
@@ -433,6 +434,41 @@ void main() {
     expect(await db.sessions.unsynced(), isEmpty);
     expect((await db.sessions.byId(session.id))!.dirty, isFalse);
   });
+
+  test('watch fires on save and delete', () async {
+    final db = await open();
+    final session = WorkoutSession.create(
+      uuid: 'watched',
+      planId: 'plan-uuid',
+      planDayId: 'day-1',
+      planTitleSnapshot: 'plan 1',
+      dayTitleSnapshot: 'day 1',
+      startedAt: DateTime.utc(2026, 8, 15, 10),
+      updatedAt: DateTime.utc(2026, 8, 15, 10),
+      status: SessionStatus.completed,
+    );
+
+    await _expectWatchFires(db.sessions.watch(), () => db.sessions.save(session));
+    expect(session.id, isNot(0));
+    await _expectWatchFires(
+      db.sessions.watch(),
+      () => db.sessions.delete(session.id),
+    );
+    expect(await db.sessions.byId(session.id), isNull);
+  });
+}
+
+Future<void> _expectWatchFires(
+  Stream<void> stream,
+  Future<void> Function() action,
+) async {
+  final done = Completer<void>();
+  final sub = stream.listen((_) {
+    if (!done.isCompleted) done.complete();
+  });
+  await action();
+  await done.future.timeout(const Duration(seconds: 5));
+  await sub.cancel();
 }
 
 WorkoutPlan _plan() {
