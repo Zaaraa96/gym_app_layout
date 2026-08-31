@@ -450,6 +450,82 @@ void main() {
     expect(find.text('How hard was that? 1 easy · 5 hard'), findsOneWidget);
   });
 
+  testWidgets('typed 0 kg is stored as zero, not as empty bodyweight',
+      (tester) async {
+    final repos = await bootstrap(tester);
+    final plan = _simplePlan();
+    await db(tester, () => repos.plans.save(plan));
+    final session = await db(
+      tester,
+      () => SessionLifecycle(repos.sessions).start(
+        plan: plan,
+        planDayId: 'day-1',
+        startedAt: DateTime.utc(2026, 8, 28, 12),
+      ),
+    );
+
+    await tester.pumpWidget(
+      GetMaterialApp(
+        home: LiveWorkoutPage(sessionId: session.id),
+      ),
+    );
+    await settle(tester);
+
+    await tester.enterText(find.byKey(const Key('weight-field')), '0');
+    await tester.tap(find.text('Log set'));
+    await tester.pump();
+    await settle(tester);
+
+    final stored = await db(tester, () => repos.sessions.byId(session.id));
+    expect(stored!.exerciseLogs.single.sets, hasLength(1));
+    expect(stored.exerciseLogs.single.sets.single.weightKg, 0);
+    expect(stored.exerciseLogs.single.sets.single.reps, 10);
+    expect(stored.status, SessionStatus.inProgress);
+  });
+
+  testWidgets('opening an abandoned session shows discarded copy, not a logger',
+      (tester) async {
+    final repos = await bootstrap(tester);
+    final session = WorkoutSession.create(
+      planId: 'plan-uuid',
+      planDayId: 'day-1',
+      planTitleSnapshot: 'Simple',
+      dayTitleSnapshot: 'Abandoned live',
+      startedAt: DateTime.utc(2026, 8, 28, 12),
+      endedAt: DateTime.utc(2026, 8, 28, 12, 30),
+      status: SessionStatus.abandoned,
+      exerciseLogs: [
+        ExerciseLog.create(
+          prescriptionId: 'p-squat',
+          blockId: 'block-squat',
+          blockKind: BlockKind.single,
+          fromCommonSection: false,
+          exerciseTitle: 'Bodyweight squat',
+          exerciseTitleKey: 'bodyweight squat',
+          prescribedSets: 2,
+          prescribedReps: 10,
+        ),
+      ],
+    );
+    await db(tester, () => repos.sessions.save(session));
+
+    await tester.pumpWidget(
+      GetMaterialApp(
+        home: LiveWorkoutPage(sessionId: session.id),
+      ),
+    );
+    await settle(tester);
+
+    expect(find.text('Workout discarded'), findsOneWidget);
+    expect(
+      find.text('This session will not show on the month view.'),
+      findsOneWidget,
+    );
+    expect(find.text('Log set'), findsNothing);
+    expect(find.byKey(const Key('end-workout')), findsNothing);
+    expect(find.text('Done'), findsOneWidget);
+  });
+
   testWidgets('a non-numeric weight is rejected before a set is written',
       (tester) async {
     final repos = await bootstrap(tester);

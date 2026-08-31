@@ -708,6 +708,58 @@ void main() {
     );
   });
 
+  testWidgets('canceling delete day leaves the stored day in place',
+      (tester) async {
+    final plans = await bootstrap(tester);
+    await db(tester, () => plans.save(samplePlan()));
+    await launch(tester, AppRoutes.home);
+
+    await tester.tap(find.text('Push week'));
+    await tester.pump();
+    await settle(tester);
+
+    expect(find.text('Day 1'), findsOneWidget);
+    await tester.tap(find.byTooltip('Delete day'));
+    await tester.pump();
+    await tester.tap(find.widgetWithText(TextButton, 'Cancel'));
+    await tester.pump();
+    await settle(tester);
+
+    expect(find.text('Day 1'), findsOneWidget);
+    expect(find.text('chest'), findsOneWidget);
+    final stored = await db(tester, plans.all);
+    expect(stored.single.days, hasLength(1));
+    expect(stored.single.days.single.dayId, 'day-1');
+  });
+
+  testWidgets('saving a day persists an edited summary', (tester) async {
+    final plans = await bootstrap(tester);
+    await db(tester, () => plans.save(samplePlan()));
+    await launch(tester, AppRoutes.home);
+
+    await tester.tap(find.text('Push week'));
+    await tester.pump();
+    await settle(tester);
+    await tester.tap(find.byKey(const Key('day-card-day-1')));
+    await tester.pump();
+    await settle(tester);
+    await tester.tap(find.text('Edit day'));
+    await tester.pump();
+    await settle(tester);
+
+    await tester.enterText(
+      find.widgetWithText(TextFormField, 'day summary'),
+      'upper body',
+    );
+    await tester.tap(find.text('Save'));
+    await tester.pump();
+    await settle(tester);
+
+    final stored = await db(tester, plans.all);
+    expect(stored.single.days.single.title, 'Day 1');
+    expect(stored.single.days.single.summary, 'upper body');
+  });
+
   testWidgets('a missing plan says it is no longer here', (tester) async {
     await bootstrap(tester);
 

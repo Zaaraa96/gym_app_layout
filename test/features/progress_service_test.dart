@@ -340,6 +340,54 @@ void main() {
     expect(oneSession.exercises.single.feltEasier, isFalse);
   });
 
+  test('felt easier is false when load improved but difficulty did not drop',
+      () {
+    final progress = service.fold(
+      month: DateTime.utc(2026, 8),
+      sessions: [
+        _session(
+          id: 1,
+          startedAt: DateTime.utc(2026, 8, 2),
+          logs: [
+            _repLog(title: 'kang squat', reps: [12], weight: 40, difficulty: 3)
+          ],
+        ),
+        _session(
+          id: 2,
+          startedAt: DateTime.utc(2026, 8, 20),
+          logs: [
+            _repLog(title: 'kang squat', reps: [12], weight: 50, difficulty: 3)
+          ],
+        ),
+      ],
+    );
+    expect(progress.exercises.single.delta, 10);
+    expect(progress.exercises.single.feltEasier, isFalse);
+  });
+
+  test('in-progress sessions still count as a workout day and a trend point',
+      () {
+    final progress = service.fold(
+      month: DateTime.utc(2026, 8),
+      sessions: [
+        _session(
+          id: 1,
+          startedAt: DateTime.utc(2026, 8, 15, 10),
+          status: SessionStatus.inProgress,
+          logs: [
+            _repLog(title: 'kang squat', reps: [10], weight: 40),
+          ],
+        ),
+      ],
+    );
+    expect(progress.daysWithWorkouts, [DateTime.utc(2026, 8, 15)]);
+    expect(progress.exercises.single.title, 'kang squat');
+    expect(progress.exercises.single.lastValue, 40);
+    expect(progress.exercises.single.sessions.single.status,
+        SessionStatus.inProgress);
+    expect(progress.isEmpty, isFalse);
+  });
+
   test('first-seen exercise order, last title, and empty duration sets stay null',
       () {
     final progress = service.fold(

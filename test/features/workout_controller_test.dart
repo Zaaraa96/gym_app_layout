@@ -358,6 +358,36 @@ void main() {
     expect(c.durationTimerStarted, isFalse);
     expect(c.durationRemainingSeconds, isNull);
   });
+
+  test('zero kilograms is stored as 0, not treated as bodyweight', () async {
+    final started = await startController();
+    final c = started.controller;
+    await c.logSet(reps: 12, weightKg: 0);
+    expect(c.session!.exerciseLogs.first.sets.single.weightKg, 0);
+    expect(c.session!.exerciseLogs.first.sets.single.reps, 12);
+  });
+
+  test('rating the first block does not finish while later logs remain',
+      () async {
+    final started = await startController();
+    final c = started.controller;
+    for (var i = 0; i < 6; i++) {
+      await c.logSet(reps: 12);
+    }
+    await c.rate(3, log: c.session!.exerciseLogs[0]);
+    await c.rate(4, log: c.session!.exerciseLogs[1]);
+
+    expect(c.session!.status, SessionStatus.inProgress);
+    expect(c.activeLog?.exerciseTitle, 'shoot out');
+    expect(c.allLogsRated, isFalse);
+
+    await c.logTime();
+    await c.rate(2);
+    expect(c.session!.status, SessionStatus.completed);
+    expect(c.session!.endedAt, isNotNull);
+    expect(c.allLogsRated, isTrue);
+    expect(await started.sessions.inProgress(), isNull);
+  });
 }
 
 Future<void> _reachDurationHold(WorkoutController c) async {
