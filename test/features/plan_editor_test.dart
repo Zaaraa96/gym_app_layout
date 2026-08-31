@@ -758,15 +758,16 @@ void main() {
     await tester.pump();
     expect(find.text('Edit exercise'), findsOneWidget);
 
-    await tester.tap(find.widgetWithText(ChoiceChip, 'Duration').first);
+    final durationChip = find.widgetWithText(ChoiceChip, 'Duration').first;
+    await tester.ensureVisible(durationChip);
+    await tester.tap(durationChip);
     await tester.pump();
-    await tester.enterText(
-      find.descendant(
-        of: find.byType(AlertDialog),
-        matching: find.widgetWithText(TextFormField, 'seconds'),
-      ),
-      '45',
+    final secondsField = find.descendant(
+      of: find.byType(AlertDialog),
+      matching: find.widgetWithText(TextFormField, 'seconds'),
     );
+    await tester.ensureVisible(secondsField);
+    await tester.enterText(secondsField, '45');
     await tester.tap(find.text('Save exercise'));
     await tester.pump();
     await settle(tester);

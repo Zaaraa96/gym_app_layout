@@ -513,10 +513,10 @@ void main() {
     await settle(tester);
 
     expect(find.text('Bodyweight squat  ·  set 2 of 2'), findsOneWidget);
-    var stored = await db(tester, () => repos.sessions.byId(session.id));
-    expect(stored!.exerciseLogs.single.sets, hasLength(1));
-    expect(stored.exerciseLogs.single.sets.single.reps, 10);
-    expect(stored.exerciseLogs.single.sets.single.weightKg, isNull);
+    final afterFirst = await db(tester, () => repos.sessions.byId(session.id));
+    expect(afterFirst!.exerciseLogs.single.sets, hasLength(1));
+    expect(afterFirst.exerciseLogs.single.sets.single.reps, 10);
+    expect(afterFirst.exerciseLogs.single.sets.single.weightKg, isNull);
 
     await tester.enterText(find.byKey(const Key('weight-field')), '22.5');
     await tester.tap(find.text('Log set'));
@@ -525,11 +525,11 @@ void main() {
 
     expect(find.text('Bodyweight squat  ·  set 3  ·  extra'), findsOneWidget);
     expect(find.text('How hard was that? 1 easy · 5 hard'), findsOneWidget);
-    stored = await db(tester, () => repos.sessions.byId(session.id));
-    expect(stored!.exerciseLogs.single.sets, hasLength(2));
-    expect(stored.exerciseLogs.single.sets.last.reps, 10);
-    expect(stored.exerciseLogs.single.sets.last.weightKg, 22.5);
-    expect(stored.status, SessionStatus.inProgress);
+    final afterSecond = await db(tester, () => repos.sessions.byId(session.id));
+    expect(afterSecond!.exerciseLogs.single.sets, hasLength(2));
+    expect(afterSecond.exerciseLogs.single.sets.last.reps, 10);
+    expect(afterSecond.exerciseLogs.single.sets.last.weightKg, 22.5);
+    expect(afterSecond.status, SessionStatus.inProgress);
   });
 
   testWidgets('reopening a live session prefills the last logged weight',
