@@ -31,13 +31,17 @@ void main() {
           id: 1,
           startedAt: DateTime.utc(2026, 7, 31),
           status: SessionStatus.completed,
-          logs: [_repLog(title: 'kang squat', reps: [12], weight: 40)],
+          logs: [
+            _repLog(title: 'kang squat', reps: [12], weight: 40)
+          ],
         ),
         _session(
           id: 2,
           startedAt: DateTime.utc(2026, 8, 10),
           status: SessionStatus.abandoned,
-          logs: [_repLog(title: 'kang squat', reps: [12], weight: 50)],
+          logs: [
+            _repLog(title: 'kang squat', reps: [12], weight: 50)
+          ],
         ),
       ],
     );
@@ -52,7 +56,8 @@ void main() {
           id: 1,
           startedAt: DateTime.utc(2026, 8, 2, 9),
           logs: [
-            _repLog(title: 'Kang Squat', reps: [12, 10], weight: 40, difficulty: 4),
+            _repLog(
+                title: 'Kang Squat', reps: [12, 10], weight: 40, difficulty: 4),
           ],
         ),
         _session(
@@ -88,12 +93,16 @@ void main() {
         _session(
           id: 1,
           startedAt: DateTime.utc(2026, 8, 2),
-          logs: [_repLog(title: 'kang squat', reps: [12], weight: 50, difficulty: 4)],
+          logs: [
+            _repLog(title: 'kang squat', reps: [12], weight: 50, difficulty: 4)
+          ],
         ),
         _session(
           id: 2,
           startedAt: DateTime.utc(2026, 8, 20),
-          logs: [_repLog(title: 'kang squat', reps: [12], weight: 40, difficulty: 2)],
+          logs: [
+            _repLog(title: 'kang squat', reps: [12], weight: 40, difficulty: 2)
+          ],
         ),
       ],
     );
@@ -109,12 +118,16 @@ void main() {
         _session(
           id: 1,
           startedAt: DateTime.utc(2026, 8, 5),
-          logs: [_durationLog(seconds: [20], prescribed: 30, difficulty: 4)],
+          logs: [
+            _durationLog(seconds: [20], prescribed: 30, difficulty: 4)
+          ],
         ),
         _session(
           id: 2,
           startedAt: DateTime.utc(2026, 8, 12),
-          logs: [_durationLog(seconds: [30, 35], prescribed: 30, difficulty: 3)],
+          logs: [
+            _durationLog(seconds: [30, 35], prescribed: 30, difficulty: 3)
+          ],
         ),
       ],
     );
@@ -128,19 +141,24 @@ void main() {
     expect(row.feltEasier, isTrue);
   });
 
-  test('sets and reps are the fallback when there is no weight or duration', () {
+  test('sets and reps are the fallback when there is no weight or duration',
+      () {
     final progress = service.fold(
       month: DateTime.utc(2026, 8),
       sessions: [
         _session(
           id: 1,
           startedAt: DateTime.utc(2026, 8, 5),
-          logs: [_repLog(title: 'push up', reps: [10, 10], prescribedSets: 3)],
+          logs: [
+            _repLog(title: 'push up', reps: [10, 10], prescribedSets: 3)
+          ],
         ),
         _session(
           id: 2,
           startedAt: DateTime.utc(2026, 8, 12),
-          logs: [_repLog(title: 'push up', reps: [12, 12, 12], prescribedSets: 3)],
+          logs: [
+            _repLog(title: 'push up', reps: [12, 12, 12], prescribedSets: 3)
+          ],
         ),
       ],
     );
@@ -154,7 +172,8 @@ void main() {
     expect(row.sessions.last.prescribedSets, 3);
   });
 
-  test('same titleKey across days rolls up and in-progress sessions still count',
+  test(
+      'same titleKey across days rolls up and in-progress sessions still count',
       () {
     final progress = service.fold(
       month: DateTime.utc(2026, 8),
@@ -162,13 +181,17 @@ void main() {
         _session(
           id: 1,
           startedAt: DateTime.utc(2026, 8, 1, 18),
-          logs: [_repLog(title: 'kang squat', reps: [12], weight: 40)],
+          logs: [
+            _repLog(title: 'kang squat', reps: [12], weight: 40)
+          ],
         ),
         _session(
           id: 2,
           startedAt: DateTime.utc(2026, 8, 1, 7),
           status: SessionStatus.inProgress,
-          logs: [_repLog(title: 'Kang Squat', reps: [8], weight: 35)],
+          logs: [
+            _repLog(title: 'Kang Squat', reps: [8], weight: 35)
+          ],
         ),
       ],
     );
@@ -237,7 +260,7 @@ WorkoutSession _session({
   SessionStatus status = SessionStatus.completed,
 }) {
   final session = WorkoutSession.create(
-    planId: 1,
+    planId: '1',
     planDayId: 'day-1',
     planTitleSnapshot: 'plan 1',
     dayTitleSnapshot: 'day 1',

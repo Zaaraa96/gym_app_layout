@@ -1,5 +1,6 @@
 import 'package:isar/isar.dart';
 
+import '../new_id.dart';
 import 'enums.dart';
 
 part 'workout_plan.g.dart';
@@ -7,7 +8,15 @@ part 'workout_plan.g.dart';
 /// Prescribed program. Edits here must not rewrite past [WorkoutSession]s.
 @collection
 class WorkoutPlan {
+  /// Local row key. Not the identity sent to a remote API.
   Id id = Isar.autoIncrement;
+
+  /// Stable identity for sync and for [WorkoutSession.planId].
+  @Index()
+  late String uuid;
+
+  /// True when a local write has not been acknowledged by sync.
+  bool dirty = true;
 
   late String title;
 
@@ -28,13 +37,16 @@ class WorkoutPlan {
   WorkoutPlan();
 
   WorkoutPlan.create({
+    String? uuid,
+    this.dirty = true,
     required this.title,
     required this.source,
     required this.createdAt,
     required this.updatedAt,
     List<PlanDay>? days,
     List<CommonSection>? commonSections,
-  })  : days = days ?? [],
+  })  : uuid = uuid ?? newUuid(),
+        days = days ?? [],
         commonSections = commonSections ?? [];
 }
 

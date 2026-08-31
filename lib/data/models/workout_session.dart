@@ -1,5 +1,6 @@
 import 'package:isar/isar.dart';
 
+import '../new_id.dart';
 import 'enums.dart';
 
 part 'workout_session.g.dart';
@@ -8,11 +9,16 @@ part 'workout_session.g.dart';
 /// do not rewrite history.
 @collection
 class WorkoutSession {
+  /// Local row key. Not the identity sent to a remote API.
   Id id = Isar.autoIncrement;
 
-  /// Plan may later be deleted; this snapshot still stands.
+  /// Stable identity for sync.
   @Index()
-  late int planId;
+  late String uuid;
+
+  /// [WorkoutPlan.uuid]. Plan may later be deleted; this snapshot still stands.
+  @Index()
+  late String planId;
 
   late String planDayId;
   late String planTitleSnapshot;
@@ -26,6 +32,12 @@ class WorkoutSession {
 
   DateTime? endedAt;
 
+  /// Used for last-write-wins sync.
+  late DateTime updatedAt;
+
+  /// True when a local write has not been acknowledged by sync.
+  bool dirty = true;
+
   @enumerated
   late SessionStatus status;
 
@@ -35,16 +47,21 @@ class WorkoutSession {
   WorkoutSession();
 
   WorkoutSession.create({
+    String? uuid,
+    this.dirty = true,
     required this.planId,
     required this.planDayId,
     required this.planTitleSnapshot,
     required this.dayTitleSnapshot,
     required this.startedAt,
     required this.status,
+    DateTime? updatedAt,
     this.endedAt,
     List<String>? includedCommonSectionIds,
     List<ExerciseLog>? exerciseLogs,
-  })  : includedCommonSectionIds = includedCommonSectionIds ?? [],
+  })  : uuid = uuid ?? newUuid(),
+        updatedAt = updatedAt ?? startedAt,
+        includedCommonSectionIds = includedCommonSectionIds ?? [],
         exerciseLogs = exerciseLogs ?? [];
 }
 

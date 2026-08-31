@@ -2,15 +2,17 @@ import 'dart:io';
 
 import 'package:flutter_test/flutter_test.dart';
 import 'package:get/get.dart';
+import 'package:gym_app/data/isar_plan_repository.dart';
 import 'package:gym_app/data/isar_service.dart';
+import 'package:gym_app/data/isar_session_repository.dart';
 import 'package:gym_app/data/models/models.dart';
 import 'package:gym_app/data/plan_repository.dart';
+import 'package:gym_app/data/session_lifecycle.dart';
 import 'package:gym_app/data/session_repository.dart';
 
 import '../helpers/isar_core.dart';
 
-/// Step 4: [SessionRepository] is the only writer for sessions, including
-/// month queries and the one in-progress lookup.
+/// [IsarSessionRepository] queries plus [SessionLifecycle] start/abandon rules.
 void main() {
   Directory? tempDir;
   var instanceSeq = 0;
@@ -34,16 +36,23 @@ void main() {
     }
   });
 
-  Future<({PlanRepository plans, SessionRepository sessions})> open() async {
+  Future<
+      ({
+        PlanRepository plans,
+        SessionRepository sessions,
+        SessionLifecycle lifecycle,
+      })> open() async {
     instanceSeq += 1;
     final service = await IsarService.init(
       directory: tempDir!.path,
       name: 'sessions$instanceSeq',
     );
     Get.put(service);
+    final sessions = IsarSessionRepository(service.isar);
     return (
-      plans: PlanRepository(service.isar),
-      sessions: SessionRepository(service.isar),
+      plans: IsarPlanRepository(service.isar),
+      sessions: sessions,
+      lifecycle: SessionLifecycle(sessions),
     );
   }
 
@@ -52,7 +61,7 @@ void main() {
     final plan = _plan();
     await db.plans.save(plan);
 
-    final session = await db.sessions.start(
+    final session = await db.lifecycle.start(
       plan: plan,
       planDayId: 'day-1',
       includedCommonSectionIds: const ['sec-abs'],
@@ -82,14 +91,15 @@ void main() {
 
     expect(await db.sessions.inProgress(), isNull);
 
-    final live = await db.sessions.start(
+    final live = await db.lifecycle.start(
       plan: plan,
       planDayId: 'day-1',
       startedAt: DateTime.utc(2026, 8, 15, 10),
     );
     expect((await db.sessions.inProgress())?.id, live.id);
 
-    await db.sessions.abandonInProgress(endedAt: DateTime.utc(2026, 8, 15, 11));
+    await db.lifecycle
+        .abandonInProgress(endedAt: DateTime.utc(2026, 8, 15, 11));
     expect(await db.sessions.inProgress(), isNull);
 
     final stored = await db.sessions.byId(live.id);
@@ -100,7 +110,8 @@ void main() {
     );
   });
 
-  test('forMonth keeps in-progress and completed, drops abandoned and other months',
+  test(
+      'forMonth keeps in-progress and completed, drops abandoned and other months',
       () async {
     final db = await open();
     final plan = _plan();
@@ -110,7 +121,7 @@ void main() {
       required DateTime startedAt,
       required SessionStatus status,
     }) async {
-      final session = await db.sessions.start(
+      final session = await db.lifecycle.start(
         plan: plan,
         planDayId: 'day-1',
         startedAt: startedAt,
@@ -123,10 +134,6 @@ void main() {
       return session;
     }
 
-    final inProgress = await add(
-      startedAt: DateTime.utc(2026, 8, 1, 8),
-      status: SessionStatus.inProgress,
-    );
     final completed = await add(
       startedAt: DateTime.utc(2026, 8, 20, 18),
       status: SessionStatus.completed,
@@ -143,6 +150,10 @@ void main() {
       startedAt: DateTime.utc(2026, 9, 1),
       status: SessionStatus.completed,
     );
+    final inProgress = await add(
+      startedAt: DateTime.utc(2026, 8, 1, 8),
+      status: SessionStatus.inProgress,
+    );
 
     final august = await db.sessions.forMonth(DateTime.utc(2026, 8));
     expect(august.map((s) => s.id), [inProgress.id, completed.id]);
@@ -153,7 +164,7 @@ void main() {
     final plan = _plan();
     await db.plans.save(plan);
 
-    final later = await db.sessions.start(
+    final later = await db.lifecycle.start(
       plan: plan,
       planDayId: 'day-1',
       startedAt: DateTime.utc(2026, 8, 15, 18),
@@ -162,7 +173,7 @@ void main() {
     later.endedAt = DateTime.utc(2026, 8, 15, 19);
     await db.sessions.save(later);
 
-    final earlier = await db.sessions.start(
+    final earlier = await db.lifecycle.start(
       plan: plan,
       planDayId: 'day-1',
       startedAt: DateTime.utc(2026, 8, 15, 7),
@@ -171,7 +182,7 @@ void main() {
     earlier.endedAt = DateTime.utc(2026, 8, 15, 8);
     await db.sessions.save(earlier);
 
-    await db.sessions.start(
+    await db.lifecycle.start(
       plan: plan,
       planDayId: 'day-1',
       startedAt: DateTime.utc(2026, 8, 16, 7),
@@ -186,7 +197,7 @@ void main() {
     final plan = _plan();
     await db.plans.save(plan);
 
-    final first = await db.sessions.start(
+    final first = await db.lifecycle.start(
       plan: plan,
       planDayId: 'day-1',
       startedAt: DateTime.utc(2026, 8, 10, 8),
@@ -195,7 +206,7 @@ void main() {
     first.endedAt = DateTime.utc(2026, 8, 10, 9);
     await db.sessions.save(first);
 
-    final second = await db.sessions.start(
+    final second = await db.lifecycle.start(
       plan: plan,
       planDayId: 'day-1',
       startedAt: DateTime.utc(2026, 8, 12, 8),
@@ -204,16 +215,28 @@ void main() {
     second.endedAt = DateTime.utc(2026, 8, 12, 9);
     await db.sessions.save(second);
 
-    await db.sessions.start(
+    await db.lifecycle.start(
       plan: plan,
       planDayId: 'day-1',
       startedAt: DateTime.utc(2026, 8, 13, 8),
     );
 
-    expect((await db.sessions.lastCompleted(planId: plan.id))?.id, second.id);
+    expect((await db.sessions.lastCompleted(planId: plan.uuid))?.id, second.id);
     expect(
-      (await db.sessions.completedNewestFirst(planId: plan.id)).map((s) => s.id),
+      (await db.sessions.completedNewestFirst(planId: plan.uuid))
+          .map((s) => s.id),
       [second.id, first.id],
+    );
+
+    await expectLater(
+      db.lifecycle.start(plan: plan, planDayId: 'day-1'),
+      throwsA(
+        isA<StateError>().having(
+          (e) => e.message,
+          'message',
+          contains('already in progress'),
+        ),
+      ),
     );
   });
 
@@ -223,7 +246,7 @@ void main() {
     await db.plans.save(plan);
 
     await expectLater(
-      db.sessions.start(plan: plan, planDayId: 'missing'),
+      db.lifecycle.start(plan: plan, planDayId: 'missing'),
       throwsA(
         isA<ArgumentError>().having(
           (e) => e.message,
@@ -240,7 +263,7 @@ void main() {
     final plan = _plan();
     await db.plans.save(plan);
 
-    final withoutCommons = await db.sessions.start(
+    final withoutCommons = await db.lifecycle.start(
       plan: plan,
       planDayId: 'day-1',
       startedAt: DateTime.utc(2026, 8, 15, 10),
@@ -254,7 +277,7 @@ void main() {
     withoutCommons.endedAt = DateTime.utc(2026, 8, 15, 11);
     await db.sessions.save(withoutCommons);
 
-    final withUnknown = await db.sessions.start(
+    final withUnknown = await db.lifecycle.start(
       plan: plan,
       planDayId: 'day-1',
       includedCommonSectionIds: const ['sec-abs', 'sec-missing'],
