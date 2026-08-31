@@ -305,6 +305,49 @@ void main() {
     await first;
     expect(remotePlans.fetchCount, 1);
   });
+
+  test('push keeps dirty rows when a remote write fails', () async {
+    final plans = _MemoryPlans();
+    final sessions = _MemorySessions();
+    final remoteSessions = _MemoryRemoteSessions();
+    final plan = _plan(
+      uuid: 'plan-1',
+      title: 'draft',
+      updatedAt: DateTime.utc(2026, 8, 20),
+      dirty: true,
+    )..id = 1;
+    plans.rows[1] = plan;
+    final session = _session(
+      uuid: 'sess-1',
+      planId: 'plan-1',
+      title: 'draft-session',
+      updatedAt: DateTime.utc(2026, 8, 20, 11),
+      dirty: true,
+    )..id = 3;
+    sessions.rows[3] = session;
+
+    await expectLater(
+      SyncService(
+        plans: plans,
+        sessions: sessions,
+        remotePlans: _FailingRemotePlans(),
+        remoteSessions: remoteSessions,
+      ).push(),
+      throwsA(
+        isA<StateError>().having(
+          (e) => e.message,
+          'message',
+          'remote write failed',
+        ),
+      ),
+    );
+
+    expect(plan.dirty, isTrue);
+    expect(session.dirty, isTrue);
+    expect((await plans.unsynced()).map((row) => row.id), [1]);
+    expect((await sessions.unsynced()).map((row) => row.id), [3]);
+    expect(remoteSessions.store, isEmpty);
+  });
 }
 
 WorkoutPlan _plan({
@@ -360,6 +403,16 @@ class _GateRemotePlans implements RemotePlanDataSource {
 
   @override
   Future<void> upsert(WorkoutPlan plan) async {}
+}
+
+class _FailingRemotePlans implements RemotePlanDataSource {
+  @override
+  Future<List<WorkoutPlan>> fetchAll() async => const [];
+
+  @override
+  Future<void> upsert(WorkoutPlan plan) async {
+    throw StateError('remote write failed');
+  }
 }
 
 class _MemoryRemotePlans implements RemotePlanDataSource {
