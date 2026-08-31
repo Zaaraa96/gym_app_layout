@@ -637,36 +637,6 @@ WorkoutPlan _durationPlan() {
   );
 }
 
-WorkoutPlan _durationPlan() {
-  final now = DateTime.utc(2026, 8, 28, 12);
-  return WorkoutPlan.create(
-    title: 'Holds',
-    source: PlanSource.created,
-    createdAt: now,
-    updatedAt: now,
-    days: [
-      PlanDay.create(
-        dayId: 'day-1',
-        title: 'Day 1 — Plank',
-        blocks: [
-          ExerciseBlock.create(
-            blockId: 'block-plank',
-            kind: BlockKind.single,
-            exercises: [
-              ExercisePrescription.create(
-                prescriptionId: 'p-plank',
-                title: 'plank',
-                prescribedSets: 1,
-                prescribedDurationSeconds: 30,
-              ),
-            ],
-          ),
-        ],
-      ),
-    ],
-  );
-}
-
 WorkoutPlan _simplePlan() {
   final now = DateTime.utc(2026, 8, 28, 12);
   return WorkoutPlan.create(
