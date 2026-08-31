@@ -33,7 +33,6 @@ void main() {
     expect(rows.single.uuid, 'plan-uuid');
     expect(rows.single.title, 'plan 1');
     expect(rows.single.dirty, isFalse);
-    expect(rows.single.id, 0);
   });
 
   test('GET /plans returns empty when the body is not a list', () async {

@@ -86,7 +86,7 @@ void main() {
 
   testWidgets('month Try again reloads after a failed forMonth()',
       (tester) async {
-    const clock = DateTime.utc(2026, 8, 15);
+    final clock = DateTime.utc(2026, 8, 15);
     final sessions = _MemorySessions(
       forMonthFails: 1,
       monthSessions: [_completedSession(startedAt: clock)],
@@ -94,7 +94,7 @@ void main() {
     Get.put<SessionRepository>(sessions);
 
     await tester.pumpWidget(
-      const GetMaterialApp(
+      GetMaterialApp(
         home: Scaffold(body: MonthTab(now: clock)),
       ),
     );

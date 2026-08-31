@@ -135,8 +135,6 @@ void main() {
       status: SessionStatus.inProgress,
       dirty: true,
     )..id = 9;
-    await sessions.putSynced(local);
-    local.dirty = true;
     sessions.rows[9] = local;
 
     remoteSessions.store['sess-1'] = WorkoutSession.create(
