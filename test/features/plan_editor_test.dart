@@ -484,6 +484,55 @@ void main() {
     );
   });
 
+  testWidgets('a common section can be deleted from the plan', (tester) async {
+    final plans = await bootstrap(tester);
+    final now = DateTime.utc(2026, 8, 24, 12);
+    await db(
+      tester,
+      () => plans.save(
+        WorkoutPlan.create(
+          title: 'Push week',
+          source: PlanSource.created,
+          createdAt: now,
+          updatedAt: now,
+          days: [
+            PlanDay.create(
+              dayId: 'day-1',
+              title: 'Day 1',
+              summary: 'chest',
+            ),
+          ],
+          commonSections: [
+            CommonSection.create(
+              sectionId: 'sec-abs',
+              title: 'abs',
+            ),
+          ],
+        ),
+      ),
+    );
+    await launch(tester, AppRoutes.home);
+
+    await tester.tap(find.text('Push week'));
+    await tester.pump();
+    await settle(tester);
+
+    expect(find.byKey(const Key('common-section-sec-abs')), findsOneWidget);
+
+    await tester.tap(find.byTooltip('Delete section'));
+    await tester.pump();
+    await tester.tap(find.widgetWithText(FilledButton, 'Delete'));
+    await tester.pump();
+    await settle(tester);
+
+    expect(find.byKey(const Key('common-section-sec-abs')), findsNothing);
+    expect(find.text('abs'), findsNothing);
+
+    final stored = await db(tester, plans.all);
+    expect(stored.single.commonSections, isEmpty);
+    expect(stored.single.days, hasLength(1));
+  });
+
   testWidgets('saving an exercise without a name stays in the dialog',
       (tester) async {
     final plans = await bootstrap(tester);

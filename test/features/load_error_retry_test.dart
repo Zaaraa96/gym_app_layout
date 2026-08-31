@@ -168,6 +168,24 @@ void main() {
     expect(find.text('Try again'), findsNothing);
   });
 
+  testWidgets('day editor shows gone when the section is missing',
+      (tester) async {
+    final plans = _FlakyPlans(plan: _plan())..remainingFailures = 0;
+    addTearDown(plans.dispose);
+    Get.put<PlanRepository>(plans);
+
+    await tester.pumpWidget(
+      const GetMaterialApp(
+        home: DayEditorPage(planId: 1, sectionId: 'missing-section'),
+      ),
+    );
+    await tester.pump();
+    await tester.pump();
+
+    expect(find.text('This section is no longer here.'), findsOneWidget);
+    expect(find.text('Try again'), findsNothing);
+  });
+
   testWidgets('day log retry reloads after a failed forCalendarDay',
       (tester) async {
     final sessions = _EmptySessions(daySessions: [_session()])
