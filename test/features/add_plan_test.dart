@@ -105,7 +105,7 @@ void main() {
     expect(Get.currentRoute, AppRoutes.newPlan);
   });
 
-  testWidgets('a whitespace-only title stays on the form', (tester) async {
+  testWidgets('whitespace-only title is treated as empty', (tester) async {
     await bootstrap(tester);
     await launch(tester, AppRoutes.newPlan);
 

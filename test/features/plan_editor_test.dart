@@ -208,6 +208,76 @@ void main() {
     expect(day.blocks.last.mediaUri, 'assets/image/exercises/plank.png');
   });
 
+  testWidgets('saving an exercise without a name stays on the dialog',
+      (tester) async {
+    final plans = await bootstrap(tester);
+    await db(tester, () => plans.save(samplePlan()));
+    await launch(tester, AppRoutes.home);
+
+    await tester.tap(find.text('Push week'));
+    await tester.pump();
+    await settle(tester);
+    await tester.tap(find.byKey(const Key('day-card-day-1')));
+    await tester.pump();
+    await settle(tester);
+    await tester.tap(find.text('Edit day'));
+    await tester.pump();
+    await settle(tester);
+
+    await tester.tap(find.text('Add exercise'));
+    await tester.pump();
+    await tester.tap(find.text('Save exercise'));
+    await tester.pump();
+
+    expect(find.text('Add an exercise name'), findsOneWidget);
+    expect(find.text('Save exercise'), findsOneWidget);
+    final stored = await db(tester, plans.all);
+    expect(stored.single.days.single.blocks, isEmpty);
+  });
+
+  testWidgets('an exercise can be deleted from the day editor', (tester) async {
+    final plans = await bootstrap(tester);
+    await db(tester, () => plans.save(samplePlan()));
+    await launch(tester, AppRoutes.home);
+
+    await tester.tap(find.text('Push week'));
+    await tester.pump();
+    await settle(tester);
+    await tester.tap(find.byKey(const Key('day-card-day-1')));
+    await tester.pump();
+    await settle(tester);
+    await tester.tap(find.text('Edit day'));
+    await tester.pump();
+    await settle(tester);
+
+    Finder dialogField() => find.descendant(
+          of: find.byType(AlertDialog),
+          matching: find.byType(TextFormField),
+        );
+
+    await tester.tap(find.text('Add exercise'));
+    await tester.pump();
+    await tester.enterText(dialogField().first, 'kang squat');
+    await tester.tap(find.text('Save exercise'));
+    await tester.pump();
+    await settle(tester);
+    expect(
+      find.descendant(
+        of: find.byType(DayEditorPage),
+        matching: find.text('3 × 12 kang squat'),
+      ),
+      findsOneWidget,
+    );
+
+    await tester.tap(find.byTooltip('Delete exercise'));
+    await tester.pump();
+    await settle(tester);
+
+    expect(find.text('3 × 12 kang squat'), findsNothing);
+    final stored = await db(tester, plans.all);
+    expect(stored.single.days.single.blocks, isEmpty);
+  });
+
   testWidgets('exercise dialog can pick a bundled preview asset', (tester) async {
     final plans = await bootstrap(tester);
     await db(tester, () => plans.save(samplePlan()));
@@ -483,6 +553,55 @@ void main() {
           .prescribedDurationSeconds,
       30,
     );
+  });
+
+  testWidgets('a common section can be deleted from the plan', (tester) async {
+    final plans = await bootstrap(tester);
+    final now = DateTime.utc(2026, 8, 24, 12);
+    await db(
+      tester,
+      () => plans.save(
+        WorkoutPlan.create(
+          title: 'Push week',
+          source: PlanSource.created,
+          createdAt: now,
+          updatedAt: now,
+          days: [
+            PlanDay.create(
+              dayId: 'day-1',
+              title: 'Day 1',
+              summary: 'chest',
+            ),
+          ],
+          commonSections: [
+            CommonSection.create(
+              sectionId: 'sec-abs',
+              title: 'abs',
+            ),
+          ],
+        ),
+      ),
+    );
+    await launch(tester, AppRoutes.home);
+
+    await tester.tap(find.text('Push week'));
+    await tester.pump();
+    await settle(tester);
+
+    expect(find.byKey(const Key('common-section-sec-abs')), findsOneWidget);
+
+    await tester.tap(find.byTooltip('Delete section'));
+    await tester.pump();
+    await tester.tap(find.widgetWithText(FilledButton, 'Delete'));
+    await tester.pump();
+    await settle(tester);
+
+    expect(find.byKey(const Key('common-section-sec-abs')), findsNothing);
+    expect(find.text('abs'), findsNothing);
+
+    final stored = await db(tester, plans.all);
+    expect(stored.single.commonSections, isEmpty);
+    expect(stored.single.days, hasLength(1));
   });
 
   testWidgets('saving an exercise without a name stays in the dialog',
