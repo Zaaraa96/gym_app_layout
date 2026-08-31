@@ -9,6 +9,7 @@ import 'package:gym_app/data/models/models.dart';
 import 'package:gym_app/data/plan_repository.dart';
 import 'package:gym_app/data/session_lifecycle.dart';
 import 'package:gym_app/data/session_repository.dart';
+import 'package:gym_app/features/plans/day_preview_page.dart';
 import 'package:gym_app/main.dart';
 
 import '../helpers/isar_core.dart';
@@ -571,6 +572,22 @@ void main() {
       findsOneWidget,
     );
     expect(find.text('Log set'), findsNothing);
+  });
+
+  testWidgets('a missing day says it is no longer here', (tester) async {
+    final plans = await bootstrap(tester);
+    final plan = samplePlan();
+    await db(tester, () => plans.save(plan));
+
+    await tester.pumpWidget(
+      GetMaterialApp(
+        home: DayPreviewPage(planId: plan.id, dayId: 'missing-day'),
+      ),
+    );
+    await settle(tester);
+
+    expect(find.text('This day is no longer here.'), findsOneWidget);
+    expect(find.text('Start workout'), findsNothing);
   });
 }
 
