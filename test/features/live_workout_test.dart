@@ -280,7 +280,7 @@ void main() {
     await db(tester, () => repos.plans.save(plan));
     final session = await db(
       tester,
-      () => repos.sessions.start(
+      () => SessionLifecycle(repos.sessions).start(
         plan: plan,
         planDayId: 'day-1',
         startedAt: DateTime.utc(2026, 8, 28, 12),
