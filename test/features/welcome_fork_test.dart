@@ -103,6 +103,28 @@ void main() {
     expect(find.text('Beginner 2-day'), findsOneWidget);
   });
 
+  testWidgets('using a beginner plan writes it and opens home', (tester) async {
+    final plans = await bootstrap(tester);
+    await launch(tester, AppRoutes.welcome);
+
+    await tester.tap(find.text('Start with a beginner plan'));
+    await tester.pump();
+    await settle(tester);
+
+    await tester.tap(find.byKey(const Key('use-starter-beginner-full-body')));
+    await tester.pump();
+    await settle(tester);
+
+    expect(Get.currentRoute, AppRoutes.home);
+    expect(find.text('Beginner full body'), findsOneWidget);
+    expect(find.byKey(const Key('today-card')), findsOneWidget);
+    expect(find.text('Today: Day 1 — Squat and push'), findsOneWidget);
+    expect(await db(tester, plans.count), 1);
+    final stored = await db(tester, plans.all);
+    expect(stored.single.source, PlanSource.imported);
+    expect(stored.single.days, hasLength(3));
+  });
+
   testWidgets('a stored plan sends the app to the plans home', (tester) async {
     final plans = await bootstrap(tester);
     await db(tester, () => plans.save(_plan('plan 1', dayCount: 3)));

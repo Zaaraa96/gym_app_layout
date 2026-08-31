@@ -450,6 +450,111 @@ void main() {
     expect(find.text('How hard was that? 1 easy · 5 hard'), findsOneWidget);
   });
 
+  testWidgets(
+      'finishing today’s workout offers the next day from the home card',
+      (tester) async {
+    final repos = await bootstrap(tester);
+    await db(tester, () => repos.plans.save(_twoDayPlan()));
+
+    await launch(tester, AppRoutes.home);
+    expect(find.text("Start today's workout"), findsOneWidget);
+    expect(find.text('Today: Day 1 — Squat'), findsOneWidget);
+
+    await tester.tap(find.text("Start today's workout"));
+    await tester.pump();
+    await settle(tester);
+    await settle(tester);
+
+    final end = find.byKey(const Key('end-workout'));
+    await tester.ensureVisible(end);
+    await tester.tap(end);
+    await tester.pump();
+    await settle(tester);
+    final finish = find.byKey(const Key('finish-workout'));
+    await tester.ensureVisible(finish);
+    await tester.tap(finish);
+    await tester.pump();
+    await settle(tester);
+
+    expect(find.text('Workout complete'), findsOneWidget);
+    await tester.tap(find.text('Done'));
+    await tester.pump();
+    await settle(tester);
+
+    expect(find.byKey(const Key('continue-banner')), findsNothing);
+    expect(find.byKey(const Key('today-card')), findsOneWidget);
+    expect(find.text('Next up: Day 2 — Push'), findsOneWidget);
+    expect(find.text('Start next day'), findsOneWidget);
+    expect(find.text("Start today's workout"), findsNothing);
+    expect(await db(tester, () => repos.sessions.inProgress()), isNull);
+  });
+
+  testWidgets('an empty reps field uses the prescription and stores typed weight',
+      (tester) async {
+    final repos = await bootstrap(tester);
+    final plan = _simplePlan();
+    await db(tester, () => repos.plans.save(plan));
+    final session = await db(
+      tester,
+      () => SessionLifecycle(repos.sessions).start(
+        plan: plan,
+        planDayId: 'day-1',
+        startedAt: DateTime.utc(2026, 8, 28, 12),
+      ),
+    );
+
+    await tester.pumpWidget(
+      GetMaterialApp(
+        home: LiveWorkoutPage(sessionId: session.id),
+      ),
+    );
+    await settle(tester);
+
+    await tester.enterText(find.byKey(const Key('weight-field')), '40.5');
+    await tester.enterText(find.byKey(const Key('reps-field')), '');
+    await tester.tap(find.text('Log set'));
+    await tester.pump();
+    await settle(tester);
+
+    final stored = await db(tester, () => repos.sessions.byId(session.id));
+    expect(stored!.status, SessionStatus.inProgress);
+    expect(stored.exerciseLogs.single.sets, hasLength(1));
+    expect(stored.exerciseLogs.single.sets.single.reps, 10);
+    expect(stored.exerciseLogs.single.sets.single.weightKg, 40.5);
+    expect(find.text('Bodyweight squat  ·  set 2 of 2'), findsOneWidget);
+  });
+
+  testWidgets('zero reps are rejected before a set is written', (tester) async {
+    final repos = await bootstrap(tester);
+    final plan = _simplePlan();
+    await db(tester, () => repos.plans.save(plan));
+    final session = await db(
+      tester,
+      () => SessionLifecycle(repos.sessions).start(
+        plan: plan,
+        planDayId: 'day-1',
+        startedAt: DateTime.utc(2026, 8, 28, 12),
+      ),
+    );
+
+    await tester.pumpWidget(
+      GetMaterialApp(
+        home: LiveWorkoutPage(sessionId: session.id),
+      ),
+    );
+    await settle(tester);
+
+    await tester.enterText(find.byKey(const Key('reps-field')), '0');
+    await tester.tap(find.text('Log set'));
+    await tester.pump();
+    await settle(tester);
+
+    expect(find.text('Reps are required.'), findsOneWidget);
+    final stored = await db(tester, () => repos.sessions.byId(session.id));
+    expect(stored!.exerciseLogs.single.sets, isEmpty);
+    expect(stored.status, SessionStatus.inProgress);
+  });
+
   testWidgets('a non-numeric weight is rejected before a set is written',
       (tester) async {
     final repos = await bootstrap(tester);
@@ -484,6 +589,40 @@ void main() {
     expect(stored!.exerciseLogs.single.sets, isEmpty);
     expect(stored.status, SessionStatus.inProgress);
   });
+}
+
+WorkoutPlan _twoDayPlan() {
+  final now = DateTime.utc(2026, 8, 28, 12);
+  ExerciseBlock single(String id, String title) => ExerciseBlock.create(
+        blockId: 'block-$id',
+        kind: BlockKind.single,
+        exercises: [
+          ExercisePrescription.create(
+            prescriptionId: 'p-$id',
+            title: title,
+            prescribedSets: 2,
+            prescribedReps: 10,
+          ),
+        ],
+      );
+  return WorkoutPlan.create(
+    title: 'A/B',
+    source: PlanSource.created,
+    createdAt: now,
+    updatedAt: now,
+    days: [
+      PlanDay.create(
+        dayId: 'day-1',
+        title: 'Day 1 — Squat',
+        blocks: [single('squat', 'Bodyweight squat')],
+      ),
+      PlanDay.create(
+        dayId: 'day-2',
+        title: 'Day 2 — Push',
+        blocks: [single('push', 'push up')],
+      ),
+    ],
+  );
 }
 
 WorkoutPlan _durationPlan() {
