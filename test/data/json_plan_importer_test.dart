@@ -698,6 +698,37 @@ void main() {
     );
   });
 
+  test('an empty exercises list is a rest day, and a string exercise is rejected',
+      () {
+    final rest = importer.import('''
+{
+  "name": "deload",
+  "basic-plan": [{ "name": "rest", "exercises": [] }]
+}
+''');
+    expect(rest.days.single.title, 'rest');
+    expect(rest.days.single.blocks, isEmpty);
+
+    expect(
+      () => importer.import('''
+{
+  "name": "plan",
+  "basic-plan": [{
+    "name": "day 1",
+    "exercises": ["squat"]
+  }]
+}
+'''),
+      throwsA(
+        isA<PlanImportException>().having(
+          (e) => e.message,
+          'message',
+          contains('not a JSON object'),
+        ),
+      ),
+    );
+  });
+
   test('rejects a blank name and a non-array common-plan', () {
     expect(
       () => importer.import('{"name":"   ","basic-plan":[]}'),
