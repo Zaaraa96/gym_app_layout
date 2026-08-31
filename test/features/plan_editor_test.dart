@@ -760,6 +760,93 @@ void main() {
     expect(stored.single.days.single.summary, 'upper body');
   });
 
+  testWidgets('zero or blank sets, reps, and seconds fall back to 3 × 12 or 30s',
+      (tester) async {
+    final plans = await bootstrap(tester);
+    await db(tester, () => plans.save(samplePlan()));
+    await launch(tester, AppRoutes.home);
+
+    await tester.tap(find.text('Push week'));
+    await tester.pump();
+    await settle(tester);
+    await tester.tap(find.byKey(const Key('day-card-day-1')));
+    await tester.pump();
+    await settle(tester);
+    await tester.tap(find.text('Edit day'));
+    await tester.pump();
+    await settle(tester);
+
+    await tester.tap(find.text('Add exercise'));
+    await tester.pump();
+    await tester.enterText(
+      find.widgetWithText(TextFormField, 'exercise name'),
+      'mystery move',
+    );
+    await tester.enterText(find.widgetWithText(TextFormField, 'sets'), '0');
+    await tester.enterText(find.widgetWithText(TextFormField, 'reps'), '');
+    await tester.tap(find.text('Save exercise'));
+    await tester.pump();
+    await settle(tester);
+
+    expect(
+      find.descendant(
+        of: find.byType(DayEditorPage),
+        matching: find.text('3 × 12 mystery move'),
+      ),
+      findsOneWidget,
+    );
+
+    await tester.tap(find.byKey(const Key('add-exercise')));
+    await tester.pump();
+    await tester.enterText(
+      find.widgetWithText(TextFormField, 'exercise name'),
+      'hold-ish',
+    );
+    await tester.ensureVisible(find.widgetWithText(ChoiceChip, 'Duration').first);
+    await tester.tap(find.widgetWithText(ChoiceChip, 'Duration').first);
+    await tester.pump();
+    await tester.enterText(find.widgetWithText(TextFormField, 'seconds'), '0');
+    await tester.tap(find.text('Save exercise'));
+    await tester.pump();
+    await settle(tester);
+
+    expect(find.text('3 × 30s hold-ish'), findsWidgets);
+
+    final stored = await db(tester, plans.all);
+    final blocks = stored.single.days.single.blocks;
+    expect(blocks, hasLength(2));
+    expect(blocks.first.exercises.single.prescribedSets, 3);
+    expect(blocks.first.exercises.single.prescribedReps, 12);
+    expect(blocks.last.exercises.single.prescribedSets, 3);
+    expect(blocks.last.exercises.single.prescribedDurationSeconds, 30);
+    expect(blocks.last.exercises.single.prescribedReps, isNull);
+  });
+
+  testWidgets('saving a blank day title keeps the previous name', (tester) async {
+    final plans = await bootstrap(tester);
+    await db(tester, () => plans.save(samplePlan()));
+    await launch(tester, AppRoutes.home);
+
+    await tester.tap(find.text('Push week'));
+    await tester.pump();
+    await settle(tester);
+    await tester.tap(find.byKey(const Key('day-card-day-1')));
+    await tester.pump();
+    await settle(tester);
+    await tester.tap(find.text('Edit day'));
+    await tester.pump();
+    await settle(tester);
+
+    await tester.enterText(find.widgetWithText(TextFormField, 'day title'), '   ');
+    await tester.tap(find.text('Save'));
+    await tester.pump();
+    await settle(tester);
+
+    final stored = await db(tester, plans.all);
+    expect(stored.single.days.single.title, 'Day 1');
+    expect(stored.single.days.single.summary, 'chest');
+  });
+
   testWidgets('a missing plan says it is no longer here', (tester) async {
     await bootstrap(tester);
 
