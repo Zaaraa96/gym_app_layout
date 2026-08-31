@@ -69,6 +69,9 @@ void main() {
     );
 
     expect(session.status, SessionStatus.inProgress);
+    expect(session.planId, plan.uuid);
+    expect(session.uuid, isNotEmpty);
+    expect(session.dirty, isTrue);
     expect(session.planTitleSnapshot, 'plan 1');
     expect(session.dayTitleSnapshot, 'day 1- 4sar');
     expect(session.includedCommonSectionIds, ['sec-abs']);
@@ -97,6 +100,7 @@ void main() {
       startedAt: DateTime.utc(2026, 8, 15, 10),
     );
     expect((await db.sessions.inProgress())?.id, live.id);
+    expect((await db.lifecycle.resume())?.id, live.id);
 
     await db.lifecycle
         .abandonInProgress(endedAt: DateTime.utc(2026, 8, 15, 11));
@@ -307,7 +311,7 @@ void main() {
       required WorkoutPlan onPlan,
       required DateTime at,
     }) async {
-      final session = await db.sessions.start(
+      final session = await db.lifecycle.start(
         plan: onPlan,
         planDayId: 'day-1',
         startedAt: at,
@@ -326,7 +330,7 @@ void main() {
       onPlan: other,
       at: DateTime.utc(2026, 8, 12, 8),
     );
-    await db.sessions.start(
+    await db.lifecycle.start(
       plan: plan,
       planDayId: 'day-1',
       startedAt: DateTime.utc(2026, 8, 13, 8),
@@ -341,7 +345,7 @@ void main() {
 
   test('abandonInProgress is a no-op when nothing is live', () async {
     final db = await open();
-    await db.sessions.abandonInProgress(
+    await db.lifecycle.abandonInProgress(
       endedAt: DateTime.utc(2026, 8, 15, 11),
     );
     expect(await db.sessions.inProgress(), isNull);
@@ -369,6 +373,36 @@ void main() {
     expect(withAbs.last.fromCommonSection, isTrue);
     expect(withAbs.last.prescribedDurationSeconds, 30);
     expect(withAbs.last.exerciseTitleKey, 'shoot out');
+  });
+
+  test('save marks dirty and bumps updatedAt; putSynced clears dirty', () async {
+    final db = await open();
+    final session = WorkoutSession.create(
+      uuid: '',
+      planId: 'plan-uuid',
+      planDayId: 'day-1',
+      planTitleSnapshot: 'plan 1',
+      dayTitleSnapshot: 'day 1',
+      startedAt: DateTime.utc(2026, 8, 15, 10),
+      updatedAt: DateTime.utc(2020, 1, 1),
+      status: SessionStatus.completed,
+      dirty: false,
+    );
+
+    await db.sessions.save(session);
+    expect(session.uuid, isNotEmpty);
+    expect(session.dirty, isTrue);
+    expect(session.updatedAt.isAfter(DateTime.utc(2020, 1, 1)), isTrue);
+    expect((await db.sessions.byUuid(session.uuid))?.id, session.id);
+    expect((await db.sessions.unsynced()).map((row) => row.id), [session.id]);
+
+    final frozen = DateTime.utc(2026, 8, 20, 12);
+    session.updatedAt = frozen;
+    await db.sessions.putSynced(session);
+    expect(session.dirty, isFalse);
+    expect(session.updatedAt.isAtSameMomentAs(frozen), isTrue);
+    expect(await db.sessions.unsynced(), isEmpty);
+    expect((await db.sessions.byId(session.id))!.dirty, isFalse);
   });
 }
 
