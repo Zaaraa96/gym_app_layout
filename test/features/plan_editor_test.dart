@@ -483,4 +483,108 @@ void main() {
       30,
     );
   });
+
+  testWidgets('saving an exercise without a name stays in the dialog',
+      (tester) async {
+    final plans = await bootstrap(tester);
+    await db(tester, () => plans.save(samplePlan()));
+    await launch(tester, AppRoutes.home);
+
+    await tester.tap(find.text('Push week'));
+    await tester.pump();
+    await settle(tester);
+    await tester.tap(find.byKey(const Key('day-card-day-1')));
+    await tester.pump();
+    await settle(tester);
+    await tester.tap(find.text('Edit day'));
+    await tester.pump();
+    await settle(tester);
+
+    await tester.tap(find.text('Add exercise'));
+    await tester.pump();
+    await tester.tap(find.text('Save exercise'));
+    await tester.pump();
+
+    expect(find.text('Add an exercise name'), findsOneWidget);
+    expect(find.text('Save exercise'), findsOneWidget);
+    final stored = await db(tester, plans.all);
+    expect(stored.single.days.single.blocks, isEmpty);
+  });
+
+  testWidgets('deleting an exercise removes it from the stored day',
+      (tester) async {
+    final plans = await bootstrap(tester);
+    final now = DateTime.utc(2026, 8, 24, 12);
+    await db(
+      tester,
+      () => plans.save(
+        WorkoutPlan.create(
+          title: 'Push week',
+          source: PlanSource.created,
+          createdAt: now,
+          updatedAt: now,
+          days: [
+            PlanDay.create(
+              dayId: 'day-1',
+              title: 'Day 1',
+              blocks: [
+                ExerciseBlock.create(
+                  blockId: 'block-keep',
+                  kind: BlockKind.single,
+                  exercises: [
+                    ExercisePrescription.create(
+                      prescriptionId: 'p-keep',
+                      title: 'bench press',
+                      prescribedSets: 3,
+                      prescribedReps: 8,
+                    ),
+                  ],
+                ),
+                ExerciseBlock.create(
+                  blockId: 'block-drop',
+                  kind: BlockKind.single,
+                  exercises: [
+                    ExercisePrescription.create(
+                      prescriptionId: 'p-drop',
+                      title: 'skull crusher',
+                      prescribedSets: 3,
+                      prescribedReps: 10,
+                    ),
+                  ],
+                ),
+              ],
+            ),
+          ],
+        ),
+      ),
+    );
+
+    await launch(tester, AppRoutes.home);
+    await tester.tap(find.text('Push week'));
+    await tester.pump();
+    await settle(tester);
+    await tester.tap(find.byKey(const Key('day-card-day-1')));
+    await tester.pump();
+    await settle(tester);
+    await tester.tap(find.text('Edit day'));
+    await tester.pump();
+    await settle(tester);
+
+    expect(find.text('3 × 8 bench press'), findsOneWidget);
+    expect(find.text('3 × 10 skull crusher'), findsOneWidget);
+
+    await tester.tap(find.byTooltip('Delete exercise').last);
+    await tester.pump();
+    await settle(tester);
+
+    expect(find.text('3 × 10 skull crusher'), findsNothing);
+    expect(find.text('3 × 8 bench press'), findsOneWidget);
+
+    final stored = await db(tester, plans.all);
+    expect(stored.single.days.single.blocks, hasLength(1));
+    expect(
+      stored.single.days.single.blocks.single.exercises.single.title,
+      'bench press',
+    );
+  });
 }
