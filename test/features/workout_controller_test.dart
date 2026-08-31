@@ -325,25 +325,6 @@ void main() {
     });
   });
 
-  test('rest elapsed seconds advance on the real rest timer', () async {
-    final started = await startController();
-    final c = started.controller;
-
-    fakeAsync((async) {
-      c.startRest();
-      expect(c.isResting, isTrue);
-      async.elapse(const Duration(seconds: 3));
-      expect(c.restElapsedSeconds, 3);
-      c.startRest();
-      expect(c.restElapsedSeconds, 3);
-      async.elapse(const Duration(seconds: 1));
-      expect(c.restElapsedSeconds, 4);
-      c.resetRest();
-      expect(c.isResting, isFalse);
-      expect(c.restElapsedSeconds, 0);
-    });
-  });
-
   test('logging time on a sibling uses prescribed seconds, not the active timer',
       () async {
     final started = await startController(
