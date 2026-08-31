@@ -107,6 +107,10 @@ void main() {
     expect(c.canLogSet(c.session!.exerciseLogs[0]), isFalse);
     expect(c.activeLog?.exerciseTitle, 'leg extension');
     expect(c.canRate(c.session!.exerciseLogs[1]), isTrue);
+
+    await c.logSet(reps: 4, log: c.session!.exerciseLogs[1]);
+    expect(c.session!.exerciseLogs[1].sets, hasLength(4));
+    expect(c.canRate(c.session!.exerciseLogs[1]), isTrue);
   });
 
   test('a single stays active through extras until it is rated', () async {

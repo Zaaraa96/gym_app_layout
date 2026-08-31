@@ -222,7 +222,58 @@ void main() {
     final day = await db.sessions.forCalendarDay(DateTime.utc(2026, 8, 15));
     expect(day.map((s) => s.id), [kept.id]);
     expect(day.every((s) => s.status != SessionStatus.abandoned), isTrue);
-    expect((await db.sessions.byId(discarded.id))!.status, SessionStatus.abandoned);
+    expect(
+      (await db.sessions.byId(discarded.id))!.status,
+      SessionStatus.abandoned,
+    );
+  });
+
+  test('forCalendarDay keeps live sessions, drops abandoned, and stops at midnight',
+      () async {
+    final db = await open();
+    final plan = _plan();
+    await db.plans.save(plan);
+
+    final late = await db.lifecycle.start(
+      plan: plan,
+      planDayId: 'day-1',
+      startedAt: DateTime.utc(2026, 8, 15, 23, 59),
+    );
+    late.status = SessionStatus.completed;
+    late.endedAt = DateTime.utc(2026, 8, 16);
+    await db.sessions.save(late);
+
+    final nextDay = await db.lifecycle.start(
+      plan: plan,
+      planDayId: 'day-1',
+      startedAt: DateTime.utc(2026, 8, 16),
+    );
+    nextDay.status = SessionStatus.completed;
+    nextDay.endedAt = DateTime.utc(2026, 8, 16, 1);
+    await db.sessions.save(nextDay);
+
+    final abandoned = await db.lifecycle.start(
+      plan: plan,
+      planDayId: 'day-1',
+      startedAt: DateTime.utc(2026, 8, 15, 9),
+    );
+    abandoned.status = SessionStatus.abandoned;
+    abandoned.endedAt = DateTime.utc(2026, 8, 15, 10);
+    await db.sessions.save(abandoned);
+
+    final live = await db.lifecycle.start(
+      plan: plan,
+      planDayId: 'day-1',
+      startedAt: DateTime.utc(2026, 8, 15, 6),
+    );
+
+    final day = await db.sessions.forCalendarDay(DateTime.utc(2026, 8, 15));
+    expect(day.map((s) => s.id), [live.id, late.id]);
+    expect(
+      (await db.sessions.forCalendarDay(DateTime.utc(2026, 8, 16)))
+          .map((s) => s.id),
+      [nextDay.id],
+    );
   });
 
   test('lastCompleted is the newest completed session for that plan', () async {

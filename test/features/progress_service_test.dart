@@ -251,6 +251,59 @@ void main() {
     );
     expect(oneSession.exercises.single.feltEasier, isFalse);
   });
+
+  test('first-seen exercise order, last title, and empty duration sets stay null',
+      () {
+    final progress = service.fold(
+      month: DateTime.utc(2026, 8),
+      sessions: [
+        _session(
+          id: 1,
+          startedAt: DateTime.utc(2026, 8, 5),
+          logs: [
+            _repLog(title: 'Push Up', reps: [10]),
+            _durationLog(seconds: const [], prescribed: 30),
+          ],
+        ),
+        _session(
+          id: 2,
+          startedAt: DateTime.utc(2026, 8, 12),
+          logs: [
+            ExerciseLog.create(
+              prescriptionId: 'p-shoot',
+              blockId: 'block-abs',
+              blockKind: BlockKind.single,
+              fromCommonSection: true,
+              exerciseTitle: 'Shoot Out',
+              exerciseTitleKey: 'shoot out',
+              prescribedSets: 1,
+              prescribedDurationSeconds: 30,
+              sets: [
+                SetLog.create(
+                  setIndex: 1,
+                  completedAt: DateTime.utc(2026, 8, 12),
+                  durationSeconds: 40,
+                ),
+              ],
+            ),
+            _repLog(title: 'push up', reps: [12]),
+          ],
+        ),
+      ],
+    );
+
+    expect(
+      progress.exercises.map((row) => row.titleKey),
+      ['push up', 'shoot out'],
+    );
+    expect(progress.exercises.first.title, 'push up');
+    expect(progress.exercises.last.title, 'Shoot Out');
+    expect(progress.exercises.last.metric, ProgressMetricKind.duration);
+    expect(progress.exercises.last.firstValue, 40);
+    expect(progress.exercises.last.lastValue, 40);
+    expect(progress.exercises.last.sessions.first.primaryValue, isNull);
+    expect(progress.exercises.last.sessions.first.completedSets, 0);
+  });
 }
 
 WorkoutSession _session({
