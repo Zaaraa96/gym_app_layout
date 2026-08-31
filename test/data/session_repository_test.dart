@@ -196,6 +196,38 @@ void main() {
     expect(day.map((s) => s.id), [earlier.id, later.id]);
   });
 
+  test('forCalendarDay drops abandoned sessions on that day', () async {
+    final db = await open();
+    final plan = _plan();
+    await db.plans.save(plan);
+
+    final discarded = await db.lifecycle.start(
+      plan: plan,
+      planDayId: 'day-1',
+      startedAt: DateTime.utc(2026, 8, 15, 9),
+    );
+    await db.lifecycle.abandonInProgress(
+      endedAt: DateTime.utc(2026, 8, 15, 9, 30),
+    );
+
+    final kept = await db.lifecycle.start(
+      plan: plan,
+      planDayId: 'day-1',
+      startedAt: DateTime.utc(2026, 8, 15, 10),
+    );
+    kept.status = SessionStatus.completed;
+    kept.endedAt = DateTime.utc(2026, 8, 15, 11);
+    await db.sessions.save(kept);
+
+    final day = await db.sessions.forCalendarDay(DateTime.utc(2026, 8, 15));
+    expect(day.map((s) => s.id), [kept.id]);
+    expect(day.every((s) => s.status != SessionStatus.abandoned), isTrue);
+    expect(
+      (await db.sessions.byId(discarded.id))!.status,
+      SessionStatus.abandoned,
+    );
+  });
+
   test('forCalendarDay keeps live sessions, drops abandoned, and stops at midnight',
       () async {
     final db = await open();

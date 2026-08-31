@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'dart:convert';
 
 import 'package:flutter_test/flutter_test.dart';
@@ -155,5 +156,61 @@ void main() {
         ),
       ),
     );
+  });
+
+  test('GET does not treat invalid JSON or timeouts as an empty catalog',
+      () async {
+    final invalid = HttpRemotePlanDataSource(
+      baseUrl: 'https://api.example',
+      client: MockClient((_) async => http.Response('not-json', 200)),
+    );
+    await expectLater(invalid.fetchAll(), throwsFormatException);
+
+    final timedOut = HttpRemotePlanDataSource(
+      baseUrl: 'https://api.example',
+      client: MockClient(
+        (_) async => throw TimeoutException('GET /plans timed out'),
+      ),
+    );
+    await expectLater(timedOut.fetchAll(), throwsA(isA<TimeoutException>()));
+
+    final disconnected = HttpRemoteSessionDataSource(
+      baseUrl: 'https://api.example',
+      client: MockClient(
+        (_) async => throw http.ClientException('connection failed'),
+      ),
+    );
+    await expectLater(
+      disconnected.fetchAll(),
+      throwsA(isA<http.ClientException>()),
+    );
+    await expectLater(
+      disconnected.upsert(session),
+      throwsA(isA<http.ClientException>()),
+    );
+  });
+
+  test('GET /sessions skips non-maps and treats a non-list as empty', () async {
+    final source = HttpRemoteSessionDataSource(
+      baseUrl: 'https://api.example',
+      client: MockClient((request) async {
+        expect(request.method, 'GET');
+        return http.Response(
+          jsonEncode([SessionDto.fromEntity(session).toJson(), 'skip-me']),
+          200,
+          headers: {'content-type': 'application/json'},
+        );
+      }),
+    );
+    final fetched = await source.fetchAll();
+    expect(fetched, hasLength(1));
+    expect(fetched.single.uuid, 'sess-uuid');
+    expect(fetched.single.id, isNot(7));
+
+    final emptySource = HttpRemoteSessionDataSource(
+      baseUrl: 'https://api.example',
+      client: MockClient((_) async => http.Response('true', 200)),
+    );
+    expect(await emptySource.fetchAll(), isEmpty);
   });
 }
