@@ -484,6 +484,127 @@ void main() {
     expect(stored!.exerciseLogs.single.sets, isEmpty);
     expect(stored.status, SessionStatus.inProgress);
   });
+
+  testWidgets('Keep going leaves the live session open', (tester) async {
+    final repos = await bootstrap(tester);
+    final plan = _simplePlan();
+    await db(tester, () => repos.plans.save(plan));
+    final session = await db(
+      tester,
+      () => SessionLifecycle(repos.sessions).start(
+        plan: plan,
+        planDayId: 'day-1',
+        startedAt: DateTime.utc(2026, 8, 28, 12),
+      ),
+    );
+
+    await tester.pumpWidget(
+      GetMaterialApp(
+        home: LiveWorkoutPage(sessionId: session.id),
+      ),
+    );
+    await settle(tester);
+
+    await tester.tap(find.byKey(const Key('end-workout')));
+    await tester.pump();
+    await settle(tester);
+    await tester.tap(find.text('Keep going'));
+    await tester.pump();
+    await settle(tester);
+
+    expect(find.text('Log set'), findsOneWidget);
+    final stillLive = await db(tester, () => repos.sessions.byId(session.id));
+    expect(stillLive!.status, SessionStatus.inProgress);
+  });
+
+  testWidgets('a missing session shows a load error that retry keeps showing',
+      (tester) async {
+    await bootstrap(tester);
+
+    await tester.pumpWidget(
+      const GetMaterialApp(
+        home: LiveWorkoutPage(sessionId: 999999),
+      ),
+    );
+    await settle(tester);
+
+    expect(find.text('Could not open this workout.'), findsOneWidget);
+    await tester.tap(find.text('Try again'));
+    await tester.pump();
+    await settle(tester);
+    expect(find.text('Could not open this workout.'), findsOneWidget);
+  });
+
+  testWidgets('Log time stores the prescribed hold when the timer never ran',
+      (tester) async {
+    final repos = await bootstrap(tester);
+    final plan = _durationPlan();
+    await db(tester, () => repos.plans.save(plan));
+    final session = await db(
+      tester,
+      () => SessionLifecycle(repos.sessions).start(
+        plan: plan,
+        planDayId: 'day-1',
+        startedAt: DateTime.utc(2026, 8, 28, 12),
+      ),
+    );
+
+    await tester.pumpWidget(
+      GetMaterialApp(
+        home: LiveWorkoutPage(sessionId: session.id),
+      ),
+    );
+    await settle(tester);
+
+    expect(
+      find.text('Start the hold, then log the time you actually did.'),
+      findsOneWidget,
+    );
+    await tester.tap(find.text('Log time'));
+    await tester.pump();
+    await settle(tester);
+
+    expect(find.text('How hard was that? 1 easy · 5 hard'), findsOneWidget);
+    final held = await db(tester, () => repos.sessions.byId(session.id));
+    expect(held!.exerciseLogs.single.sets.single.durationSeconds, 30);
+  });
+
+  testWidgets('an empty session asks to end instead of showing a logger',
+      (tester) async {
+    final repos = await bootstrap(tester);
+    final now = DateTime.utc(2026, 8, 28, 12);
+    final plan = WorkoutPlan.create(
+      title: 'Empty',
+      source: PlanSource.created,
+      createdAt: now,
+      updatedAt: now,
+      days: [
+        PlanDay.create(dayId: 'day-1', title: 'Empty day'),
+      ],
+    );
+    await db(tester, () => repos.plans.save(plan));
+    final session = await db(
+      tester,
+      () => SessionLifecycle(repos.sessions).start(
+        plan: plan,
+        planDayId: 'day-1',
+        startedAt: now,
+      ),
+    );
+
+    await tester.pumpWidget(
+      GetMaterialApp(
+        home: LiveWorkoutPage(sessionId: session.id),
+      ),
+    );
+    await settle(tester);
+
+    expect(
+      find.text('Nothing to log. End this workout or go back.'),
+      findsOneWidget,
+    );
+    expect(find.text('Log set'), findsNothing);
+  });
 }
 
 WorkoutPlan _durationPlan() {
@@ -504,7 +625,7 @@ WorkoutPlan _durationPlan() {
             exercises: [
               ExercisePrescription.create(
                 prescriptionId: 'p-plank',
-                title: 'plank',
+                title: 'Plank',
                 prescribedSets: 1,
                 prescribedDurationSeconds: 30,
               ),
