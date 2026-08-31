@@ -378,4 +378,53 @@ void main() {
     expect(plan.commonSections.single.title, 'abs');
     expect(plan.commonSections.single.blocks, isEmpty);
   });
+
+  test('missing nested fields use defaults instead of dropping the row', () {
+    final session = SessionDto.fromJson({
+      'id': 'sess-uuid',
+      'planId': 'plan-uuid',
+      'planDayId': 'day-1',
+      'planTitleSnapshot': 'plan 1',
+      'dayTitleSnapshot': 'day 1',
+      'startedAt': '2026-08-15T10:00:00.000Z',
+      'endedAt': '',
+      'status': 'completed',
+      'exerciseLogs': [
+        {
+          'prescriptionId': 'p-1',
+          'blockId': 'block-1',
+          'blockKind': 'single',
+          'exerciseTitle': 'plank',
+          'exerciseTitleKey': 'plank',
+          'prescribedSets': 1,
+          'prescribedDurationSeconds': 30,
+          'sets': const [],
+        },
+      ],
+    }).toEntity();
+    expect(session.endedAt, isNull);
+    expect(session.updatedAt.isAtSameMomentAs(DateTime.utc(2026, 8, 15, 10)),
+        isTrue);
+    expect(session.exerciseLogs.single.fromCommonSection, isFalse);
+    expect(session.exerciseLogs.single.difficulty, isNull);
+    expect(session.exerciseLogs.single.sets, isEmpty);
+
+    final plan = PlanDto.fromJson({
+      'id': 'plan-uuid',
+      'title': 'plan 1',
+      'source': 'created',
+      'createdAt': '2026-08-01T00:00:00.000Z',
+      'updatedAt': '2026-08-02T00:00:00.000Z',
+      'days': [
+        {
+          'dayId': 'day-1',
+          'title': 'day 1',
+          'blocks': const [],
+        },
+      ],
+      'commonSections': const [],
+    }).toEntity();
+    expect(plan.days.single.summary, '');
+    expect(plan.days.single.blocks, isEmpty);
+  });
 }

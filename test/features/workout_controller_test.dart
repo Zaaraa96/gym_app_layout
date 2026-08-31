@@ -38,7 +38,7 @@ void main() {
   });
 
   Future<({SessionRepository sessions, WorkoutController controller})>
-      startController({
+  startController({
     WorkoutPlan? plan,
     List<String> commons = const ['sec-abs'],
   }) async {
@@ -69,50 +69,51 @@ void main() {
   }
 
   test(
-      'a superset alternates prescribed sets and forbids rating until both are done',
-      () async {
-    final started = await startController();
-    final c = started.controller;
+    'a superset alternates prescribed sets and forbids rating until both are done',
+    () async {
+      final started = await startController();
+      final c = started.controller;
 
-    expect(c.activeLog?.exerciseTitle, 'kang squat');
-    expect(c.isPrescribedPhase, isTrue);
-    expect(c.canRate(c.session!.exerciseLogs[0]), isFalse);
+      expect(c.activeLog?.exerciseTitle, 'kang squat');
+      expect(c.isPrescribedPhase, isTrue);
+      expect(c.canRate(c.session!.exerciseLogs[0]), isFalse);
 
-    await c.logSet(reps: 12, weightKg: 40);
-    expect(c.activeLog?.exerciseTitle, 'leg extension');
-    await expectLater(
-      c.logSet(reps: 10, log: c.session!.exerciseLogs[0]),
-      throwsA(isA<WorkoutActionException>()),
-    );
+      await c.logSet(reps: 12, weightKg: 40);
+      expect(c.activeLog?.exerciseTitle, 'leg extension');
+      await expectLater(
+        c.logSet(reps: 10, log: c.session!.exerciseLogs[0]),
+        throwsA(isA<WorkoutActionException>()),
+      );
 
-    await c.logSet(reps: 12);
-    expect(c.activeLog?.exerciseTitle, 'kang squat');
-    await c.logSet(reps: 10);
-    await c.logSet(reps: 10);
-    await c.logSet(reps: 8);
-    await c.logSet(reps: 8);
+      await c.logSet(reps: 12);
+      expect(c.activeLog?.exerciseTitle, 'kang squat');
+      await c.logSet(reps: 10);
+      await c.logSet(reps: 10);
+      await c.logSet(reps: 8);
+      await c.logSet(reps: 8);
 
-    expect(c.isPrescribedPhase, isFalse);
-    expect(c.inExtrasPhase, isTrue);
-    expect(c.session!.exerciseLogs[0].sets, hasLength(3));
-    expect(c.session!.exerciseLogs[1].sets, hasLength(3));
-    expect(c.canRate(c.session!.exerciseLogs[0]), isTrue);
-    expect(c.canRate(c.session!.exerciseLogs[1]), isTrue);
+      expect(c.isPrescribedPhase, isFalse);
+      expect(c.inExtrasPhase, isTrue);
+      expect(c.session!.exerciseLogs[0].sets, hasLength(3));
+      expect(c.session!.exerciseLogs[1].sets, hasLength(3));
+      expect(c.canRate(c.session!.exerciseLogs[0]), isTrue);
+      expect(c.canRate(c.session!.exerciseLogs[1]), isTrue);
 
-    await c.logSet(reps: 6, log: c.session!.exerciseLogs[0]);
-    expect(c.session!.exerciseLogs[0].sets, hasLength(4));
-    expect(c.session!.exerciseLogs[0].sets.last.setIndex, 4);
+      await c.logSet(reps: 6, log: c.session!.exerciseLogs[0]);
+      expect(c.session!.exerciseLogs[0].sets, hasLength(4));
+      expect(c.session!.exerciseLogs[0].sets.last.setIndex, 4);
 
-    await c.rate(3, log: c.session!.exerciseLogs[0]);
-    expect(c.session!.exerciseLogs[0].isComplete, isTrue);
-    expect(c.canLogSet(c.session!.exerciseLogs[0]), isFalse);
-    expect(c.activeLog?.exerciseTitle, 'leg extension');
-    expect(c.canRate(c.session!.exerciseLogs[1]), isTrue);
+      await c.rate(3, log: c.session!.exerciseLogs[0]);
+      expect(c.session!.exerciseLogs[0].isComplete, isTrue);
+      expect(c.canLogSet(c.session!.exerciseLogs[0]), isFalse);
+      expect(c.activeLog?.exerciseTitle, 'leg extension');
+      expect(c.canRate(c.session!.exerciseLogs[1]), isTrue);
 
-    await c.logSet(reps: 4, log: c.session!.exerciseLogs[1]);
-    expect(c.session!.exerciseLogs[1].sets, hasLength(4));
-    expect(c.canRate(c.session!.exerciseLogs[1]), isTrue);
-  });
+      await c.logSet(reps: 4, log: c.session!.exerciseLogs[1]);
+      expect(c.session!.exerciseLogs[1].sets, hasLength(4));
+      expect(c.canRate(c.session!.exerciseLogs[1]), isTrue);
+    },
+  );
 
   test('a single stays active through extras until it is rated', () async {
     final started = await startController(
@@ -155,21 +156,23 @@ void main() {
     expect(c.activeLog?.sets.single.durationSeconds, 30);
   });
 
-  test('duration log stores elapsed including overtime after the timer runs',
-      () async {
-    final started = await startController();
-    final c = started.controller;
-    for (var i = 0; i < 6; i++) {
-      await c.logSet(reps: 12);
-    }
-    await c.rate(3, log: c.session!.exerciseLogs[0]);
-    await c.rate(3, log: c.session!.exerciseLogs[1]);
+  test(
+    'duration log stores elapsed including overtime after the timer runs',
+    () async {
+      final started = await startController();
+      final c = started.controller;
+      for (var i = 0; i < 6; i++) {
+        await c.logSet(reps: 12);
+      }
+      await c.rate(3, log: c.session!.exerciseLogs[0]);
+      await c.rate(3, log: c.session!.exerciseLogs[1]);
 
-    c.startDurationCountdown();
-    c.debugAdvanceDuration(35);
-    await c.logTime();
-    expect(c.session!.exerciseLogs.last.sets.single.durationSeconds, 35);
-  });
+      c.startDurationCountdown();
+      c.debugAdvanceDuration(35);
+      await c.logTime();
+      expect(c.session!.exerciseLogs.last.sets.single.durationSeconds, 35);
+    },
+  );
 
   test('each logged set is written so a new controller can resume', () async {
     final started = await startController();
@@ -229,33 +232,35 @@ void main() {
     expect(c.session!.exerciseLogs.first.sets.single.reps, 12);
   });
 
-  test('rating must be 1 to 5 and is blocked until prescribed sets are done',
-      () async {
-    final started = await startController();
-    final c = started.controller;
-    await expectLater(
-      c.rate(0),
-      throwsA(
-        isA<WorkoutActionException>().having(
-          (e) => e.message,
-          'message',
-          contains('from 1 to 5'),
+  test(
+    'rating must be 1 to 5 and is blocked until prescribed sets are done',
+    () async {
+      final started = await startController();
+      final c = started.controller;
+      await expectLater(
+        c.rate(0),
+        throwsA(
+          isA<WorkoutActionException>().having(
+            (e) => e.message,
+            'message',
+            contains('from 1 to 5'),
+          ),
         ),
-      ),
-    );
-    await expectLater(c.rate(6), throwsA(isA<WorkoutActionException>()));
-    await expectLater(
-      c.rate(3),
-      throwsA(
-        isA<WorkoutActionException>().having(
-          (e) => e.message,
-          'message',
-          contains('prescribed sets'),
+      );
+      await expectLater(c.rate(6), throwsA(isA<WorkoutActionException>()));
+      await expectLater(
+        c.rate(3),
+        throwsA(
+          isA<WorkoutActionException>().having(
+            (e) => e.message,
+            'message',
+            contains('prescribed sets'),
+          ),
         ),
-      ),
-    );
-    await expectLater(c.logTime(), throwsA(isA<WorkoutActionException>()));
-  });
+      );
+      await expectLater(c.logTime(), throwsA(isA<WorkoutActionException>()));
+    },
+  );
 
   test('extras may be logged on a sibling in the same block', () async {
     final started = await startController();
@@ -277,77 +282,83 @@ void main() {
     );
   });
 
-  test('load fails when the session is gone, and ended sessions reject logs',
-      () async {
-    final started = await startController();
-    await started.controller.finish();
-    await expectLater(
-      started.controller.logSet(reps: 10),
-      throwsA(
-        isA<WorkoutActionException>().having(
-          (e) => e.message,
-          'message',
-          contains('already ended'),
+  test(
+    'load fails when the session is gone, and ended sessions reject logs',
+    () async {
+      final started = await startController();
+      await started.controller.finish();
+      await expectLater(
+        started.controller.logSet(reps: 10),
+        throwsA(
+          isA<WorkoutActionException>().having(
+            (e) => e.message,
+            'message',
+            contains('already ended'),
+          ),
         ),
-      ),
-    );
+      );
 
-    final missing = WorkoutController(
-      sessionId: 999999,
-      sessions: started.sessions,
-    );
-    addTearDown(missing.onClose);
-    await expectLater(
-      missing.load(),
-      throwsA(
-        isA<WorkoutActionException>().having(
-          (e) => e.message,
-          'message',
-          contains('no longer here'),
+      final missing = WorkoutController(
+        sessionId: 999999,
+        sessions: started.sessions,
+      );
+      addTearDown(missing.onClose);
+      await expectLater(
+        missing.load(),
+        throwsA(
+          isA<WorkoutActionException>().having(
+            (e) => e.message,
+            'message',
+            contains('no longer here'),
+          ),
         ),
-      ),
-    );
-  });
+      );
+    },
+  );
 
-  test('the duration timer ticks remaining seconds without debugAdvance',
-      () async {
-    final started = await startController();
-    final c = started.controller;
-    await _reachDurationHold(c);
+  test(
+    'the duration timer ticks remaining seconds without debugAdvance',
+    () async {
+      final started = await startController();
+      final c = started.controller;
+      await _reachDurationHold(c);
 
-    fakeAsync((async) {
+      fakeAsync((async) {
+        c.startDurationCountdown();
+        expect(c.isDurationRunning, isTrue);
+        expect(c.durationRemainingSeconds, 30);
+        async.elapse(const Duration(seconds: 2));
+        expect(c.durationRemainingSeconds, 28);
+        async.elapse(const Duration(seconds: 30));
+        expect(c.durationRemainingSeconds, -2);
+        c.startDurationCountdown();
+        expect(c.durationRemainingSeconds, -2);
+        c.onClose();
+      });
+    },
+  );
+
+  test(
+    'logging time on a sibling uses prescribed seconds, not the active timer',
+    () async {
+      final started = await startController(
+        plan: _twoHoldsPlan(),
+        commons: const [],
+      );
+      final c = started.controller;
+      await c.logTime();
+      await c.logTime();
+      expect(c.inExtrasPhase, isTrue);
+      expect(c.activeLog?.exerciseTitle, 'hollow hold');
+
       c.startDurationCountdown();
-      expect(c.isDurationRunning, isTrue);
-      expect(c.durationRemainingSeconds, 30);
-      async.elapse(const Duration(seconds: 2));
-      expect(c.durationRemainingSeconds, 28);
-      async.elapse(const Duration(seconds: 30));
-      expect(c.durationRemainingSeconds, -2);
-      c.startDurationCountdown();
-      expect(c.durationRemainingSeconds, -2);
-      c.onClose();
-    });
-  });
-
-  test('logging time on a sibling uses prescribed seconds, not the active timer',
-      () async {
-    final started = await startController(
-      plan: _twoHoldsPlan(),
-      commons: const [],
-    );
-    final c = started.controller;
-    await c.logTime();
-    await c.logTime();
-    expect(c.inExtrasPhase, isTrue);
-    expect(c.activeLog?.exerciseTitle, 'hollow hold');
-
-    c.startDurationCountdown();
-    c.debugAdvanceDuration(8);
-    await c.logTime(log: c.session!.exerciseLogs[0]);
-    expect(c.session!.exerciseLogs[0].sets, hasLength(2));
-    expect(c.session!.exerciseLogs[0].sets.last.durationSeconds, 30);
-    expect(c.session!.exerciseLogs[1].sets, hasLength(1));
-  });
+      c.debugAdvanceDuration(8);
+      await c.logTime(log: c.session!.exerciseLogs[0]);
+      expect(c.session!.exerciseLogs[0].sets, hasLength(2));
+      expect(c.session!.exerciseLogs[0].sets.last.durationSeconds, 30);
+      expect(c.session!.exerciseLogs[1].sets, hasLength(1));
+    },
+  );
 
   test('startDurationCountdown is a no-op on a reps exercise', () async {
     final started = await startController();
@@ -359,33 +370,81 @@ void main() {
     expect(c.durationRemainingSeconds, isNull);
   });
 
-  test('discarded sessions reject logs and a second startRest is a no-op',
-      () async {
+  test(
+    'discarded sessions reject logs and a second startRest is a no-op',
+    () async {
+      final started = await startController();
+      final c = started.controller;
+      c.startRest();
+      expect(c.isResting, isTrue);
+      c.startRest();
+      expect(c.isResting, isTrue);
+      expect(c.restElapsedSeconds, 0);
+
+      await c.discard();
+      await expectLater(
+        c.logSet(reps: 10),
+        throwsA(
+          isA<WorkoutActionException>().having(
+            (e) => e.message,
+            'message',
+            contains('already ended'),
+          ),
+        ),
+      );
+      await expectLater(c.finish(), throwsA(isA<WorkoutActionException>()));
+      expect(c.session!.status, SessionStatus.abandoned);
+      expect(await started.sessions.inProgress(), isNull);
+    },
+  );
+
+  test('zero reps are rejected and duration logs cannot take a set', () async {
     final started = await startController();
     final c = started.controller;
-    c.startRest();
-    expect(c.isResting, isTrue);
-    c.startRest();
-    expect(c.isResting, isTrue);
-    expect(c.restElapsedSeconds, 0);
-
-    await c.discard();
+    expect(c.canLogSet(c.activeLog!), isTrue);
+    expect(c.canLogTime(c.activeLog!), isFalse);
     await expectLater(
-      c.logSet(reps: 10),
+      c.logSet(reps: 0),
       throwsA(
         isA<WorkoutActionException>().having(
           (e) => e.message,
           'message',
-          contains('already ended'),
+          contains('Reps are required'),
         ),
       ),
     );
+
+    await _reachDurationHold(c);
+    expect(c.canLogSet(c.activeLog!), isFalse);
+    expect(c.canLogTime(c.activeLog!), isTrue);
     await expectLater(
-      c.finish(),
-      throwsA(isA<WorkoutActionException>()),
+      c.logSet(reps: 8),
+      throwsA(
+        isA<WorkoutActionException>().having(
+          (e) => e.message,
+          'message',
+          contains('cannot take a set'),
+        ),
+      ),
     );
-    expect(c.session!.status, SessionStatus.abandoned);
-    expect(await started.sessions.inProgress(), isNull);
+  });
+
+  test('extras bump the header set index after prescribed work', () async {
+    final started = await startController(
+      plan: _singlePlan(),
+      commons: const [],
+    );
+    final c = started.controller;
+    expect(c.headerSetIndex, 1);
+    expect(c.headerPrescribedSets, 2);
+    expect(c.inExtrasPhase, isFalse);
+
+    await c.logSet(reps: 10);
+    expect(c.headerSetIndex, 2);
+    await c.logSet(reps: 10);
+    expect(c.inExtrasPhase, isTrue);
+    expect(c.headerSetIndex, 3);
+    expect(c.headerPrescribedSets, 2);
   });
 }
 

@@ -213,6 +213,89 @@ void main() {
     expect(plan.days.single.blocks.single.exercises.single.title, 'squat');
   });
 
+  test('empty common-plan is valid and common-section errors are UI-safe', () {
+    final emptyCommons = importer.import('''
+{
+  "name": "solo",
+  "basic-plan": [{
+    "name": "day 1",
+    "exercises": [{
+      "type": "single",
+      "exercise": { "title": "squat", "sets": 3, "times": 8, "duration": null }
+    }]
+  }],
+  "common-plan": []
+}
+''');
+    expect(emptyCommons.commonSections, isEmpty);
+
+    expect(
+      () => importer.import('''
+{
+  "name": "plan",
+  "basic-plan": [{
+    "name": "day 1",
+    "exercises": [{
+      "type": "single",
+      "exercise": { "title": "squat", "sets": 3, "times": 8, "duration": null }
+    }]
+  }],
+  "common-plan": [{ "exercises": [] }]
+}
+'''),
+      throwsA(
+        isA<PlanImportException>().having(
+          (e) => e.message,
+          'message',
+          contains('Common section 1 needs a name'),
+        ),
+      ),
+    );
+    expect(
+      () => importer.import('''
+{
+  "name": "plan",
+  "basic-plan": [{
+    "name": "day 1",
+    "exercises": [{
+      "type": "single",
+      "exercise": { "title": "squat", "sets": 3, "times": 8, "duration": null }
+    }]
+  }],
+  "common-plan": [{ "name": "abs" }]
+}
+'''),
+      throwsA(
+        isA<PlanImportException>().having(
+          (e) => e.message,
+          'message',
+          contains('needs an exercises list'),
+        ),
+      ),
+    );
+    expect(
+      () => importer.import('''
+{
+  "name": "plan",
+  "basic-plan": [{
+    "name": "day 1",
+    "exercises": [{
+      "type": "super-set",
+      "exercise": { "title": "squat", "sets": 3, "times": 8, "duration": null }
+    }]
+  }]
+}
+'''),
+      throwsA(
+        isA<PlanImportException>().having(
+          (e) => e.message,
+          'message',
+          contains('needs a list of exercises'),
+        ),
+      ),
+    );
+  });
+
   test('accepts whole-number doubles for sets and times', () {
     final plan = importer.import('''
 {

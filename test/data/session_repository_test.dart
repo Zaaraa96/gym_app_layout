@@ -425,6 +425,13 @@ void main() {
       [newer.id, older.id],
     );
     expect((await db.sessions.lastCompleted())?.id, newer.id);
+    expect((await db.sessions.lastCompleted(planId: plan.uuid))?.id, older.id);
+    expect((await db.sessions.lastCompleted(planId: other.uuid))?.id, newer.id);
+    expect(
+      (await db.sessions.completedNewestFirst(planId: plan.uuid))
+          .map((s) => s.id),
+      [older.id],
+    );
   });
 
   test('a local startedAt is stored in UTC so the calendar day still matches',
