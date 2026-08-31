@@ -9,6 +9,7 @@ import 'package:gym_app/data/models/models.dart';
 import 'package:gym_app/data/plan_repository.dart';
 import 'package:gym_app/features/plans/day_editor_page.dart';
 import 'package:gym_app/features/plans/exercise_media_picker.dart';
+import 'package:gym_app/features/plans/plan_page.dart';
 import 'package:gym_app/main.dart';
 
 import '../helpers/fake_exercise_gallery_picker.dart';
@@ -554,6 +555,55 @@ void main() {
     );
   });
 
+  testWidgets('a common section can be deleted from the plan', (tester) async {
+    final plans = await bootstrap(tester);
+    final now = DateTime.utc(2026, 8, 24, 12);
+    await db(
+      tester,
+      () => plans.save(
+        WorkoutPlan.create(
+          title: 'Push week',
+          source: PlanSource.created,
+          createdAt: now,
+          updatedAt: now,
+          days: [
+            PlanDay.create(
+              dayId: 'day-1',
+              title: 'Day 1',
+              summary: 'chest',
+            ),
+          ],
+          commonSections: [
+            CommonSection.create(
+              sectionId: 'sec-abs',
+              title: 'abs',
+            ),
+          ],
+        ),
+      ),
+    );
+    await launch(tester, AppRoutes.home);
+
+    await tester.tap(find.text('Push week'));
+    await tester.pump();
+    await settle(tester);
+
+    expect(find.byKey(const Key('common-section-sec-abs')), findsOneWidget);
+
+    await tester.tap(find.byTooltip('Delete section'));
+    await tester.pump();
+    await tester.tap(find.widgetWithText(FilledButton, 'Delete'));
+    await tester.pump();
+    await settle(tester);
+
+    expect(find.byKey(const Key('common-section-sec-abs')), findsNothing);
+    expect(find.text('abs'), findsNothing);
+
+    final stored = await db(tester, plans.all);
+    expect(stored.single.commonSections, isEmpty);
+    expect(stored.single.days, hasLength(1));
+  });
+
   testWidgets('saving an exercise without a name stays in the dialog',
       (tester) async {
     final plans = await bootstrap(tester);
@@ -656,6 +706,161 @@ void main() {
       stored.single.days.single.blocks.single.exercises.single.title,
       'bench press',
     );
+  });
+
+  testWidgets('zero or blank sets, reps, and seconds fall back to 3 × 12 or 30s',
+      (tester) async {
+    final plans = await bootstrap(tester);
+    await db(tester, () => plans.save(samplePlan()));
+    await launch(tester, AppRoutes.home);
+
+    await tester.tap(find.text('Push week'));
+    await tester.pump();
+    await settle(tester);
+    await tester.tap(find.byKey(const Key('day-card-day-1')));
+    await tester.pump();
+    await settle(tester);
+    await tester.tap(find.text('Edit day'));
+    await tester.pump();
+    await settle(tester);
+
+    await tester.tap(find.text('Add exercise'));
+    await tester.pump();
+    await tester.enterText(
+      find.widgetWithText(TextFormField, 'exercise name'),
+      'mystery move',
+    );
+    await tester.enterText(find.widgetWithText(TextFormField, 'sets'), '0');
+    await tester.enterText(find.widgetWithText(TextFormField, 'reps'), '');
+    await tester.tap(find.text('Save exercise'));
+    await tester.pump();
+    await settle(tester);
+
+    expect(
+      find.descendant(
+        of: find.byType(DayEditorPage),
+        matching: find.text('3 × 12 mystery move'),
+      ),
+      findsOneWidget,
+    );
+
+    await tester.tap(find.byKey(const Key('add-exercise')));
+    await tester.pump();
+    await tester.enterText(
+      find.widgetWithText(TextFormField, 'exercise name'),
+      'hold-ish',
+    );
+    await tester.ensureVisible(find.widgetWithText(ChoiceChip, 'Duration').first);
+    await tester.tap(find.widgetWithText(ChoiceChip, 'Duration').first);
+    await tester.pump();
+    await tester.enterText(find.widgetWithText(TextFormField, 'seconds'), '0');
+    await tester.tap(find.text('Save exercise'));
+    await tester.pump();
+    await settle(tester);
+
+    expect(find.text('3 × 30s hold-ish'), findsWidgets);
+
+    final stored = await db(tester, plans.all);
+    final blocks = stored.single.days.single.blocks;
+    expect(blocks, hasLength(2));
+    expect(blocks.first.exercises.single.prescribedSets, 3);
+    expect(blocks.first.exercises.single.prescribedReps, 12);
+    expect(blocks.last.exercises.single.prescribedSets, 3);
+    expect(blocks.last.exercises.single.prescribedDurationSeconds, 30);
+    expect(blocks.last.exercises.single.prescribedReps, isNull);
+  });
+
+  testWidgets('saving a blank day title keeps the previous name', (tester) async {
+    final plans = await bootstrap(tester);
+    await db(tester, () => plans.save(samplePlan()));
+    await launch(tester, AppRoutes.home);
+
+    await tester.tap(find.text('Push week'));
+    await tester.pump();
+    await settle(tester);
+    await tester.tap(find.byKey(const Key('day-card-day-1')));
+    await tester.pump();
+    await settle(tester);
+    await tester.tap(find.text('Edit day'));
+    await tester.pump();
+    await settle(tester);
+
+    await tester.enterText(find.widgetWithText(TextFormField, 'day title'), '   ');
+    await tester.tap(find.text('Save'));
+    await tester.pump();
+    await settle(tester);
+
+    final stored = await db(tester, plans.all);
+    expect(stored.single.days.single.title, 'Day 1');
+    expect(stored.single.days.single.summary, 'chest');
+  });
+
+  testWidgets('a missing plan says it is no longer here', (tester) async {
+    await bootstrap(tester);
+
+    await tester.pumpWidget(
+      const GetMaterialApp(
+        home: PlanPage(planId: 999999),
+      ),
+    );
+    await settle(tester);
+
+    expect(find.text('This plan is no longer here.'), findsOneWidget);
+  });
+
+  testWidgets('deleting a common section removes it from the stored plan',
+      (tester) async {
+    final plans = await bootstrap(tester);
+    final now = DateTime.utc(2026, 8, 24, 12);
+    await db(
+      tester,
+      () => plans.save(
+        WorkoutPlan.create(
+          title: 'Push week',
+          source: PlanSource.created,
+          createdAt: now,
+          updatedAt: now,
+          days: [
+            PlanDay.create(dayId: 'day-1', title: 'Day 1'),
+          ],
+          commonSections: [
+            CommonSection.create(
+              sectionId: 'sec-abs',
+              title: 'abs',
+              blocks: [
+                ExerciseBlock.create(
+                  blockId: 'block-abs',
+                  kind: BlockKind.single,
+                  exercises: [
+                    ExercisePrescription.create(
+                      prescriptionId: 'p-plank',
+                      title: 'plank',
+                      prescribedSets: 1,
+                      prescribedDurationSeconds: 30,
+                    ),
+                  ],
+                ),
+              ],
+            ),
+          ],
+        ),
+      ),
+    );
+    await launch(tester, AppRoutes.home);
+    await tester.tap(find.text('Push week'));
+    await tester.pump();
+    await settle(tester);
+
+    expect(find.byKey(const Key('common-section-sec-abs')), findsOneWidget);
+    await tester.tap(find.byTooltip('Delete section'));
+    await tester.pump();
+    await tester.tap(find.widgetWithText(FilledButton, 'Delete'));
+    await tester.pump();
+    await settle(tester);
+
+    expect(find.byKey(const Key('common-section-sec-abs')), findsNothing);
+    final stored = await db(tester, plans.all);
+    expect(stored.single.commonSections, isEmpty);
   });
 
   testWidgets('editing an exercise keeps its prescription id and updates the title',

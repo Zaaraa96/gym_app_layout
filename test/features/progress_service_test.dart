@@ -203,6 +203,48 @@ void main() {
     expect(progress.exercises.single.lastValue, 40);
   });
 
+  test('same title in one session rolls up, and weight beats duration', () {
+    final progress = service.fold(
+      month: DateTime.utc(2026, 8),
+      sessions: [
+        _session(
+          id: 1,
+          startedAt: DateTime.utc(2026, 8, 10),
+          logs: [
+            _repLog(
+              title: 'plank',
+              reps: [1],
+              weight: 10,
+              prescribedSets: 1,
+            ),
+            ExerciseLog.create(
+              prescriptionId: 'p-plank-hold',
+              blockId: 'block-hold',
+              blockKind: BlockKind.single,
+              fromCommonSection: true,
+              exerciseTitle: 'Plank',
+              exerciseTitleKey: 'plank',
+              prescribedSets: 1,
+              prescribedDurationSeconds: 30,
+              sets: [
+                SetLog.create(
+                  setIndex: 1,
+                  completedAt: DateTime.utc(2026, 8, 10),
+                  durationSeconds: 45,
+                ),
+              ],
+            ),
+          ],
+        ),
+      ],
+    );
+    final row = progress.exercises.single;
+    expect(row.metric, ProgressMetricKind.weight);
+    expect(row.lastValue, 10);
+    expect(row.sessions.single.completedSets, 2);
+    expect(row.sessions.single.prescribedSets, 2);
+  });
+
   test('weight beats duration and the heaviest set wins, not the last', () {
     final progress = service.fold(
       month: DateTime.utc(2026, 8),

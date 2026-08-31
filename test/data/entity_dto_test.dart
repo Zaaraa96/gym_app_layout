@@ -166,6 +166,105 @@ void main() {
     expect(fallback.includedCommonSectionIds, isEmpty);
   });
 
+  test('plan DTO keeps duration prescriptions through a round-trip', () {
+    final plan = WorkoutPlan.create(
+      uuid: 'plan-uuid',
+      title: 'holds',
+      source: PlanSource.created,
+      createdAt: DateTime.utc(2026, 8, 1),
+      updatedAt: DateTime.utc(2026, 8, 2),
+      days: [
+        PlanDay.create(
+          dayId: 'day-1',
+          title: 'day 1',
+          blocks: [
+            ExerciseBlock.create(
+              blockId: 'block-1',
+              kind: BlockKind.single,
+              exercises: [
+                ExercisePrescription.create(
+                  prescriptionId: 'p-plank',
+                  title: 'plank',
+                  prescribedSets: 1,
+                  prescribedDurationSeconds: 45,
+                ),
+              ],
+            ),
+          ],
+        ),
+      ],
+    );
+
+    final restored = PlanDto.fromJson(PlanDto.fromEntity(plan).toJson()).toEntity();
+    final exercise = restored.days.single.blocks.single.exercises.single;
+    expect(exercise.prescribedDurationSeconds, 45);
+    expect(exercise.prescribedReps, isNull);
+    expect(exercise.prescribedSets, 1);
+  });
+
+  test('session DTO round-trips duration set logs and Map-typed nested sets',
+      () {
+    final session = WorkoutSession.create(
+      uuid: 'sess-uuid',
+      planId: 'plan-uuid',
+      planDayId: 'day-1',
+      planTitleSnapshot: 'plan 1',
+      dayTitleSnapshot: 'day 1',
+      startedAt: DateTime.utc(2026, 8, 15, 10),
+      updatedAt: DateTime.utc(2026, 8, 15, 11),
+      endedAt: DateTime.utc(2026, 8, 15, 12),
+      status: SessionStatus.completed,
+      exerciseLogs: [
+        ExerciseLog.create(
+          prescriptionId: 'p-plank',
+          blockId: 'block-abs',
+          blockKind: BlockKind.single,
+          fromCommonSection: true,
+          exerciseTitle: 'plank',
+          exerciseTitleKey: 'plank',
+          prescribedSets: 1,
+          prescribedDurationSeconds: 30,
+          difficulty: 3,
+          completedAt: DateTime.utc(2026, 8, 15, 11, 30),
+          sets: [
+            SetLog.create(
+              setIndex: 1,
+              completedAt: DateTime.utc(2026, 8, 15, 11, 5),
+              durationSeconds: 35,
+            ),
+          ],
+        ),
+      ],
+    );
+
+    final json = SessionDto.fromEntity(session).toJson();
+    final logJson = (json['exerciseLogs'] as List).single as Map;
+    expect(logJson['prescribedDurationSeconds'], 30);
+    expect(logJson['fromCommonSection'], isTrue);
+    expect(logJson['sets'].single['durationSeconds'], 35);
+    expect(logJson['sets'].single['reps'], isNull);
+
+    final restored = SessionDto.fromJson(json).toEntity();
+    expect(restored.exerciseLogs.single.prescribedDurationSeconds, 30);
+    expect(restored.exerciseLogs.single.fromCommonSection, isTrue);
+    expect(restored.exerciseLogs.single.sets.single.durationSeconds, 35);
+    expect(restored.exerciseLogs.single.sets.single.reps, isNull);
+    expect(restored.exerciseLogs.single.sets.single.weightKg, isNull);
+
+    final setJson = Map<String, dynamic>.from(logJson['sets'].single as Map);
+    final fromMaps = SessionDto.fromJson({
+      ...json,
+      'exerciseLogs': [
+        Map<dynamic, dynamic>.from({
+          ...Map<String, dynamic>.from(logJson),
+          'sets': [Map<dynamic, dynamic>.from(setJson)],
+        }),
+      ],
+    }).toEntity();
+    expect(fromMaps.exerciseLogs.single.sets.single.durationSeconds, 35);
+    expect(fromMaps.exerciseLogs.single.fromCommonSection, isTrue);
+  });
+
   test('session DTO points planId at the plan uuid', () {
     final session = WorkoutSession.create(
       uuid: 'sess-uuid',

@@ -316,6 +316,124 @@ void main() {
         ),
       ),
     );
+    expect(
+      () => importer.import('''
+{
+  "name": "plan",
+  "basic-plan": [{
+    "name": "day 1",
+    "exercises": [{
+      "type": "single",
+      "exercise": { "title": "plank", "sets": 1, "times": null, "duration": 30.5 }
+    }]
+  }]
+}
+'''),
+      throwsA(
+        isA<PlanImportException>().having(
+          (e) => e.message,
+          'message',
+          contains('must be a whole number'),
+        ),
+      ),
+    );
+  });
+
+  test('accepts a duration whole-number double and a three-move super-set', () {
+    final plan = importer.import('''
+{
+  "name": "holds",
+  "basic-plan": [{
+    "name": "day 1",
+    "exercises": [{
+      "type": "super-set",
+      "exercise": [
+        { "title": "plank", "sets": 1, "times": null, "duration": 30.0 },
+        { "title": "hollow hold", "sets": 1, "times": null, "duration": 45 },
+        { "title": "dead bug", "sets": 2, "times": 10, "duration": null }
+      ]
+    }]
+  }]
+}
+''');
+    final block = plan.days.single.blocks.single;
+    expect(block.kind, BlockKind.superset);
+    expect(block.exercises.map((e) => e.title),
+        ['plank', 'hollow hold', 'dead bug']);
+    expect(block.exercises[0].prescribedDurationSeconds, 30);
+    expect(block.exercises[0].prescribedReps, isNull);
+    expect(block.exercises[1].prescribedDurationSeconds, 45);
+    expect(block.exercises[2].prescribedReps, 10);
+    expect(block.exercises[2].prescribedDurationSeconds, isNull);
+  });
+
+  test('rejects a common section that is missing a name or exercises list', () {
+    expect(
+      () => importer.import('''
+{
+  "name": "plan",
+  "basic-plan": [{
+    "name": "day 1",
+    "exercises": [{
+      "type": "single",
+      "exercise": { "title": "squat", "sets": 3, "times": 8, "duration": null }
+    }]
+  }],
+  "common-plan": [{ "exercises": [] }]
+}
+'''),
+      throwsA(
+        isA<PlanImportException>().having(
+          (e) => e.message,
+          'message',
+          contains('needs a name'),
+        ),
+      ),
+    );
+    expect(
+      () => importer.import('''
+{
+  "name": "plan",
+  "basic-plan": [{
+    "name": "day 1",
+    "exercises": [{
+      "type": "single",
+      "exercise": { "title": "squat", "sets": 3, "times": 8, "duration": null }
+    }]
+  }],
+  "common-plan": [{ "name": "abs" }]
+}
+'''),
+      throwsA(
+        isA<PlanImportException>().having(
+          (e) => e.message,
+          'message',
+          contains('needs an exercises list'),
+        ),
+      ),
+    );
+    expect(
+      () => importer.import('''
+{
+  "name": "plan",
+  "basic-plan": [{
+    "name": "day 1",
+    "exercises": [{
+      "type": "single",
+      "exercise": { "title": "squat", "sets": 3, "times": 8, "duration": null }
+    }]
+  }],
+  "common-plan": ["abs"]
+}
+'''),
+      throwsA(
+        isA<PlanImportException>().having(
+          (e) => e.message,
+          'message',
+          contains('not a JSON object'),
+        ),
+      ),
+    );
   });
 
   test('rejects missing structure with readable, UI-safe messages', () {
@@ -579,7 +697,7 @@ void main() {
     );
   });
 
-  test('rejects a common section that is missing a name or exercises list', () {
+  test('rejects string or boolean load values and a non-object day', () {
     expect(
       () => importer.import('''
 {
@@ -588,17 +706,16 @@ void main() {
     "name": "day 1",
     "exercises": [{
       "type": "single",
-      "exercise": { "title": "squat", "sets": 3, "times": 8, "duration": null }
+      "exercise": { "title": "squat", "sets": "3", "times": 8, "duration": null }
     }]
-  }],
-  "common-plan": [{ "exercises": [] }]
+  }]
 }
 '''),
       throwsA(
         isA<PlanImportException>().having(
           (e) => e.message,
           'message',
-          contains('Common section 1 needs a name'),
+          contains('must be a whole number'),
         ),
       ),
     );
@@ -610,17 +727,16 @@ void main() {
     "name": "day 1",
     "exercises": [{
       "type": "single",
-      "exercise": { "title": "squat", "sets": 3, "times": 8, "duration": null }
+      "exercise": { "title": "squat", "sets": 3, "times": true, "duration": null }
     }]
-  }],
-  "common-plan": [{ "name": "abs" }]
+  }]
 }
 '''),
       throwsA(
         isA<PlanImportException>().having(
           (e) => e.message,
           'message',
-          contains('needs an exercises list'),
+          contains('must be a whole number'),
         ),
       ),
     );
@@ -628,21 +744,14 @@ void main() {
       () => importer.import('''
 {
   "name": "plan",
-  "basic-plan": [{
-    "name": "day 1",
-    "exercises": [{
-      "type": "single",
-      "exercise": { "title": "squat", "sets": 3, "times": 8, "duration": null }
-    }]
-  }],
-  "common-plan": ["abs"]
+  "basic-plan": ["not a day object"]
 }
 '''),
       throwsA(
         isA<PlanImportException>().having(
           (e) => e.message,
           'message',
-          contains('not a JSON object'),
+          contains('Day 1 is not a JSON object'),
         ),
       ),
     );

@@ -9,6 +9,7 @@ import 'package:gym_app/data/models/models.dart';
 import 'package:gym_app/data/plan_repository.dart';
 import 'package:gym_app/data/session_lifecycle.dart';
 import 'package:gym_app/data/session_repository.dart';
+import 'package:gym_app/features/plans/day_preview_page.dart';
 import 'package:gym_app/main.dart';
 
 import '../helpers/isar_core.dart';
@@ -507,6 +508,41 @@ void main() {
   });
 
   testWidgets(
+      'starting with every common section off keeps extras out of the session',
+      (tester) async {
+    final plans = await bootstrap(tester);
+    final sessions = Get.find<SessionRepository>();
+    await db(tester, () => plans.save(samplePlan()));
+
+    await launch(tester, AppRoutes.home);
+    await tester.tap(find.text('plan 1'));
+    await tester.pump();
+    await settle(tester);
+    await tester.tap(find.byKey(const Key('day-card-day-1')));
+    await tester.pump();
+    await settle(tester);
+
+    await tester.tap(find.text('Start workout'));
+    await tester.pump();
+    await settle(tester);
+    expect(find.text('Include today'), findsOneWidget);
+
+    await tester.tap(find.byKey(const Key('confirm-include')));
+    await tester.pump();
+    await settle(tester);
+
+    expect(find.text('Log set'), findsOneWidget);
+    final live = await db(tester, () => sessions.inProgress());
+    expect(live!.includedCommonSectionIds, isEmpty);
+    expect(
+      live.exerciseLogs.map((log) => log.exerciseTitle),
+      ['kang squat', 'leg extension', 'plank'],
+    );
+    expect(live.exerciseLogs.every((log) => log.fromCommonSection == false),
+        isTrue);
+  });
+
+  testWidgets(
       'starting an empty day without turning on commons shows a snackbar',
       (tester) async {
     final plans = await bootstrap(tester);
@@ -645,6 +681,22 @@ void main() {
     expect(live.exerciseLogs.single.exerciseTitle, 'plank');
     expect(live.exerciseLogs.single.fromCommonSection, isTrue);
     expect(live.exerciseLogs.single.prescribedDurationSeconds, 30);
+  });
+
+  testWidgets('a missing day says it is no longer here', (tester) async {
+    final plans = await bootstrap(tester);
+    final plan = samplePlan();
+    await db(tester, () => plans.save(plan));
+
+    await tester.pumpWidget(
+      GetMaterialApp(
+        home: DayPreviewPage(planId: plan.id, dayId: 'missing-day'),
+      ),
+    );
+    await settle(tester);
+
+    expect(find.text('This day is no longer here.'), findsOneWidget);
+    expect(find.text('Start workout'), findsNothing);
   });
 }
 

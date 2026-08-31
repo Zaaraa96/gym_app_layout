@@ -10,6 +10,7 @@ import 'package:gym_app/data/plan_repository.dart';
 import 'package:gym_app/data/session_lifecycle.dart';
 import 'package:gym_app/data/session_repository.dart';
 import 'package:gym_app/features/progress/progress_format.dart';
+import 'package:gym_app/features/progress/session_log_page.dart';
 import 'package:gym_app/main.dart';
 
 import '../helpers/isar_core.dart';
@@ -292,6 +293,37 @@ void main() {
     expect(find.text('No workouts this month.'), findsOneWidget);
   });
 
+  testWidgets('a missing session log shows that it is gone', (tester) async {
+    await bootstrap(tester);
+
+    await tester.pumpWidget(
+      const GetMaterialApp(
+        home: SessionLogPage(sessionId: 999999),
+      ),
+    );
+    await settle(tester);
+
+    expect(find.text('This session is gone.'), findsOneWidget);
+    await tester.tap(find.text('Try again'));
+    await tester.pump();
+    await settle(tester);
+    expect(find.text('This session is gone.'), findsOneWidget);
+  });
+
+  testWidgets('opening an empty day log lists no workouts', (tester) async {
+    await bootstrap(tester);
+
+    await tester.pumpWidget(
+      GetMaterialApp(
+        home: DayLogPage(day: DateTime.utc(2026, 8, 15)),
+      ),
+    );
+    await settle(tester);
+
+    expect(find.text('No workouts this day.'), findsOneWidget);
+    expect(find.byKey(const Key('day-log-list')), findsNothing);
+  });
+
   testWidgets('a live session gets a dot and opens as in progress with no sets',
       (tester) async {
     final repos = await bootstrap(tester);
@@ -302,7 +334,7 @@ void main() {
       () => SessionLifecycle(repos.sessions).start(
         plan: plan,
         planDayId: 'day-1',
-        startedAt: thisMonth(day: 8),
+        startedAt: thisMonth(day: 8, hour: 9),
       ),
     );
 
@@ -319,6 +351,7 @@ void main() {
 
     expect(find.text('In progress'), findsOneWidget);
     expect(find.text('No sets logged'), findsOneWidget);
+    expect(find.text('kang squat'), findsWidgets);
   });
 
   testWidgets('an empty calendar day lists no workouts', (tester) async {
@@ -415,6 +448,49 @@ void main() {
 
     expect(find.text('Completed'), findsOneWidget);
     expect(find.text('No sets logged'), findsOneWidget);
+  });
+
+  testWidgets('a logged duration hold shows the clock line on the session log',
+      (tester) async {
+    final repos = await bootstrap(tester);
+    final plan = _holdPlan();
+    await db(tester, () => repos.plans.save(plan));
+    await db(tester, () async {
+      final session = await SessionLifecycle(repos.sessions).start(
+        plan: plan,
+        planDayId: 'day-1',
+        startedAt: thisMonth(day: 18),
+      );
+      final log = session.exerciseLogs.single;
+      log.sets = [
+        SetLog.create(
+          setIndex: 1,
+          completedAt: thisMonth(day: 18, hour: 10),
+          durationSeconds: 35,
+        ),
+      ];
+      log.difficulty = 2;
+      log.completedAt = thisMonth(day: 18, hour: 10);
+      session.exerciseLogs = [log];
+      session.status = SessionStatus.completed;
+      session.endedAt = thisMonth(day: 18, hour: 11);
+      await repos.sessions.save(session);
+    });
+
+    await launch(tester, AppRoutes.home);
+    await openMonth(tester);
+
+    expect(find.text('shoot out'), findsOneWidget);
+    expect(find.text('0:35'), findsOneWidget);
+
+    await tester.tap(find.byKey(const Key('month-day-18')));
+    await tester.pump();
+    await settle(tester);
+
+    expect(find.text('Completed'), findsOneWidget);
+    expect(find.text('Set 1  0:35'), findsOneWidget);
+    expect(find.text('★2'), findsOneWidget);
+    expect(find.text('No sets logged'), findsNothing);
   });
 }
 

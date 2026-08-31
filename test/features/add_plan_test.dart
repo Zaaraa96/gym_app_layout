@@ -115,5 +115,6 @@ void main() {
 
     expect(find.text('Add a title before saving'), findsOneWidget);
     expect(Get.currentRoute, AppRoutes.newPlan);
+    expect(await db(tester, Get.find<PlanRepository>().all), isEmpty);
   });
 }
