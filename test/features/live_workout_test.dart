@@ -484,6 +484,140 @@ void main() {
     expect(stored!.exerciseLogs.single.sets, isEmpty);
     expect(stored.status, SessionStatus.inProgress);
   });
+
+  testWidgets('clearing reps still logs the prescribed count', (tester) async {
+    final repos = await bootstrap(tester);
+    final plan = _simplePlan();
+    await db(tester, () => repos.plans.save(plan));
+    final session = await db(
+      tester,
+      () => SessionLifecycle(repos.sessions).start(
+        plan: plan,
+        planDayId: 'day-1',
+        startedAt: DateTime.utc(2026, 8, 28, 12),
+      ),
+    );
+
+    await tester.pumpWidget(
+      GetMaterialApp(
+        home: LiveWorkoutPage(sessionId: session.id),
+      ),
+    );
+    await settle(tester);
+
+    await tester.enterText(find.byKey(const Key('reps-field')), '');
+    await tester.tap(find.text('Log set'));
+    await tester.pump();
+    await settle(tester);
+
+    final stored = await db(tester, () => repos.sessions.byId(session.id));
+    expect(stored!.exerciseLogs.single.sets, hasLength(1));
+    expect(stored.exerciseLogs.single.sets.single.reps, 10);
+    expect(stored.status, SessionStatus.inProgress);
+  });
+
+  testWidgets('a typed zero for reps is rejected before a set is written',
+      (tester) async {
+    final repos = await bootstrap(tester);
+    final plan = _simplePlan();
+    await db(tester, () => repos.plans.save(plan));
+    final session = await db(
+      tester,
+      () => SessionLifecycle(repos.sessions).start(
+        plan: plan,
+        planDayId: 'day-1',
+        startedAt: DateTime.utc(2026, 8, 28, 12),
+      ),
+    );
+
+    await tester.pumpWidget(
+      GetMaterialApp(
+        home: LiveWorkoutPage(sessionId: session.id),
+      ),
+    );
+    await settle(tester);
+
+    await tester.enterText(find.byKey(const Key('reps-field')), '0');
+    await tester.tap(find.text('Log set'));
+    await tester.pump();
+    await settle(tester);
+
+    expect(find.text('Reps are required.'), findsOneWidget);
+    final stored = await db(tester, () => repos.sessions.byId(session.id));
+    expect(stored!.exerciseLogs.single.sets, isEmpty);
+    expect(stored.status, SessionStatus.inProgress);
+  });
+
+  testWidgets('opening a live session prefills the last logged weight',
+      (tester) async {
+    final repos = await bootstrap(tester);
+    final plan = _simplePlan();
+    await db(tester, () => repos.plans.save(plan));
+    final fractional = await db(tester, () async {
+      final session = await SessionLifecycle(repos.sessions).start(
+        plan: plan,
+        planDayId: 'day-1',
+        startedAt: DateTime.utc(2026, 8, 28, 12),
+      );
+      final log = session.exerciseLogs.single;
+      log.sets = [
+        SetLog.create(
+          setIndex: 1,
+          completedAt: DateTime.utc(2026, 8, 28, 12, 5),
+          reps: 10,
+          weightKg: 40.5,
+        ),
+      ];
+      session.exerciseLogs = [log];
+      await repos.sessions.save(session);
+      return session;
+    });
+
+    await tester.pumpWidget(
+      GetMaterialApp(
+        home: LiveWorkoutPage(sessionId: fractional.id),
+      ),
+    );
+    await settle(tester);
+
+    expect(_weightText(tester), '40.5');
+
+    await tester.pumpWidget(const SizedBox.shrink());
+    await tester.pump();
+
+    await db(tester, () async {
+      final log = fractional.exerciseLogs.single;
+      log.sets = [
+        SetLog.create(
+          setIndex: 1,
+          completedAt: DateTime.utc(2026, 8, 28, 12, 5),
+          reps: 10,
+          weightKg: 40,
+        ),
+      ];
+      fractional.exerciseLogs = [log];
+      await repos.sessions.save(fractional);
+    });
+
+    await tester.pumpWidget(
+      GetMaterialApp(
+        home: LiveWorkoutPage(sessionId: fractional.id),
+      ),
+    );
+    await settle(tester);
+
+    expect(_weightText(tester), '40');
+  });
+}
+
+String _weightText(WidgetTester tester) {
+  final field = tester.widget<TextFormField>(
+    find.descendant(
+      of: find.byKey(const Key('weight-field')),
+      matching: find.byType(TextFormField),
+    ),
+  );
+  return field.controller!.text;
 }
 
 WorkoutPlan _durationPlan() {

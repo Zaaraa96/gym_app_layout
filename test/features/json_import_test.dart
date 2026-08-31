@@ -145,6 +145,36 @@ void main() {
       isNotEmpty,
     );
   });
+
+  testWidgets('cancelling the picker or the preview does not save a plan',
+      (tester) async {
+    final json = await rootBundle.loadString('assets/json/plan.json');
+    final env = await bootstrap(tester);
+
+    await launch(tester, AppRoutes.welcome);
+
+    await tester.tap(find.text('Import a plan'));
+    await tester.pump();
+    await settle(tester);
+
+    expect(find.text('Import preview'), findsNothing);
+    expect(Get.currentRoute, AppRoutes.welcome);
+    expect(await db(tester, env.plans.count), 0);
+
+    env.picker.file = PickedPlanFile(fileName: 'plan.json', contents: json);
+    await tester.tap(find.text('Import a plan'));
+    await tester.pump();
+    await settle(tester);
+
+    expect(find.text('Import preview'), findsOneWidget);
+    await tester.tap(find.text('Cancel'));
+    await tester.pump();
+    await settle(tester);
+
+    expect(find.text('Import preview'), findsNothing);
+    expect(Get.currentRoute, AppRoutes.welcome);
+    expect(await db(tester, env.plans.count), 0);
+  });
 }
 
 class FakePlanImportPicker implements PlanImportPicker {
