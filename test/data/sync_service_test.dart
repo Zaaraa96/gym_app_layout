@@ -417,9 +417,7 @@ class _MemoryPlans implements PlanRepository {
   @override
   Future<int> putSynced(WorkoutPlan plan) async {
     plan.dirty = false;
-    if (plan.id == 0 || !rows.containsKey(plan.id)) {
-      plan.id = _seq++;
-    }
+    plan.id = _assignId(plan.id);
     rows[plan.id] = plan;
     return plan.id;
   }
@@ -436,9 +434,20 @@ class _MemoryPlans implements PlanRepository {
 
   Future<int> saveKeepingTime(WorkoutPlan plan) async {
     plan.dirty = true;
-    if (plan.id == 0) plan.id = _seq++;
+    plan.id = _assignId(plan.id);
     rows[plan.id] = plan;
     return plan.id;
+  }
+
+  int _assignId(int current) {
+    if (current > 0) {
+      if (current >= _seq) _seq = current + 1;
+      return current;
+    }
+    while (rows.containsKey(_seq)) {
+      _seq++;
+    }
+    return _seq++;
   }
 
   @override
@@ -488,9 +497,7 @@ class _MemorySessions implements SessionRepository {
   @override
   Future<int> putSynced(WorkoutSession session) async {
     session.dirty = false;
-    if (session.id == 0 || !rows.containsKey(session.id)) {
-      session.id = _seq++;
-    }
+    session.id = _assignId(session.id);
     rows[session.id] = session;
     return session.id;
   }
@@ -507,9 +514,20 @@ class _MemorySessions implements SessionRepository {
 
   Future<int> saveKeepingTime(WorkoutSession session) async {
     session.dirty = true;
-    if (session.id == 0) session.id = _seq++;
+    session.id = _assignId(session.id);
     rows[session.id] = session;
     return session.id;
+  }
+
+  int _assignId(int current) {
+    if (current > 0) {
+      if (current >= _seq) _seq = current + 1;
+      return current;
+    }
+    while (rows.containsKey(_seq)) {
+      _seq++;
+    }
+    return _seq++;
   }
 
   @override
