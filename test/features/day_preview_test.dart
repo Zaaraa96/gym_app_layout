@@ -373,7 +373,7 @@ void main() {
     await db(tester, () => plans.save(plan));
     await db(
       tester,
-      () => sessions.start(
+      () => SessionLifecycle(sessions).start(
         plan: plan,
         planDayId: 'day-a',
         startedAt: DateTime.utc(2026, 8, 28, 12),
@@ -407,7 +407,7 @@ void main() {
     await db(tester, () => plans.save(plan));
     final live = await db(
       tester,
-      () => sessions.start(
+      () => SessionLifecycle(sessions).start(
         plan: plan,
         planDayId: 'day-a',
         startedAt: DateTime.utc(2026, 8, 28, 12),

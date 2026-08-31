@@ -44,6 +44,128 @@ void main() {
     expect(restored.days.single.blocks.single.exercises.single.title, 'squat');
   });
 
+  test('plan DTO falls back on unknown enums and copies Map days/sections', () {
+    final restored = PlanDto.fromJson({
+      'id': 'plan-uuid',
+      'title': 'plan 1',
+      'source': 'not-a-source',
+      'createdAt': '2026-08-01T00:00:00.000Z',
+      'updatedAt': '2026-08-02T00:00:00.000Z',
+      'days': [
+        {
+          'dayId': 'day-1',
+          'title': 'day 1',
+          'blocks': [
+            Map<dynamic, dynamic>.from({
+              'blockId': 'block-1',
+              'kind': 'mystery',
+              'svgPath': 'assets/image/upper-body.svg',
+              'mediaUri': null,
+              'mediaSource': 'nope',
+              'mediaKind': 'gif',
+              'exercises': [
+                {
+                  'prescriptionId': 'p-1',
+                  'title': 'squat',
+                  'prescribedSets': 3,
+                  'prescribedReps': 10,
+                  'targetWeightKg': 40,
+                },
+              ],
+            }),
+          ],
+        },
+      ],
+      'commonSections': [
+        {
+          'sectionId': 'sec-abs',
+          'title': 'abs',
+          'blocks': const [],
+        },
+      ],
+    }).toEntity();
+
+    expect(restored.source, PlanSource.created);
+    expect(restored.days.single.blocks.single.kind, BlockKind.single);
+    expect(
+      restored.days.single.blocks.single.mediaSource,
+      ExerciseMediaSource.none,
+    );
+    expect(restored.days.single.blocks.single.mediaKind, ExerciseMediaKind.gif);
+    expect(
+      restored.days.single.blocks.single.exercises.single.targetWeightKg,
+      40.0,
+    );
+    expect(restored.commonSections.single.sectionId, 'sec-abs');
+  });
+
+  test('session DTO round-trips logs and falls back when updatedAt is missing',
+      () {
+    final session = WorkoutSession.create(
+      uuid: 'sess-uuid',
+      planId: 'plan-uuid',
+      planDayId: 'day-1',
+      planTitleSnapshot: 'plan 1',
+      dayTitleSnapshot: 'day 1',
+      startedAt: DateTime.utc(2026, 8, 15, 10),
+      updatedAt: DateTime.utc(2026, 8, 15, 11),
+      endedAt: DateTime.utc(2026, 8, 15, 12),
+      status: SessionStatus.completed,
+      includedCommonSectionIds: const ['sec-abs'],
+      exerciseLogs: [
+        ExerciseLog.create(
+          prescriptionId: 'p-1',
+          blockId: 'block-1',
+          blockKind: BlockKind.superset,
+          fromCommonSection: false,
+          exerciseTitle: 'squat',
+          exerciseTitleKey: 'squat',
+          prescribedSets: 3,
+          prescribedReps: 10,
+          difficulty: 2,
+          completedAt: DateTime.utc(2026, 8, 15, 11, 30),
+          sets: [
+            SetLog.create(
+              setIndex: 1,
+              completedAt: DateTime.utc(2026, 8, 15, 11, 5),
+              reps: 10,
+              weightKg: 40.5,
+            ),
+          ],
+        ),
+      ],
+    )..id = 7;
+
+    final json = SessionDto.fromEntity(session).toJson();
+    expect(json.containsKey('dirty'), isFalse);
+    expect(json['includedCommonSectionIds'], ['sec-abs']);
+    expect(json['endedAt'], isNotNull);
+
+    final restored = SessionDto.fromJson(json).toEntity();
+    expect(restored.uuid, 'sess-uuid');
+    expect(restored.endedAt!.isAtSameMomentAs(DateTime.utc(2026, 8, 15, 12)),
+        isTrue);
+    expect(restored.includedCommonSectionIds, ['sec-abs']);
+    expect(restored.exerciseLogs, hasLength(1));
+    expect(restored.exerciseLogs.single.blockKind, BlockKind.superset);
+    expect(restored.exerciseLogs.single.difficulty, 2);
+    expect(restored.exerciseLogs.single.sets.single.weightKg, 40.5);
+    expect(restored.exerciseLogs.single.sets.single.reps, 10);
+
+    final missingUpdatedAt = Map<String, dynamic>.from(json)..remove('updatedAt');
+    missingUpdatedAt.remove('exerciseLogs');
+    missingUpdatedAt.remove('includedCommonSectionIds');
+    missingUpdatedAt['status'] = 'not-a-status';
+    final fallback = SessionDto.fromJson(missingUpdatedAt).toEntity();
+    expect(
+      fallback.updatedAt.isAtSameMomentAs(DateTime.utc(2026, 8, 15, 10)),
+      isTrue,
+    );
+    expect(fallback.status, SessionStatus.completed);
+    expect(fallback.exerciseLogs, isEmpty);
+    expect(fallback.includedCommonSectionIds, isEmpty);
+  });
+
   test('session DTO points planId at the plan uuid', () {
     final session = WorkoutSession.create(
       uuid: 'sess-uuid',
