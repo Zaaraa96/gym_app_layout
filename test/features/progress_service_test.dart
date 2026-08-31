@@ -203,6 +203,46 @@ void main() {
     expect(progress.exercises.single.lastValue, 40);
   });
 
+  test('the heaviest set wins, not the last one', () {
+    final progress = service.fold(
+      month: DateTime.utc(2026, 8),
+      sessions: [
+        _session(
+          id: 1,
+          startedAt: DateTime.utc(2026, 8, 10),
+          logs: [
+            ExerciseLog.create(
+              prescriptionId: 'p-squat',
+              blockId: 'block-squat',
+              blockKind: BlockKind.single,
+              fromCommonSection: false,
+              exerciseTitle: 'squat',
+              exerciseTitleKey: 'squat',
+              prescribedSets: 3,
+              prescribedReps: 5,
+              sets: [
+                SetLog.create(
+                  setIndex: 1,
+                  completedAt: DateTime.utc(2026, 8, 10),
+                  reps: 5,
+                  weightKg: 50,
+                ),
+                SetLog.create(
+                  setIndex: 2,
+                  completedAt: DateTime.utc(2026, 8, 10),
+                  reps: 5,
+                  weightKg: 40,
+                ),
+              ],
+            ),
+          ],
+        ),
+      ],
+    );
+    expect(progress.exercises.single.metric, ProgressMetricKind.weight);
+    expect(progress.exercises.single.lastValue, 50);
+  });
+
   test('same title in one session rolls up, and weight beats duration', () {
     final progress = service.fold(
       month: DateTime.utc(2026, 8),
@@ -338,6 +378,30 @@ void main() {
       ],
     );
     expect(oneSession.exercises.single.feltEasier, isFalse);
+
+    final gotHarder = service.fold(
+      month: DateTime.utc(2026, 8),
+      sessions: [
+        _session(
+          id: 1,
+          startedAt: DateTime.utc(2026, 8, 2),
+          logs: [
+            _repLog(
+                title: 'kang squat', reps: [12], weight: 40, difficulty: 2)
+          ],
+        ),
+        _session(
+          id: 2,
+          startedAt: DateTime.utc(2026, 8, 20),
+          logs: [
+            _repLog(
+                title: 'kang squat', reps: [12], weight: 45, difficulty: 4)
+          ],
+        ),
+      ],
+    );
+    expect(gotHarder.exercises.single.feltEasier, isFalse);
+    expect(gotHarder.exercises.single.delta, 5);
   });
 
   test('felt easier is false when load improved but difficulty did not drop',
