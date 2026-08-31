@@ -1,5 +1,6 @@
 import 'dart:io';
 
+import 'package:fake_async/fake_async.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:get/get.dart';
 import 'package:gym_app/data/isar_plan_repository.dart';
@@ -307,6 +308,101 @@ void main() {
       ),
     );
   });
+
+  test('the duration timer ticks remaining seconds without debugAdvance',
+      () async {
+    final started = await startController();
+    final c = started.controller;
+    await _reachDurationHold(c);
+
+    fakeAsync((async) {
+      c.startDurationCountdown();
+      expect(c.isDurationRunning, isTrue);
+      expect(c.durationRemainingSeconds, 30);
+      async.elapse(const Duration(seconds: 2));
+      expect(c.durationRemainingSeconds, 28);
+      async.elapse(const Duration(seconds: 30));
+      expect(c.durationRemainingSeconds, -2);
+      c.startDurationCountdown();
+      expect(c.durationRemainingSeconds, -2);
+      c.onClose();
+    });
+  });
+
+  test('logging time on a sibling uses prescribed seconds, not the active timer',
+      () async {
+    final started = await startController(
+      plan: _twoHoldsPlan(),
+      commons: const [],
+    );
+    final c = started.controller;
+    await c.logTime();
+    await c.logTime();
+    expect(c.inExtrasPhase, isTrue);
+    expect(c.activeLog?.exerciseTitle, 'hollow hold');
+
+    c.startDurationCountdown();
+    c.debugAdvanceDuration(8);
+    await c.logTime(log: c.session!.exerciseLogs[0]);
+    expect(c.session!.exerciseLogs[0].sets, hasLength(2));
+    expect(c.session!.exerciseLogs[0].sets.last.durationSeconds, 30);
+    expect(c.session!.exerciseLogs[1].sets, hasLength(1));
+  });
+
+  test('startDurationCountdown is a no-op on a reps exercise', () async {
+    final started = await startController();
+    final c = started.controller;
+    expect(c.activeLog?.prescribedDurationSeconds, isNull);
+    c.startDurationCountdown();
+    expect(c.isDurationRunning, isFalse);
+    expect(c.durationTimerStarted, isFalse);
+    expect(c.durationRemainingSeconds, isNull);
+  });
+}
+
+Future<void> _reachDurationHold(WorkoutController c) async {
+  for (var i = 0; i < 6; i++) {
+    await c.logSet(reps: 12);
+  }
+  await c.rate(3, log: c.session!.exerciseLogs[0]);
+  await c.rate(3, log: c.session!.exerciseLogs[1]);
+  expect(c.activeLog?.exerciseTitle, 'shoot out');
+}
+
+WorkoutPlan _twoHoldsPlan() {
+  final now = DateTime.utc(2026, 8, 1);
+  return WorkoutPlan.create(
+    title: 'holds',
+    source: PlanSource.created,
+    createdAt: now,
+    updatedAt: now,
+    days: [
+      PlanDay.create(
+        dayId: 'day-1',
+        title: 'holds',
+        blocks: [
+          ExerciseBlock.create(
+            blockId: 'block-holds',
+            kind: BlockKind.superset,
+            exercises: [
+              ExercisePrescription.create(
+                prescriptionId: 'p-plank',
+                title: 'plank',
+                prescribedSets: 1,
+                prescribedDurationSeconds: 30,
+              ),
+              ExercisePrescription.create(
+                prescriptionId: 'p-hollow',
+                title: 'hollow hold',
+                prescribedSets: 1,
+                prescribedDurationSeconds: 30,
+              ),
+            ],
+          ),
+        ],
+      ),
+    ],
+  );
 }
 
 WorkoutPlan _singlePlan() {
