@@ -116,9 +116,10 @@ void main() {
     await settle(tester);
 
     expect(Get.currentRoute, AppRoutes.home);
-    expect(find.text('Beginner full body'), findsOneWidget);
     expect(find.byKey(const Key('today-card')), findsOneWidget);
     expect(find.text('Today: Day 1 — Squat and push'), findsOneWidget);
+    expect(find.text('Your plans'), findsOneWidget);
+    expect(find.text('Beginner full body'), findsWidgets);
     expect(await db(tester, plans.count), 1);
     final stored = await db(tester, plans.all);
     expect(stored.single.source, PlanSource.imported);

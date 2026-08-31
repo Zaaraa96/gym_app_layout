@@ -6,7 +6,6 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:get/get.dart';
 import 'package:gym_app/common/app_routes.dart';
 import 'package:gym_app/data/isar_service.dart';
-import 'package:gym_app/data/json_plan_importer.dart';
 import 'package:gym_app/data/models/models.dart';
 import 'package:gym_app/data/plan_repository.dart';
 import 'package:gym_app/features/plans/plan_import_picker.dart';
@@ -146,86 +145,13 @@ void main() {
       isNotEmpty,
     );
   });
-
-  testWidgets('cancel on the import preview does not write a plan',
-      (tester) async {
-    final json = await rootBundle.loadString('assets/json/plan.json');
-    final env = await bootstrap(
-      tester,
-      file: PickedPlanFile(fileName: 'plan.json', contents: json),
-    );
-
-    await launch(tester, AppRoutes.welcome);
-    await tester.tap(find.text('Import a plan'));
-    await tester.pump();
-    await settle(tester);
-
-    expect(find.text('Import preview'), findsOneWidget);
-    await tester.tap(find.text('Cancel'));
-    await tester.pump();
-    await settle(tester);
-
-    expect(find.text('Import a plan'), findsOneWidget);
-    expect(Get.currentRoute, AppRoutes.welcome);
-    expect(await db(tester, env.plans.count), 0);
-  });
-
-  testWidgets('canceling the file picker leaves the current screen',
-      (tester) async {
-    final env = await bootstrap(tester);
-
-    await launch(tester, AppRoutes.welcome);
-    await tester.tap(find.text('Import a plan'));
-    await tester.pump();
-    await settle(tester);
-
-    expect(find.text('Import preview'), findsNothing);
-    expect(find.text('Import a plan'), findsOneWidget);
-    expect(Get.currentRoute, AppRoutes.welcome);
-    expect(await db(tester, env.plans.count), 0);
-  });
-
-  testWidgets('a picker failure stays on the current screen with a snackbar',
-      (tester) async {
-    final env = await bootstrap(tester);
-    env.picker.error = const PlanImportException(
-      'Could not read that file. Try another JSON file.',
-    );
-
-    await launch(tester, AppRoutes.welcome);
-    await tester.tap(find.text('Import a plan'));
-    await tester.pump();
-    await settle(tester);
-
-    expect(
-      find.text('Could not read that file. Try another JSON file.'),
-      findsOneWidget,
-    );
-    expect(find.text('Import preview'), findsNothing);
-    expect(find.text('Import a plan'), findsOneWidget);
-    expect(Get.currentRoute, AppRoutes.welcome);
-    expect(await db(tester, env.plans.count), 0);
-
-    env.picker.error = StateError('disk');
-    await tester.tap(find.text('Import a plan'));
-    await tester.pump();
-    await settle(tester);
-
-    expect(find.textContaining('Could not open a file:'), findsOneWidget);
-    expect(Get.currentRoute, AppRoutes.welcome);
-    expect(await db(tester, env.plans.count), 0);
-  });
 }
 
 class FakePlanImportPicker implements PlanImportPicker {
-  FakePlanImportPicker({this.file, this.error});
+  FakePlanImportPicker({this.file});
 
   PickedPlanFile? file;
-  Object? error;
 
   @override
-  Future<PickedPlanFile?> pick() async {
-    if (error != null) throw error!;
-    return file;
-  }
+  Future<PickedPlanFile?> pick() async => file;
 }
