@@ -229,7 +229,8 @@ void main() {
     );
   });
 
-  test('forCalendarDay keeps live sessions, drops abandoned, and stops at midnight',
+  test(
+      'forCalendarDay keeps live sessions, drops abandoned, and stops at midnight',
       () async {
     final db = await open();
     final plan = _plan();
@@ -238,10 +239,10 @@ void main() {
     final late = await db.lifecycle.start(
       plan: plan,
       planDayId: 'day-1',
-      startedAt: DateTime.utc(2026, 8, 15, 23, 59),
+      startedAt: DateTime.utc(2026, 8, 15, 23, 59, 59),
     );
     late.status = SessionStatus.completed;
-    late.endedAt = DateTime.utc(2026, 8, 16);
+    late.endedAt = DateTime.utc(2026, 8, 15, 23, 59, 59);
     await db.sessions.save(late);
 
     final nextDay = await db.lifecycle.start(
@@ -265,10 +266,12 @@ void main() {
     final live = await db.lifecycle.start(
       plan: plan,
       planDayId: 'day-1',
-      startedAt: DateTime.utc(2026, 8, 15, 6),
+      startedAt: DateTime.utc(2026, 8, 15),
     );
 
-    final day = await db.sessions.forCalendarDay(DateTime.utc(2026, 8, 15));
+    final day = await db.sessions.forCalendarDay(
+      DateTime.utc(2026, 8, 15, 18, 30),
+    );
     expect(day.map((s) => s.id), [live.id, late.id]);
     expect(
       (await db.sessions.forCalendarDay(DateTime.utc(2026, 8, 16)))
@@ -429,6 +432,29 @@ void main() {
           .map((s) => s.id),
       [older.id],
     );
+  });
+
+  test('a local startedAt is stored in UTC so the calendar day still matches',
+      () async {
+    final db = await open();
+    final plan = _plan();
+    await db.plans.save(plan);
+
+    final localStart = DateTime(2026, 8, 15, 10);
+    final session = await db.lifecycle.start(
+      plan: plan,
+      planDayId: 'day-1',
+      startedAt: localStart,
+    );
+
+    expect(session.startedAt.isUtc, isTrue);
+    expect(
+      session.startedAt.isAtSameMomentAs(localStart.toUtc()),
+      isTrue,
+    );
+
+    final onThatUtcDay = await db.sessions.forCalendarDay(session.startedAt);
+    expect(onThatUtcDay.map((row) => row.id), [session.id]);
   });
 
   test('abandonInProgress is a no-op when nothing is live', () async {
