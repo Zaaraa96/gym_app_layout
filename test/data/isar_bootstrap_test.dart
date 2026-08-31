@@ -43,8 +43,7 @@ void main() {
     return service.isar;
   }
 
-  test(
-      'opens the production schemas and round-trips a nested plan and session',
+  test('opens the production schemas and round-trips a nested plan and session',
       () async {
     final isar = await openIsar();
     final now = DateTime.utc(2026, 8, 24, 12);
@@ -78,7 +77,7 @@ void main() {
     expect(abs.blocks.single.exercises.single.prescribedDurationSeconds, 30);
     expect(abs.blocks.single.exercises.single.prescribedReps, isNull);
 
-    final session = _sampleSession(planId: plan.id, startedAt: now);
+    final session = _sampleSession(planId: plan.uuid, startedAt: now);
     await isar.writeTxn(() async {
       await isar.workoutSessions.put(session);
     });
@@ -109,7 +108,7 @@ void main() {
     final monthStart = DateTime.utc(2026, 8, 1);
     final monthEnd = DateTime.utc(2026, 8, 31, 23, 59, 59);
     final byPlan =
-        await isar.workoutSessions.where().planIdEqualTo(plan.id).findAll();
+        await isar.workoutSessions.where().planIdEqualTo(plan.uuid).findAll();
     expect(byPlan, hasLength(1));
 
     final inMonth = await isar.workoutSessions
@@ -199,7 +198,7 @@ WorkoutPlan _samplePlan(DateTime now) {
 }
 
 WorkoutSession _sampleSession({
-  required int planId,
+  required String planId,
   required DateTime startedAt,
 }) {
   return WorkoutSession.create(

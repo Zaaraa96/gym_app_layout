@@ -67,7 +67,7 @@ TodaySuggestion? suggestToday({
 
   WorkoutSession? lastForPlan;
   for (final session in completedNewestFirst) {
-    if (session.planId == plan.id) {
+    if (session.planId == plan.uuid) {
       lastForPlan = session;
       break;
     }

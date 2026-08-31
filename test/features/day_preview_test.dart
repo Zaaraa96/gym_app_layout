@@ -7,6 +7,7 @@ import 'package:gym_app/common/app_routes.dart';
 import 'package:gym_app/data/isar_service.dart';
 import 'package:gym_app/data/models/models.dart';
 import 'package:gym_app/data/plan_repository.dart';
+import 'package:gym_app/data/session_lifecycle.dart';
 import 'package:gym_app/data/session_repository.dart';
 import 'package:gym_app/features/plans/day_preview_page.dart';
 import 'package:gym_app/main.dart';
@@ -135,8 +136,7 @@ void main() {
     );
   }
 
-  testWidgets(
-      'opening a day shows reps, duration, and the start CTA from Isar',
+  testWidgets('opening a day shows reps, duration, and the start CTA from Isar',
       (tester) async {
     final plans = await bootstrap(tester);
     await db(tester, () => plans.save(samplePlan()));
@@ -191,7 +191,8 @@ void main() {
     expect(find.text('Log set'), findsOneWidget);
   });
 
-  testWidgets('Start is disabled when the day is empty and there are no commons',
+  testWidgets(
+      'Start is disabled when the day is empty and there are no commons',
       (tester) async {
     final plans = await bootstrap(tester);
     final now = DateTime.utc(2026, 8, 26, 12);
@@ -290,7 +291,7 @@ void main() {
     await db(tester, () => plans.save(plan));
     await db(
       tester,
-      () => sessions.start(
+      () => SessionLifecycle(sessions).start(
         plan: plan,
         planDayId: 'day-a',
         startedAt: DateTime.utc(2026, 8, 28, 12),
@@ -328,7 +329,7 @@ void main() {
     await db(tester, () => plans.save(plan));
     final live = await db(
       tester,
-      () => sessions.start(
+      () => SessionLifecycle(sessions).start(
         plan: plan,
         planDayId: 'day-a',
         startedAt: DateTime.utc(2026, 8, 28, 12),
@@ -362,6 +363,118 @@ void main() {
     expect(abandoned!.status, SessionStatus.abandoned);
     final current = await db(tester, () => sessions.inProgress());
     expect(current!.planDayId, 'day-b');
+  });
+
+  testWidgets(
+      'starting the same live day resumes it without a conflict dialog',
+      (tester) async {
+    final plans = await bootstrap(tester);
+    final sessions = Get.find<SessionRepository>();
+    final plan = _twoDayPlan();
+    await db(tester, () => plans.save(plan));
+    await db(
+      tester,
+      () => SessionLifecycle(sessions).start(
+        plan: plan,
+        planDayId: 'day-a',
+        startedAt: DateTime.utc(2026, 8, 28, 12),
+      ),
+    );
+
+    await launch(tester, AppRoutes.home);
+    await tester.tap(find.text('A/B'));
+    await tester.pump();
+    await settle(tester);
+    await tester.tap(find.byKey(const Key('day-card-day-a')));
+    await tester.pump();
+    await settle(tester);
+
+    await tester.tap(find.text('Start workout'));
+    await tester.pump();
+    await settle(tester);
+
+    expect(find.text('A workout is already in progress'), findsNothing);
+    expect(find.text('squat  ·  set 1 of 2'), findsOneWidget);
+    expect(find.text('Log set'), findsOneWidget);
+    final live = await db(tester, () => sessions.inProgress());
+    expect(live!.planDayId, 'day-a');
+  });
+
+  testWidgets('cancel on a live-session conflict leaves the existing workout',
+      (tester) async {
+    final plans = await bootstrap(tester);
+    final sessions = Get.find<SessionRepository>();
+    final plan = _twoDayPlan();
+    await db(tester, () => plans.save(plan));
+    final live = await db(
+      tester,
+      () => SessionLifecycle(sessions).start(
+        plan: plan,
+        planDayId: 'day-a',
+        startedAt: DateTime.utc(2026, 8, 28, 12),
+      ),
+    );
+
+    await launch(tester, AppRoutes.home);
+    await tester.tap(find.text('A/B'));
+    await tester.pump();
+    await settle(tester);
+    await tester.tap(find.byKey(const Key('day-card-day-b')));
+    await tester.pump();
+    await settle(tester);
+
+    await tester.tap(find.text('Start workout'));
+    await tester.pump();
+    await settle(tester);
+    expect(find.text('A workout is already in progress'), findsOneWidget);
+
+    final cancel = find.widgetWithText(TextButton, 'Cancel');
+    await tester.ensureVisible(cancel);
+    await tester.tap(cancel);
+    await tester.pump();
+    await settle(tester);
+
+    expect(find.text('A workout is already in progress'), findsNothing);
+    expect(find.text('Log set'), findsNothing);
+    expect(find.text('Start workout'), findsOneWidget);
+    final stillLive = await db(tester, () => sessions.inProgress());
+    expect(stillLive!.id, live.id);
+    expect(stillLive.status, SessionStatus.inProgress);
+  });
+
+  testWidgets('turning on a common section copies it into the live session',
+      (tester) async {
+    final plans = await bootstrap(tester);
+    final sessions = Get.find<SessionRepository>();
+    await db(tester, () => plans.save(samplePlan()));
+
+    await launch(tester, AppRoutes.home);
+    await tester.tap(find.text('plan 1'));
+    await tester.pump();
+    await settle(tester);
+    await tester.tap(find.byKey(const Key('day-card-day-1')));
+    await tester.pump();
+    await settle(tester);
+
+    await tester.tap(find.text('Start workout'));
+    await tester.pump();
+    await settle(tester);
+    expect(find.text('Include today'), findsOneWidget);
+
+    await tester.tap(find.byKey(const Key('include-section-sec-abs')));
+    await tester.pump();
+    await tester.tap(find.byKey(const Key('confirm-include')));
+    await tester.pump();
+    await settle(tester);
+
+    expect(find.text('Log set'), findsOneWidget);
+    final live = await db(tester, () => sessions.inProgress());
+    expect(live!.includedCommonSectionIds, ['sec-abs']);
+    expect(
+      live.exerciseLogs.map((log) => log.exerciseTitle),
+      ['kang squat', 'leg extension', 'plank', 'shoot out'],
+    );
+    expect(live.exerciseLogs.last.fromCommonSection, isTrue);
   });
 
   testWidgets(

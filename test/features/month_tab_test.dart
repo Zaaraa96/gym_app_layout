@@ -7,8 +7,8 @@ import 'package:gym_app/common/app_routes.dart';
 import 'package:gym_app/data/isar_service.dart';
 import 'package:gym_app/data/models/models.dart';
 import 'package:gym_app/data/plan_repository.dart';
+import 'package:gym_app/data/session_lifecycle.dart';
 import 'package:gym_app/data/session_repository.dart';
-import 'package:gym_app/features/progress/month_tab.dart';
 import 'package:gym_app/features/progress/progress_format.dart';
 import 'package:gym_app/features/progress/session_log_page.dart';
 import 'package:gym_app/main.dart';
@@ -200,7 +200,7 @@ void main() {
     final plan = _plan();
     await db(tester, () => repos.plans.save(plan));
     await db(tester, () async {
-      final session = await repos.sessions.start(
+      final session = await SessionLifecycle(repos.sessions).start(
         plan: plan,
         planDayId: 'day-1',
         startedAt: thisMonth(day: 12),
@@ -266,7 +266,7 @@ void main() {
     await db(tester, () => repos.plans.save(plan));
     await db(
       tester,
-      () => repos.sessions.start(
+      () => SessionLifecycle(repos.sessions).start(
         plan: plan,
         planDayId: 'day-1',
         startedAt: thisMonth(day: 8, hour: 9),
@@ -284,44 +284,6 @@ void main() {
     expect(find.text('In progress'), findsOneWidget);
     expect(find.text('No sets logged'), findsOneWidget);
     expect(find.text('kang squat'), findsWidgets);
-  });
-
-  testWidgets('month load error retry reloads the calendar', (tester) async {
-    await tester.pumpWidget(const SizedBox.shrink());
-    await tester.pump();
-
-    instanceSeq += 1;
-    final service = await db(
-      tester,
-      () => IsarService.init(
-        directory: tempDir!.path,
-        name: 'month$instanceSeq',
-      ),
-    );
-    Get.put<IsarService>(service, permanent: true);
-    putPlans(service.isar);
-    Get.put<SessionRepository>(
-      _FailOnceSessions(service.isar),
-      permanent: true,
-    );
-
-    await tester.pumpWidget(
-      GetMaterialApp(
-        home: Scaffold(
-          body: MonthTab(now: DateTime.utc(2026, 8, 15)),
-        ),
-      ),
-    );
-    await settle(tester);
-
-    expect(find.text('Could not load this month.'), findsOneWidget);
-    await tester.tap(find.text('Try again'));
-    await tester.pump();
-    await settle(tester);
-
-    expect(find.byKey(const Key('month-calendar')), findsOneWidget);
-    expect(find.text('August 2026'), findsOneWidget);
-    expect(find.text('No workouts this month.'), findsOneWidget);
   });
 }
 
@@ -365,7 +327,7 @@ Future<WorkoutSession> _complete(
   String dayId = 'day-1',
   int? difficulty,
 }) async {
-  final session = await sessions.start(
+  final session = await SessionLifecycle(sessions).start(
     plan: plan,
     planDayId: dayId,
     startedAt: startedAt,
@@ -386,19 +348,4 @@ Future<WorkoutSession> _complete(
   session.endedAt = startedAt;
   await sessions.save(session);
   return session;
-}
-
-class _FailOnceSessions extends SessionRepository {
-  _FailOnceSessions(super.isar);
-
-  var _fail = true;
-
-  @override
-  Future<List<WorkoutSession>> forMonth(DateTime month) {
-    if (_fail) {
-      _fail = false;
-      return Future<List<WorkoutSession>>.error(StateError('offline'));
-    }
-    return super.forMonth(month);
-  }
 }

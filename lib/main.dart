@@ -1,11 +1,20 @@
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
+import 'package:http/http.dart' as http;
 
 import 'common/app_routes.dart';
 import 'common/app_theme.dart';
+import 'data/isar_plan_repository.dart';
 import 'data/isar_service.dart';
+import 'data/isar_session_repository.dart';
 import 'data/plan_repository.dart';
+import 'data/remote/http_remote_plan_data_source.dart';
+import 'data/remote/http_remote_session_data_source.dart';
+import 'data/remote/remote_plan_data_source.dart';
+import 'data/remote/remote_session_data_source.dart';
+import 'data/session_lifecycle.dart';
 import 'data/session_repository.dart';
+import 'data/sync/sync_service.dart';
 import 'features/plans/add_plan_page.dart';
 import 'features/plans/day_editor_page.dart';
 import 'features/plans/day_preview_page.dart';
@@ -23,11 +32,45 @@ import 'features/workout/live_workout_page.dart';
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
   final isarService = Get.put(await IsarService.init());
-  final plans = Get.put(PlanRepository(isarService.isar));
-  Get.put(SessionRepository(isarService.isar));
+  final plans = Get.put<PlanRepository>(
+    IsarPlanRepository(isarService.isar),
+  );
+  final sessions = Get.put<SessionRepository>(
+    IsarSessionRepository(isarService.isar),
+  );
+  Get.put(SessionLifecycle(sessions));
+  _registerSync(plans, sessions);
   Get.put<PlanImportPicker>(FilePickerPlanImportPicker());
   Get.put<ExerciseGalleryPicker>(ImagePickerExerciseGalleryPicker());
   runApp(MyApp(initialRoute: await resolveInitialRoute(plans)));
+}
+
+/// Compile with `--dart-define=API_BASE_URL=https://host` to enable HTTP sync.
+const apiBaseUrl = String.fromEnvironment('API_BASE_URL');
+
+void _registerSync(PlanRepository plans, SessionRepository sessions) {
+  final enabled = apiBaseUrl.isNotEmpty;
+  final client = http.Client();
+  final remotePlans = enabled
+      ? HttpRemotePlanDataSource(baseUrl: apiBaseUrl, client: client)
+      : const NoopRemotePlanDataSource();
+  final remoteSessions = enabled
+      ? HttpRemoteSessionDataSource(baseUrl: apiBaseUrl, client: client)
+      : const NoopRemoteSessionDataSource();
+  final sync = Get.put(
+    SyncService(
+      plans: plans,
+      sessions: sessions,
+      remotePlans: remotePlans,
+      remoteSessions: remoteSessions,
+      enabled: enabled,
+    ),
+  );
+  if (enabled) {
+    plans.watch().listen((_) => sync.sync());
+    sessions.watch().listen((_) => sync.sync());
+    sync.sync();
+  }
 }
 
 /// Welcome is a first-run screen: skip it once any plan is stored.
