@@ -318,42 +318,17 @@ void main() {
     );
   });
 
-  test('rejects a blank name and a non-array common-plan', () {
+  test('rejects missing structure with readable, UI-safe messages', () {
     expect(
-      () => importer.import('{"name":"   ","basic-plan":[]}'),
+      () => importer.import('[]'),
       throwsA(
         isA<PlanImportException>().having(
           (e) => e.message,
           'message',
-          contains('needs a name'),
+          contains('not a JSON object'),
         ),
       ),
     );
-    expect(
-      () => importer.import('''
-{
-  "name": "plan",
-  "basic-plan": [{
-    "name": "day 1",
-    "exercises": [{
-      "type": "single",
-      "exercise": { "title": "squat", "sets": 3, "times": 8, "duration": null }
-    }]
-  }],
-  "common-plan": {}
-}
-'''),
-      throwsA(
-        isA<PlanImportException>().having(
-          (e) => e.message,
-          'message',
-          contains('not a JSON array'),
-        ),
-      ),
-    );
-  });
-
-  test('rejects missing lists, non-object days, and untitled exercises', () {
     expect(
       () => importer.import('{"name":"plan"}'),
       throwsA(
@@ -361,6 +336,21 @@ void main() {
           (e) => e.message,
           'message',
           contains('missing a basic-plan'),
+        ),
+      ),
+    );
+    expect(
+      () => importer.import('''
+{
+  "name": "plan",
+  "basic-plan": [{ "exercises": [] }]
+}
+'''),
+      throwsA(
+        isA<PlanImportException>().having(
+          (e) => e.message,
+          'message',
+          contains('needs a name'),
         ),
       ),
     );
@@ -385,46 +375,7 @@ void main() {
   "name": "plan",
   "basic-plan": [{
     "name": "day 1",
-    "exercises": [{
-      "type": "single",
-      "exercise": { "title": "squat", "sets": 3, "times": 8, "duration": null }
-    }]
-  }],
-  "common-plan": [{ "name": "abs" }]
-}
-'''),
-      throwsA(
-        isA<PlanImportException>().having(
-          (e) => e.message,
-          'message',
-          contains('needs an exercises list'),
-        ),
-      ),
-    );
-    expect(
-      () => importer.import('''
-{
-  "name": "plan",
-  "basic-plan": ["not a day"]
-}
-'''),
-      throwsA(
-        isA<PlanImportException>().having(
-          (e) => e.message,
-          'message',
-          contains('not a JSON object'),
-        ),
-      ),
-    );
-    expect(
-      () => importer.import('''
-{
-  "name": "plan",
-  "basic-plan": [{
-    "name": "day 1",
-    "exercises": [{
-      "exercise": { "title": "squat", "sets": 3, "times": 8, "duration": null }
-    }]
+    "exercises": [{ "exercise": { "title": "squat", "sets": 3, "times": 8 } }]
   }]
 }
 '''),
@@ -444,7 +395,7 @@ void main() {
     "name": "day 1",
     "exercises": [{
       "type": "single",
-      "exercise": { "title": "  ", "sets": 3, "times": 8, "duration": null }
+      "exercise": { "title": "   ", "sets": 3, "times": 8, "duration": null }
     }]
   }]
 }
@@ -454,6 +405,27 @@ void main() {
           (e) => e.message,
           'message',
           contains('needs an exercise title'),
+        ),
+      ),
+    );
+    expect(
+      () => importer.import('''
+{
+  "name": "plan",
+  "basic-plan": [{
+    "name": "day 1",
+    "exercises": [{
+      "type": "single",
+      "exercise": [{ "title": "squat", "sets": 3, "times": 8, "duration": null }]
+    }]
+  }]
+}
+'''),
+      throwsA(
+        isA<PlanImportException>().having(
+          (e) => e.message,
+          'message',
+          contains('needs an exercise object'),
         ),
       ),
     );
@@ -520,6 +492,78 @@ void main() {
           (e) => e.message,
           'message',
           contains('duration must be at least 1 second'),
+        ),
+      ),
+    );
+  });
+
+  test('rejects a blank name and a non-array common-plan', () {
+    expect(
+      () => importer.import('{"name":"   ","basic-plan":[]}'),
+      throwsA(
+        isA<PlanImportException>().having(
+          (e) => e.message,
+          'message',
+          contains('needs a name'),
+        ),
+      ),
+    );
+    expect(
+      () => importer.import('''
+{
+  "name": "plan",
+  "basic-plan": [{
+    "name": "day 1",
+    "exercises": [{
+      "type": "single",
+      "exercise": { "title": "squat", "sets": 3, "times": 8, "duration": null }
+    }]
+  }],
+  "common-plan": {}
+}
+'''),
+      throwsA(
+        isA<PlanImportException>().having(
+          (e) => e.message,
+          'message',
+          contains('not a JSON array'),
+        ),
+      ),
+    );
+    expect(
+      () => importer.import('''
+{
+  "name": "plan",
+  "basic-plan": [{
+    "name": "day 1",
+    "exercises": [{
+      "type": "single",
+      "exercise": { "title": "squat", "sets": 3, "times": 8, "duration": null }
+    }]
+  }],
+  "common-plan": [{ "name": "abs" }]
+}
+'''),
+      throwsA(
+        isA<PlanImportException>().having(
+          (e) => e.message,
+          'message',
+          contains('needs an exercises list'),
+        ),
+      ),
+    );
+    expect(
+      () => importer.import('''
+{
+  "name": "plan",
+  "basic-plan": ["not a day"]
+}
+'''),
+      throwsA(
+        isA<PlanImportException>().having(
+          (e) => e.message,
+          'message',
+          contains('not a JSON object'),
         ),
       ),
     );

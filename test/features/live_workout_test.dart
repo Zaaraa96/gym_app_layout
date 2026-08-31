@@ -7,6 +7,7 @@ import 'package:gym_app/common/app_routes.dart';
 import 'package:gym_app/data/isar_service.dart';
 import 'package:gym_app/data/models/models.dart';
 import 'package:gym_app/data/plan_repository.dart';
+import 'package:gym_app/data/session_lifecycle.dart';
 import 'package:gym_app/data/session_repository.dart';
 import 'package:gym_app/data/starter_plans.dart';
 import 'package:gym_app/features/workout/live_workout_page.dart';
@@ -122,7 +123,7 @@ void main() {
     await db(tester, () => repos.plans.save(plan));
     final session = await db(
       tester,
-      () => repos.sessions.start(
+      () => SessionLifecycle(repos.sessions).start(
         plan: plan,
         planDayId: 'day-1',
         startedAt: DateTime.utc(2026, 8, 28, 12),
@@ -230,8 +231,12 @@ void main() {
     await settle(tester);
 
     expect(find.text('Workout complete'), findsOneWidget);
-    expect(await db(tester, () => repos.sessions.inProgress()), isNull);
-    final completed = await db(tester, () => repos.sessions.lastCompleted());
+    final stored = await db(tester, () => repos.sessions.inProgress());
+    expect(stored, isNull);
+    final completed = await db(
+      tester,
+      () => repos.sessions.lastCompleted(),
+    );
     expect(completed!.status, SessionStatus.completed);
     expect(completed.exerciseLogs.single.sets, hasLength(1));
     expect(completed.exerciseLogs.single.difficulty, isNull);
@@ -262,7 +267,10 @@ void main() {
     expect(find.byKey(const Key('continue-banner')), findsNothing);
     expect(find.byKey(const Key('today-card')), findsOneWidget);
     expect(await db(tester, () => repos.sessions.inProgress()), isNull);
-    expect(await db(tester, () => repos.sessions.lastCompleted()), isNull);
+    expect(
+      await db(tester, () => repos.sessions.lastCompleted()),
+      isNull,
+    );
   });
 
   testWidgets('Keep going leaves the live session open', (tester) async {
@@ -271,7 +279,7 @@ void main() {
     await db(tester, () => repos.plans.save(plan));
     final session = await db(
       tester,
-      () => repos.sessions.start(
+      () => SessionLifecycle(repos.sessions).start(
         plan: plan,
         planDayId: 'day-1',
         startedAt: DateTime.utc(2026, 8, 28, 12),
@@ -293,8 +301,8 @@ void main() {
     await settle(tester);
 
     expect(find.text('Log set'), findsOneWidget);
-    final stored = await db(tester, () => repos.sessions.byId(session.id));
-    expect(stored!.status, SessionStatus.inProgress);
+    final stillLive = await db(tester, () => repos.sessions.byId(session.id));
+    expect(stillLive!.status, SessionStatus.inProgress);
   });
 
   testWidgets('a non-numeric weight is rejected before a set is written',
@@ -304,7 +312,7 @@ void main() {
     await db(tester, () => repos.plans.save(plan));
     final session = await db(
       tester,
-      () => repos.sessions.start(
+      () => SessionLifecycle(repos.sessions).start(
         plan: plan,
         planDayId: 'day-1',
         startedAt: DateTime.utc(2026, 8, 28, 12),
@@ -339,7 +347,7 @@ void main() {
     await db(tester, () => repos.plans.save(plan));
     final session = await db(
       tester,
-      () => repos.sessions.start(
+      () => SessionLifecycle(repos.sessions).start(
         plan: plan,
         planDayId: 'day-1',
         startedAt: DateTime.utc(2026, 8, 28, 12),
@@ -362,8 +370,8 @@ void main() {
     await settle(tester);
 
     expect(find.text('How hard was that? 1 easy · 5 hard'), findsOneWidget);
-    final stored = await db(tester, () => repos.sessions.byId(session.id));
-    expect(stored!.exerciseLogs.single.sets.single.durationSeconds, 30);
+    final held = await db(tester, () => repos.sessions.byId(session.id));
+    expect(held!.exerciseLogs.single.sets.single.durationSeconds, 30);
   });
 
   testWidgets('an empty session asks to end instead of showing a logger',
@@ -382,7 +390,7 @@ void main() {
     await db(tester, () => repos.plans.save(plan));
     final session = await db(
       tester,
-      () => repos.sessions.start(
+      () => SessionLifecycle(repos.sessions).start(
         plan: plan,
         planDayId: 'day-1',
         startedAt: now,

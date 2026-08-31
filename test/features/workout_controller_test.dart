@@ -2,9 +2,11 @@ import 'dart:io';
 
 import 'package:flutter_test/flutter_test.dart';
 import 'package:get/get.dart';
+import 'package:gym_app/data/isar_plan_repository.dart';
 import 'package:gym_app/data/isar_service.dart';
+import 'package:gym_app/data/isar_session_repository.dart';
 import 'package:gym_app/data/models/models.dart';
-import 'package:gym_app/data/plan_repository.dart';
+import 'package:gym_app/data/session_lifecycle.dart';
 import 'package:gym_app/data/session_repository.dart';
 import 'package:gym_app/features/workout/workout_controller.dart';
 
@@ -45,11 +47,11 @@ void main() {
       name: 'workout$instanceSeq',
     );
     Get.put(service);
-    final plans = PlanRepository(service.isar);
-    final sessions = SessionRepository(service.isar);
+    final plans = IsarPlanRepository(service.isar);
+    final sessions = IsarSessionRepository(service.isar);
     final stored = plan ?? _plan();
     await plans.save(stored);
-    final session = await sessions.start(
+    final session = await SessionLifecycle(sessions).start(
       plan: stored,
       planDayId: stored.days.first.dayId,
       includedCommonSectionIds: commons,
@@ -65,7 +67,8 @@ void main() {
     return (sessions: sessions, controller: controller);
   }
 
-  test('a superset alternates prescribed sets and forbids rating until both are done',
+  test(
+      'a superset alternates prescribed sets and forbids rating until both are done',
       () async {
     final started = await startController();
     final c = started.controller;
@@ -249,8 +252,7 @@ void main() {
     await expectLater(c.logTime(), throwsA(isA<WorkoutActionException>()));
   });
 
-  test('extras may be logged on a sibling in the same block, not a later one',
-      () async {
+  test('extras may be logged on a sibling in the same block', () async {
     final started = await startController();
     final c = started.controller;
     for (var i = 0; i < 6; i++) {

@@ -2,15 +2,17 @@ import 'dart:io';
 
 import 'package:flutter_test/flutter_test.dart';
 import 'package:get/get.dart';
+import 'package:gym_app/data/isar_plan_repository.dart';
 import 'package:gym_app/data/isar_service.dart';
+import 'package:gym_app/data/isar_session_repository.dart';
 import 'package:gym_app/data/models/models.dart';
 import 'package:gym_app/data/plan_repository.dart';
+import 'package:gym_app/data/session_lifecycle.dart';
 import 'package:gym_app/data/session_repository.dart';
 
 import '../helpers/isar_core.dart';
 
-/// Step 4: [SessionRepository] is the only writer for sessions, including
-/// month queries and the one in-progress lookup.
+/// [IsarSessionRepository] queries plus [SessionLifecycle] start/abandon rules.
 void main() {
   Directory? tempDir;
   var instanceSeq = 0;
@@ -34,16 +36,23 @@ void main() {
     }
   });
 
-  Future<({PlanRepository plans, SessionRepository sessions})> open() async {
+  Future<
+      ({
+        PlanRepository plans,
+        SessionRepository sessions,
+        SessionLifecycle lifecycle,
+      })> open() async {
     instanceSeq += 1;
     final service = await IsarService.init(
       directory: tempDir!.path,
       name: 'sessions$instanceSeq',
     );
     Get.put(service);
+    final sessions = IsarSessionRepository(service.isar);
     return (
-      plans: PlanRepository(service.isar),
-      sessions: SessionRepository(service.isar),
+      plans: IsarPlanRepository(service.isar),
+      sessions: sessions,
+      lifecycle: SessionLifecycle(sessions),
     );
   }
 
@@ -52,7 +61,7 @@ void main() {
     final plan = _plan();
     await db.plans.save(plan);
 
-    final session = await db.sessions.start(
+    final session = await db.lifecycle.start(
       plan: plan,
       planDayId: 'day-1',
       includedCommonSectionIds: const ['sec-abs'],
@@ -60,6 +69,9 @@ void main() {
     );
 
     expect(session.status, SessionStatus.inProgress);
+    expect(session.planId, plan.uuid);
+    expect(session.uuid, isNotEmpty);
+    expect(session.dirty, isTrue);
     expect(session.planTitleSnapshot, 'plan 1');
     expect(session.dayTitleSnapshot, 'day 1- 4sar');
     expect(session.includedCommonSectionIds, ['sec-abs']);
@@ -82,14 +94,16 @@ void main() {
 
     expect(await db.sessions.inProgress(), isNull);
 
-    final live = await db.sessions.start(
+    final live = await db.lifecycle.start(
       plan: plan,
       planDayId: 'day-1',
       startedAt: DateTime.utc(2026, 8, 15, 10),
     );
     expect((await db.sessions.inProgress())?.id, live.id);
+    expect((await db.lifecycle.resume())?.id, live.id);
 
-    await db.sessions.abandonInProgress(endedAt: DateTime.utc(2026, 8, 15, 11));
+    await db.lifecycle
+        .abandonInProgress(endedAt: DateTime.utc(2026, 8, 15, 11));
     expect(await db.sessions.inProgress(), isNull);
 
     final stored = await db.sessions.byId(live.id);
@@ -100,7 +114,8 @@ void main() {
     );
   });
 
-  test('forMonth keeps in-progress and completed, drops abandoned and other months',
+  test(
+      'forMonth keeps in-progress and completed, drops abandoned and other months',
       () async {
     final db = await open();
     final plan = _plan();
@@ -110,7 +125,7 @@ void main() {
       required DateTime startedAt,
       required SessionStatus status,
     }) async {
-      final session = await db.sessions.start(
+      final session = await db.lifecycle.start(
         plan: plan,
         planDayId: 'day-1',
         startedAt: startedAt,
@@ -123,10 +138,6 @@ void main() {
       return session;
     }
 
-    final inProgress = await add(
-      startedAt: DateTime.utc(2026, 8, 1, 8),
-      status: SessionStatus.inProgress,
-    );
     final completed = await add(
       startedAt: DateTime.utc(2026, 8, 20, 18),
       status: SessionStatus.completed,
@@ -143,6 +154,10 @@ void main() {
       startedAt: DateTime.utc(2026, 9, 1),
       status: SessionStatus.completed,
     );
+    final inProgress = await add(
+      startedAt: DateTime.utc(2026, 8, 1, 8),
+      status: SessionStatus.inProgress,
+    );
 
     final august = await db.sessions.forMonth(DateTime.utc(2026, 8));
     expect(august.map((s) => s.id), [inProgress.id, completed.id]);
@@ -153,7 +168,7 @@ void main() {
     final plan = _plan();
     await db.plans.save(plan);
 
-    final later = await db.sessions.start(
+    final later = await db.lifecycle.start(
       plan: plan,
       planDayId: 'day-1',
       startedAt: DateTime.utc(2026, 8, 15, 18),
@@ -162,7 +177,7 @@ void main() {
     later.endedAt = DateTime.utc(2026, 8, 15, 19);
     await db.sessions.save(later);
 
-    final earlier = await db.sessions.start(
+    final earlier = await db.lifecycle.start(
       plan: plan,
       planDayId: 'day-1',
       startedAt: DateTime.utc(2026, 8, 15, 7),
@@ -171,7 +186,7 @@ void main() {
     earlier.endedAt = DateTime.utc(2026, 8, 15, 8);
     await db.sessions.save(earlier);
 
-    await db.sessions.start(
+    await db.lifecycle.start(
       plan: plan,
       planDayId: 'day-1',
       startedAt: DateTime.utc(2026, 8, 16, 7),
@@ -181,12 +196,48 @@ void main() {
     expect(day.map((s) => s.id), [earlier.id, later.id]);
   });
 
+  test('forCalendarDay uses UTC midnight bounds and keeps live sessions',
+      () async {
+    final db = await open();
+    final plan = _plan();
+    await db.plans.save(plan);
+
+    final late = await db.lifecycle.start(
+      plan: plan,
+      planDayId: 'day-1',
+      startedAt: DateTime.utc(2026, 8, 15, 23, 59, 59),
+    );
+    late.status = SessionStatus.completed;
+    late.endedAt = DateTime.utc(2026, 8, 15, 23, 59, 59);
+    await db.sessions.save(late);
+
+    final nextMidnight = await db.lifecycle.start(
+      plan: plan,
+      planDayId: 'day-1',
+      startedAt: DateTime.utc(2026, 8, 16),
+    );
+    nextMidnight.status = SessionStatus.completed;
+    nextMidnight.endedAt = DateTime.utc(2026, 8, 16, 1);
+    await db.sessions.save(nextMidnight);
+
+    final live = await db.lifecycle.start(
+      plan: plan,
+      planDayId: 'day-1',
+      startedAt: DateTime.utc(2026, 8, 15),
+    );
+
+    final day = await db.sessions.forCalendarDay(
+      DateTime.utc(2026, 8, 15, 18, 30),
+    );
+    expect(day.map((s) => s.id), [live.id, late.id]);
+  });
+
   test('lastCompleted is the newest completed session for that plan', () async {
     final db = await open();
     final plan = _plan();
     await db.plans.save(plan);
 
-    final first = await db.sessions.start(
+    final first = await db.lifecycle.start(
       plan: plan,
       planDayId: 'day-1',
       startedAt: DateTime.utc(2026, 8, 10, 8),
@@ -195,7 +246,7 @@ void main() {
     first.endedAt = DateTime.utc(2026, 8, 10, 9);
     await db.sessions.save(first);
 
-    final second = await db.sessions.start(
+    final second = await db.lifecycle.start(
       plan: plan,
       planDayId: 'day-1',
       startedAt: DateTime.utc(2026, 8, 12, 8),
@@ -204,16 +255,28 @@ void main() {
     second.endedAt = DateTime.utc(2026, 8, 12, 9);
     await db.sessions.save(second);
 
-    await db.sessions.start(
+    await db.lifecycle.start(
       plan: plan,
       planDayId: 'day-1',
       startedAt: DateTime.utc(2026, 8, 13, 8),
     );
 
-    expect((await db.sessions.lastCompleted(planId: plan.id))?.id, second.id);
+    expect((await db.sessions.lastCompleted(planId: plan.uuid))?.id, second.id);
     expect(
-      (await db.sessions.completedNewestFirst(planId: plan.id)).map((s) => s.id),
+      (await db.sessions.completedNewestFirst(planId: plan.uuid))
+          .map((s) => s.id),
       [second.id, first.id],
+    );
+
+    await expectLater(
+      db.lifecycle.start(plan: plan, planDayId: 'day-1'),
+      throwsA(
+        isA<StateError>().having(
+          (e) => e.message,
+          'message',
+          contains('already in progress'),
+        ),
+      ),
     );
   });
 
@@ -223,7 +286,7 @@ void main() {
     await db.plans.save(plan);
 
     await expectLater(
-      db.sessions.start(plan: plan, planDayId: 'missing'),
+      db.lifecycle.start(plan: plan, planDayId: 'missing'),
       throwsA(
         isA<ArgumentError>().having(
           (e) => e.message,
@@ -240,7 +303,7 @@ void main() {
     final plan = _plan();
     await db.plans.save(plan);
 
-    final withoutCommons = await db.sessions.start(
+    final withoutCommons = await db.lifecycle.start(
       plan: plan,
       planDayId: 'day-1',
       startedAt: DateTime.utc(2026, 8, 15, 10),
@@ -254,7 +317,7 @@ void main() {
     withoutCommons.endedAt = DateTime.utc(2026, 8, 15, 11);
     await db.sessions.save(withoutCommons);
 
-    final withUnknown = await db.sessions.start(
+    final withUnknown = await db.lifecycle.start(
       plan: plan,
       planDayId: 'day-1',
       includedCommonSectionIds: const ['sec-abs', 'sec-missing'],
@@ -267,94 +330,44 @@ void main() {
     expect(withUnknown.includedCommonSectionIds, ['sec-abs', 'sec-missing']);
   });
 
-  test('forCalendarDay uses UTC midnight bounds and keeps live sessions',
-      () async {
+  test('completedNewestFirst without a plan id is what home uses', () async {
     final db = await open();
     final plan = _plan();
     await db.plans.save(plan);
-
-    final live = await db.sessions.start(
-      plan: plan,
-      planDayId: 'day-1',
-      startedAt: DateTime.utc(2026, 8, 15),
-    );
-    final late = await db.sessions.start(
-      plan: plan,
-      planDayId: 'day-1',
-      startedAt: DateTime.utc(2026, 8, 15, 23, 59, 59),
-    );
-    late.status = SessionStatus.completed;
-    late.endedAt = DateTime.utc(2026, 8, 15, 23, 59, 59);
-    await db.sessions.save(late);
-
-    final nextMidnight = await db.sessions.start(
-      plan: plan,
-      planDayId: 'day-1',
-      startedAt: DateTime.utc(2026, 8, 16),
-    );
-    nextMidnight.status = SessionStatus.completed;
-    nextMidnight.endedAt = DateTime.utc(2026, 8, 16, 1);
-    await db.sessions.save(nextMidnight);
-
-    final day = await db.sessions.forCalendarDay(
-      DateTime.utc(2026, 8, 15, 18, 30),
-    );
-    expect(day.map((s) => s.id), [live.id, late.id]);
-  });
-
-  test('completedNewestFirst without a plan id is global newest first',
-      () async {
-    final db = await open();
-    final planA = _plan();
-    await db.plans.save(planA);
-    final planB = WorkoutPlan.create(
-      title: 'other',
+    final other = WorkoutPlan.create(
+      title: 'plan 2',
       source: PlanSource.created,
       createdAt: DateTime.utc(2026, 8, 1),
-      updatedAt: DateTime.utc(2026, 8, 1),
-      days: [
-        PlanDay.create(
-          dayId: 'day-1',
-          title: 'other day',
-          blocks: [
-            ExerciseBlock.create(
-              blockId: 'block-other',
-              kind: BlockKind.single,
-              exercises: [
-                ExercisePrescription.create(
-                  prescriptionId: 'p-other',
-                  title: 'kang squat',
-                  prescribedSets: 3,
-                  prescribedReps: 12,
-                ),
-              ],
-            ),
-          ],
-        ),
-      ],
+      updatedAt: DateTime.utc(2026, 8, 2),
+      days: plan.days,
     );
-    await db.plans.save(planB);
+    await db.plans.save(other);
 
-    final older = await db.sessions.start(
-      plan: planA,
-      planDayId: 'day-1',
-      startedAt: DateTime.utc(2026, 8, 10, 8),
+    Future<WorkoutSession> complete({
+      required WorkoutPlan onPlan,
+      required DateTime at,
+    }) async {
+      final session = await db.lifecycle.start(
+        plan: onPlan,
+        planDayId: 'day-1',
+        startedAt: at,
+      );
+      session.status = SessionStatus.completed;
+      session.endedAt = at.add(const Duration(hours: 1));
+      await db.sessions.save(session);
+      return session;
+    }
+
+    final older = await complete(
+      onPlan: plan,
+      at: DateTime.utc(2026, 8, 10, 8),
     );
-    older.status = SessionStatus.completed;
-    older.endedAt = DateTime.utc(2026, 8, 10, 9);
-    await db.sessions.save(older);
-
-    final newer = await db.sessions.start(
-      plan: planB,
-      planDayId: 'day-1',
-      startedAt: DateTime.utc(2026, 8, 12, 8),
+    final newer = await complete(
+      onPlan: other,
+      at: DateTime.utc(2026, 8, 12, 8),
     );
-    newer.status = SessionStatus.completed;
-    newer.endedAt = DateTime.utc(2026, 8, 12, 9);
-    await db.sessions.save(newer);
-
-    await db.sessions.start(
-      plan: planA,
+    await db.lifecycle.start(
+      plan: plan,
       planDayId: 'day-1',
       startedAt: DateTime.utc(2026, 8, 13, 8),
     );
@@ -364,6 +377,68 @@ void main() {
       [newer.id, older.id],
     );
     expect((await db.sessions.lastCompleted())?.id, newer.id);
+  });
+
+  test('abandonInProgress is a no-op when nothing is live', () async {
+    final db = await open();
+    await db.lifecycle.abandonInProgress(
+      endedAt: DateTime.utc(2026, 8, 15, 11),
+    );
+    expect(await db.sessions.inProgress(), isNull);
+  });
+
+  test('exerciseLogsForStart copies day blocks then included commons', () {
+    final plan = _plan();
+    final empty = exerciseLogsForStart(
+      day: plan.days.single,
+      commonSections: plan.commonSections,
+      includedCommonSectionIds: const [],
+    );
+    expect(empty.map((log) => log.exerciseTitle), ['kang squat', 'leg extension']);
+    expect(empty.every((log) => log.fromCommonSection == false), isTrue);
+
+    final withAbs = exerciseLogsForStart(
+      day: plan.days.single,
+      commonSections: plan.commonSections,
+      includedCommonSectionIds: const ['sec-missing', 'sec-abs'],
+    );
+    expect(
+      withAbs.map((log) => log.exerciseTitle),
+      ['kang squat', 'leg extension', 'shoot out'],
+    );
+    expect(withAbs.last.fromCommonSection, isTrue);
+    expect(withAbs.last.prescribedDurationSeconds, 30);
+    expect(withAbs.last.exerciseTitleKey, 'shoot out');
+  });
+
+  test('save marks dirty and bumps updatedAt; putSynced clears dirty', () async {
+    final db = await open();
+    final session = WorkoutSession.create(
+      uuid: '',
+      planId: 'plan-uuid',
+      planDayId: 'day-1',
+      planTitleSnapshot: 'plan 1',
+      dayTitleSnapshot: 'day 1',
+      startedAt: DateTime.utc(2026, 8, 15, 10),
+      updatedAt: DateTime.utc(2020, 1, 1),
+      status: SessionStatus.completed,
+      dirty: false,
+    );
+
+    await db.sessions.save(session);
+    expect(session.uuid, isNotEmpty);
+    expect(session.dirty, isTrue);
+    expect(session.updatedAt.isAfter(DateTime.utc(2020, 1, 1)), isTrue);
+    expect((await db.sessions.byUuid(session.uuid))?.id, session.id);
+    expect((await db.sessions.unsynced()).map((row) => row.id), [session.id]);
+
+    final frozen = DateTime.utc(2026, 8, 20, 12);
+    session.updatedAt = frozen;
+    await db.sessions.putSynced(session);
+    expect(session.dirty, isFalse);
+    expect(session.updatedAt.isAtSameMomentAs(frozen), isTrue);
+    expect(await db.sessions.unsynced(), isEmpty);
+    expect((await db.sessions.byId(session.id))!.dirty, isFalse);
   });
 }
 
