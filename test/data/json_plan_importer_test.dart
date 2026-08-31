@@ -412,6 +412,28 @@ void main() {
         ),
       ),
     );
+    expect(
+      () => importer.import('''
+{
+  "name": "plan",
+  "basic-plan": [{
+    "name": "day 1",
+    "exercises": [{
+      "type": "single",
+      "exercise": { "title": "squat", "sets": 3, "times": 8, "duration": null }
+    }]
+  }],
+  "common-plan": ["abs"]
+}
+'''),
+      throwsA(
+        isA<PlanImportException>().having(
+          (e) => e.message,
+          'message',
+          contains('not a JSON object'),
+        ),
+      ),
+    );
   });
 
   test('rejects missing structure with readable, UI-safe messages', () {
@@ -625,6 +647,53 @@ void main() {
           contains('not a JSON array'),
         ),
       ),
+    );
+  });
+
+  test('trims titles and leaves unmatched exercises without a preview asset',
+      () {
+    final plan = importer.import('''
+{
+  "name": "  Imported Plan  ",
+  "basic-plan": [{
+    "name": "  Day One  ",
+    "exercises": [{
+      "type": "single",
+      "exercise": {
+        "title": "  Mystery Move  ",
+        "sets": 2,
+        "times": 8,
+        "duration": null
+      }
+    }]
+  }],
+  "common-plan": [{
+    "name": "  Abs  ",
+    "exercises": [{
+      "type": "single",
+      "exercise": {
+        "title": "  plank  ",
+        "sets": 1,
+        "times": null,
+        "duration": 30
+      }
+    }]
+  }]
+}
+''');
+
+    expect(plan.title, 'Imported Plan');
+    expect(plan.days.single.title, 'Day One');
+    expect(plan.days.single.blocks.single.exercises.single.title, 'Mystery Move');
+    expect(plan.days.single.blocks.single.svgPath, isNull);
+    expect(plan.commonSections.single.title, 'Abs');
+    expect(
+      plan.commonSections.single.blocks.single.exercises.single.title,
+      'plank',
+    );
+    expect(
+      plan.commonSections.single.blocks.single.svgPath,
+      'assets/image/exercises/plank.png',
     );
   });
 

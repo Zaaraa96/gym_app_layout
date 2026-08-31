@@ -862,4 +862,155 @@ void main() {
     final stored = await db(tester, plans.all);
     expect(stored.single.commonSections, isEmpty);
   });
+
+  testWidgets('editing an exercise keeps its prescription id and updates the title',
+      (tester) async {
+    final plans = await bootstrap(tester);
+    final now = DateTime.utc(2026, 8, 24, 12);
+    await db(
+      tester,
+      () => plans.save(
+        WorkoutPlan.create(
+          title: 'Push week',
+          source: PlanSource.created,
+          createdAt: now,
+          updatedAt: now,
+          days: [
+            PlanDay.create(
+              dayId: 'day-1',
+              title: 'Day 1',
+              blocks: [
+                ExerciseBlock.create(
+                  blockId: 'block-keep',
+                  kind: BlockKind.single,
+                  exercises: [
+                    ExercisePrescription.create(
+                      prescriptionId: 'p-keep',
+                      title: 'bench press',
+                      prescribedSets: 3,
+                      prescribedReps: 8,
+                    ),
+                  ],
+                ),
+              ],
+            ),
+          ],
+        ),
+      ),
+    );
+
+    await launch(tester, AppRoutes.home);
+    await tester.tap(find.text('Push week'));
+    await tester.pump();
+    await settle(tester);
+    await tester.tap(find.byKey(const Key('day-card-day-1')));
+    await tester.pump();
+    await settle(tester);
+    await tester.tap(find.text('Edit day'));
+    await tester.pump();
+    await settle(tester);
+
+    await tester.tap(find.text('3 × 8 bench press'));
+    await tester.pump();
+    await tester.enterText(
+      find.descendant(
+        of: find.byType(AlertDialog),
+        matching: find.byType(TextFormField),
+      ).first,
+      'incline bench',
+    );
+    await tester.enterText(
+      find.descendant(
+        of: find.byType(AlertDialog),
+        matching: find.widgetWithText(TextFormField, 'sets'),
+      ),
+      '4',
+    );
+    await tester.tap(find.text('Save exercise'));
+    await tester.pump();
+    await settle(tester);
+
+    expect(find.text('4 × 8 incline bench'), findsOneWidget);
+    expect(find.text('3 × 8 bench press'), findsNothing);
+
+    final stored = await db(tester, plans.all);
+    final exercise = stored.single.days.single.blocks.single.exercises.single;
+    expect(exercise.prescriptionId, 'p-keep');
+    expect(exercise.title, 'incline bench');
+    expect(exercise.prescribedSets, 4);
+    expect(exercise.prescribedReps, 8);
+  });
+
+  testWidgets('a blank add-day title falls back to Day N', (tester) async {
+    final plans = await bootstrap(tester);
+    await db(tester, () => plans.save(samplePlan()));
+    await launch(tester, AppRoutes.home);
+
+    await tester.tap(find.text('Push week'));
+    await tester.pump();
+    await settle(tester);
+
+    await tester.tap(find.byKey(const Key('add-day')));
+    await tester.pump();
+    await tester.enterText(
+      find.descendant(
+        of: find.byType(AlertDialog),
+        matching: find.byType(TextFormField),
+      ).first,
+      '   ',
+    );
+    await tester.tap(find.text('Save day'));
+    await tester.pump();
+    await settle(tester);
+
+    expect(Get.currentRoute, AppRoutes.editDay);
+    expect(find.text('Day 2'), findsWidgets);
+
+    await tester.pageBack();
+    await tester.pump();
+    await settle(tester);
+
+    final stored = await db(tester, plans.all);
+    expect(stored.single.days, hasLength(2));
+    expect(stored.single.days.last.title, 'Day 2');
+  });
+
+  testWidgets('a superset with a blank second name stays in the dialog',
+      (tester) async {
+    final plans = await bootstrap(tester);
+    await db(tester, () => plans.save(samplePlan()));
+    await launch(tester, AppRoutes.home);
+
+    await tester.tap(find.text('Push week'));
+    await tester.pump();
+    await settle(tester);
+    await tester.tap(find.byKey(const Key('day-card-day-1')));
+    await tester.pump();
+    await settle(tester);
+    await tester.tap(find.text('Edit day'));
+    await tester.pump();
+    await settle(tester);
+
+    await tester.tap(find.text('Add exercise'));
+    await tester.pump();
+    await tester.enterText(
+      find.descendant(
+        of: find.byType(AlertDialog),
+        matching: find.byType(TextFormField),
+      ).first,
+      'bench press',
+    );
+    await tester.tap(find.byType(Switch));
+    await tester.pump();
+    await tester.tap(find.text('Save exercise'));
+    await tester.pump();
+
+    expect(
+      find.text('Add a name for each exercise in the superset'),
+      findsOneWidget,
+    );
+    expect(find.text('Save exercise'), findsOneWidget);
+    final stored = await db(tester, plans.all);
+    expect(stored.single.days.single.blocks, isEmpty);
+  });
 }
