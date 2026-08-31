@@ -138,6 +138,30 @@ void main() {
     expect((await sessions.byId(3))!.dirty, isTrue);
   });
 
+  test('pull inserts a remote-only session and keeps it clean', () async {
+    final sessions = _MemorySessions();
+    final remoteSessions = _MemoryRemoteSessions();
+    remoteSessions.store['sess-2'] = _session(
+      uuid: 'sess-2',
+      planId: 'plan-1',
+      title: 'from-server',
+      updatedAt: DateTime.utc(2026, 8, 21),
+    );
+
+    await SyncService(
+      plans: _MemoryPlans(),
+      sessions: sessions,
+      remotePlans: _MemoryRemotePlans(),
+      remoteSessions: remoteSessions,
+    ).pull();
+
+    final stored = await sessions.byUuid('sess-2');
+    expect(stored, isNotNull);
+    expect(stored!.planTitleSnapshot, 'from-server');
+    expect(stored.dirty, isFalse);
+    expect(stored.id, isNot(0));
+  });
+
   test('push flushes dirty rows and clears the dirty flag', () async {
     final plans = _MemoryPlans();
     final sessions = _MemorySessions();
