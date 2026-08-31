@@ -185,6 +185,17 @@ void main() {
     expect(
       formatSetLine(
         SetLog.create(
+          setIndex: 3,
+          completedAt: DateTime.utc(2026, 8, 1),
+          reps: 8,
+          weightKg: 0,
+        ),
+      ),
+      'Set 3  0 kg × 8',
+    );
+    expect(
+      formatSetLine(
+        SetLog.create(
           setIndex: 1,
           completedAt: DateTime.utc(2026, 8, 1),
           durationSeconds: 35,

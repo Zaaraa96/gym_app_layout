@@ -184,6 +184,37 @@ void main() {
     expect(Get.currentRoute, AppRoutes.newPlan);
   });
 
+  testWidgets(
+      'empty home can install the 2-day beginner plan and land on today',
+      (tester) async {
+    final plans = await bootstrap(tester);
+    await launch(tester, AppRoutes.home);
+
+    await tester.tap(find.text('Start with a beginner plan'));
+    await tester.pump();
+    await settle(tester);
+    expect(Get.currentRoute, AppRoutes.starters);
+    expect(find.text('Beginner 2-day'), findsOneWidget);
+
+    await tester.tap(find.byKey(const Key('use-starter-beginner-two-day')));
+    await tester.pump();
+    await settle(tester);
+
+    expect(Get.currentRoute, AppRoutes.home);
+    expect(find.byKey(const Key('today-card')), findsOneWidget);
+    expect(find.text('Today: Day A — Squat and push'), findsOneWidget);
+    expect(find.text('Beginner 2-day'), findsWidgets);
+    expect(
+      find.text('Start with Bodyweight squat, then log what you did.'),
+      findsOneWidget,
+    );
+    expect(await db(tester, plans.count), 1);
+    final stored = await db(tester, plans.all);
+    expect(stored.single.source, PlanSource.imported);
+    expect(stored.single.days, hasLength(2));
+    expect(stored.single.commonSections, isEmpty);
+  });
+
   testWidgets('the month tab is reachable from the bottom bar', (tester) async {
     final plans = await bootstrap(tester);
     await db(tester, () => plans.save(_plan('plan 1', dayCount: 2)));

@@ -795,6 +795,172 @@ void main() {
     expect(stored.single.days.single.summary, 'chest');
   });
 
+  testWidgets(
+      'canceling add-day and a blank rename leave the stored plan unchanged',
+      (tester) async {
+    final plans = await bootstrap(tester);
+    await db(tester, () => plans.save(samplePlan()));
+    await launch(tester, AppRoutes.home);
+
+    await tester.tap(find.text('Push week'));
+    await tester.pump();
+    await settle(tester);
+
+    await tester.tap(find.byKey(const Key('add-day')));
+    await tester.pump();
+    expect(find.byType(AlertDialog), findsOneWidget);
+    await tester.enterText(
+      find.descendant(
+        of: find.byType(AlertDialog),
+        matching: find.byType(TextFormField),
+      ).first,
+      'Should not save',
+    );
+    await tester.tap(find.widgetWithText(TextButton, 'Cancel'));
+    await tester.pump();
+    await settle(tester);
+
+    expect(find.text('Should not save'), findsNothing);
+    expect(find.text('Day 1'), findsOneWidget);
+
+    await tester.tap(find.byTooltip('Rename plan'));
+    await tester.pump();
+    await tester.enterText(
+      find.descendant(
+        of: find.byType(AlertDialog),
+        matching: find.byType(TextFormField),
+      ),
+      '   ',
+    );
+    await tester.tap(find.widgetWithText(FilledButton, 'Save'));
+    await tester.pump();
+    await settle(tester);
+
+    expect(find.text('Push week'), findsWidgets);
+    final stored = await db(tester, plans.all);
+    expect(stored.single.title, 'Push week');
+    expect(stored.single.days, hasLength(1));
+    expect(stored.single.days.single.title, 'Day 1');
+  });
+
+  testWidgets(
+      'canceling add-section and delete-section leaves commons in place',
+      (tester) async {
+    final plans = await bootstrap(tester);
+    final now = DateTime.utc(2026, 8, 24, 12);
+    await db(
+      tester,
+      () => plans.save(
+        WorkoutPlan.create(
+          title: 'Push week',
+          source: PlanSource.created,
+          createdAt: now,
+          updatedAt: now,
+          days: [
+            PlanDay.create(dayId: 'day-1', title: 'Day 1'),
+          ],
+          commonSections: [
+            CommonSection.create(sectionId: 'sec-abs', title: 'abs'),
+          ],
+        ),
+      ),
+    );
+    await launch(tester, AppRoutes.home);
+    await tester.tap(find.text('Push week'));
+    await tester.pump();
+    await settle(tester);
+
+    await tester.tap(find.text('Add section'));
+    await tester.pump();
+    await tester.enterText(
+      find.descendant(
+        of: find.byType(AlertDialog),
+        matching: find.byType(TextFormField),
+      ),
+      'mobility',
+    );
+    await tester.tap(find.widgetWithText(TextButton, 'Cancel'));
+    await tester.pump();
+    await settle(tester);
+
+    expect(find.text('mobility'), findsNothing);
+    expect(find.byKey(const Key('common-section-sec-abs')), findsOneWidget);
+
+    await tester.tap(find.byTooltip('Delete section'));
+    await tester.pump();
+    await tester.tap(find.widgetWithText(TextButton, 'Cancel'));
+    await tester.pump();
+    await settle(tester);
+
+    expect(find.byKey(const Key('common-section-sec-abs')), findsOneWidget);
+    final stored = await db(tester, plans.all);
+    expect(stored.single.commonSections, hasLength(1));
+    expect(stored.single.commonSections.single.sectionId, 'sec-abs');
+    expect(stored.single.commonSections.single.title, 'abs');
+  });
+
+  testWidgets(
+      'an invalid preview URL stays in the picker; a valid URL is stored as network media',
+      (tester) async {
+    final plans = await bootstrap(tester);
+    await db(tester, () => plans.save(samplePlan()));
+    await launch(tester, AppRoutes.home);
+
+    await tester.tap(find.text('Push week'));
+    await tester.pump();
+    await settle(tester);
+    await tester.tap(find.byKey(const Key('day-card-day-1')));
+    await tester.pump();
+    await settle(tester);
+    await tester.tap(find.text('Edit day'));
+    await tester.pump();
+    await settle(tester);
+
+    await tester.tap(find.text('Add exercise'));
+    await tester.pump();
+    await tester.tap(find.byKey(const Key('exercise-media-picker')));
+    await tester.pumpAndSettle();
+
+    await tester.enterText(find.widgetWithText(TextField, 'Network URL'), '');
+    await tester.tap(find.byTooltip('Use URL'));
+    await tester.pump();
+    expect(find.text('Enter an image or video URL'), findsOneWidget);
+
+    await tester.enterText(
+      find.widgetWithText(TextField, 'Network URL'),
+      'not-a-url',
+    );
+    await tester.tap(find.byTooltip('Use URL'));
+    await tester.pump();
+    expect(find.text('Enter a valid http or https URL'), findsOneWidget);
+    expect(find.text('Add exercise'), findsOneWidget);
+
+    await tester.enterText(
+      find.widgetWithText(TextField, 'Network URL'),
+      'https://cdn.example.com/form.gif',
+    );
+    await tester.tap(find.byTooltip('Use URL'));
+    await tester.pumpAndSettle();
+
+    await tester.enterText(
+      find.descendant(
+        of: find.byType(AlertDialog),
+        matching: find.byType(TextFormField),
+      ).first,
+      'custom hold',
+    );
+    await tester.tap(find.text('Save exercise'));
+    await tester.pump();
+    await settle(tester);
+
+    final stored = await db(tester, plans.all);
+    final block = stored.single.days.single.blocks.single;
+    expect(block.mediaUri, 'https://cdn.example.com/form.gif');
+    expect(block.mediaSource, ExerciseMediaSource.network);
+    expect(block.mediaKind, ExerciseMediaKind.gif);
+    expect(block.svgPath, isNull);
+  });
+
   testWidgets('a missing plan says it is no longer here', (tester) async {
     await bootstrap(tester);
 

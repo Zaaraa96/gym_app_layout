@@ -14,6 +14,7 @@ void main() {
         PlanDay.create(
           dayId: 'day-1',
           title: 'day 1',
+          summary: 'quads and core',
           blocks: [
             ExerciseBlock.create(
               blockId: 'block-1',
@@ -41,6 +42,7 @@ void main() {
     final restored = PlanDto.fromJson(json).toEntity();
     expect(restored.uuid, 'plan-uuid');
     expect(restored.title, 'plan 1');
+    expect(restored.days.single.summary, 'quads and core');
     expect(restored.days.single.blocks.single.exercises.single.title, 'squat');
   });
 
@@ -86,6 +88,7 @@ void main() {
     }).toEntity();
 
     expect(restored.source, PlanSource.created);
+    expect(restored.days.single.summary, '');
     expect(restored.days.single.blocks.single.kind, BlockKind.single);
     expect(
       restored.days.single.blocks.single.mediaSource,

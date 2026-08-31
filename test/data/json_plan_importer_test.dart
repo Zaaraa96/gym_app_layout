@@ -628,6 +628,72 @@ void main() {
     );
   });
 
+  test('an empty common-plan array is valid and does not invent sections', () {
+    final plan = importer.import('''
+{
+  "name": "solo",
+  "basic-plan": [{
+    "name": "day 1",
+    "exercises": [{
+      "type": "single",
+      "exercise": { "title": "squat", "sets": 3, "times": 8, "duration": null }
+    }]
+  }],
+  "common-plan": []
+}
+''');
+    expect(plan.commonSections, isEmpty);
+    expect(plan.days, hasLength(1));
+  });
+
+  test('rejects a super-set whose exercise field is an object, not a list', () {
+    expect(
+      () => importer.import('''
+{
+  "name": "plan",
+  "basic-plan": [{
+    "name": "day 1",
+    "exercises": [{
+      "type": "super-set",
+      "exercise": { "title": "squat", "sets": 3, "times": 8, "duration": null }
+    }]
+  }]
+}
+'''),
+      throwsA(
+        isA<PlanImportException>().having(
+          (e) => e.message,
+          'message',
+          contains('needs a list of exercises'),
+        ),
+      ),
+    );
+  });
+
+  test('rejects an exercise that omits sets', () {
+    expect(
+      () => importer.import('''
+{
+  "name": "plan",
+  "basic-plan": [{
+    "name": "day 1",
+    "exercises": [{
+      "type": "single",
+      "exercise": { "title": "squat", "times": 8, "duration": null }
+    }]
+  }]
+}
+'''),
+      throwsA(
+        isA<PlanImportException>().having(
+          (e) => e.message,
+          'message',
+          contains('at least 1 set'),
+        ),
+      ),
+    );
+  });
+
   test('rejects string or boolean load values and a non-object day', () {
     expect(
       () => importer.import('''
