@@ -291,6 +291,20 @@ void main() {
     );
     expect(find.text(formatMonthTitle(next)), findsOneWidget);
     expect(find.text('No workouts this month.'), findsOneWidget);
+
+    await tester.tap(find.byKey(const Key('month-prev')));
+    await tester.pump();
+    await settle(tester);
+    await tester.tap(find.byKey(const Key('month-prev')));
+    await tester.pump();
+    await settle(tester);
+
+    final previous = DateTime.utc(
+      DateTime.now().toUtc().year,
+      DateTime.now().toUtc().month - 1,
+    );
+    expect(find.text(formatMonthTitle(previous)), findsOneWidget);
+    expect(find.text('No workouts this month.'), findsOneWidget);
   });
 
   testWidgets('a missing session log shows that it is gone', (tester) async {

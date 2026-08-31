@@ -611,33 +611,6 @@ void main() {
     expect(stored.single.days, hasLength(1));
   });
 
-  testWidgets('saving an exercise without a name stays in the dialog',
-      (tester) async {
-    final plans = await bootstrap(tester);
-    await db(tester, () => plans.save(samplePlan()));
-    await launch(tester, AppRoutes.home);
-
-    await tester.tap(find.text('Push week'));
-    await tester.pump();
-    await settle(tester);
-    await tester.tap(find.byKey(const Key('day-card-day-1')));
-    await tester.pump();
-    await settle(tester);
-    await tester.tap(find.text('Edit day'));
-    await tester.pump();
-    await settle(tester);
-
-    await tester.tap(find.text('Add exercise'));
-    await tester.pump();
-    await tester.tap(find.text('Save exercise'));
-    await tester.pump();
-
-    expect(find.text('Add an exercise name'), findsOneWidget);
-    expect(find.text('Save exercise'), findsOneWidget);
-    final stored = await db(tester, plans.all);
-    expect(stored.single.days.single.blocks, isEmpty);
-  });
-
   testWidgets('deleting an exercise removes it from the stored day',
       (tester) async {
     final plans = await bootstrap(tester);

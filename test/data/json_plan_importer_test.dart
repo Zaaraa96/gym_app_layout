@@ -731,6 +731,43 @@ void main() {
         ),
       ),
     );
+    expect(
+      () => importer.import('''
+{
+  "name": "plan",
+  "basic-plan": [{
+    "name": "day 1",
+    "exercises": [{
+      "type": "single",
+      "exercise": { "title": "squat", "sets": 3, "times": 8, "duration": null }
+    }]
+  }],
+  "common-plan": [{ "name": "abs" }]
+}
+'''),
+      throwsA(
+        isA<PlanImportException>().having(
+          (e) => e.message,
+          'message',
+          contains('needs an exercises list'),
+        ),
+      ),
+    );
+    expect(
+      () => importer.import('''
+{
+  "name": "plan",
+  "basic-plan": ["not a day"]
+}
+'''),
+      throwsA(
+        isA<PlanImportException>().having(
+          (e) => e.message,
+          'message',
+          contains('not a JSON object'),
+        ),
+      ),
+    );
   });
 
   test('trims titles and leaves unmatched exercises without a preview asset',
