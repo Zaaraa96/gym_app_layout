@@ -79,4 +79,38 @@ void main() {
       );
     }
   });
+
+  test('routes and pages key plans and sessions by uuid, not int row ids', () {
+    for (final relative in [
+      'lib/main.dart',
+      'lib/features/plans/plan_page.dart',
+      'lib/features/plans/day_preview_page.dart',
+      'lib/features/plans/day_editor_page.dart',
+      'lib/features/plans/plans_home_page.dart',
+      'lib/features/plans/add_plan_page.dart',
+      'lib/features/plans/import_preview_page.dart',
+      'lib/features/workout/start_workout.dart',
+      'lib/features/workout/live_workout_page.dart',
+      'lib/features/workout/workout_controller.dart',
+      'lib/features/progress/session_log_page.dart',
+      'lib/features/progress/month_tab.dart',
+    ]) {
+      final source = File(relative).readAsStringSync();
+      expect(
+        source.contains('Get.arguments as int'),
+        isFalse,
+        reason: '$relative must not pass Isar row ids through routes',
+      );
+      expect(
+        source.contains('final int planId'),
+        isFalse,
+        reason: '$relative must not take an int planId',
+      );
+      expect(
+        source.contains('final int sessionId'),
+        isFalse,
+        reason: '$relative must not take an int sessionId',
+      );
+    }
+  });
 }

@@ -128,7 +128,7 @@ void main() {
     );
 
     await tester.pumpWidget(
-      GetMaterialApp(home: LiveWorkoutPage(sessionId: session.id)),
+      GetMaterialApp(home: LiveWorkoutPage(sessionId: session.uuid)),
     );
     await settle(tester);
 
@@ -168,7 +168,7 @@ void main() {
     );
 
     await tester.pumpWidget(
-      GetMaterialApp(home: LiveWorkoutPage(sessionId: session.id)),
+      GetMaterialApp(home: LiveWorkoutPage(sessionId: session.uuid)),
     );
     await settle(tester);
 
@@ -357,7 +357,7 @@ void main() {
       await db(tester, () => repos.sessions.save(session));
 
       await tester.pumpWidget(
-        GetMaterialApp(home: LiveWorkoutPage(sessionId: session.id)),
+        GetMaterialApp(home: LiveWorkoutPage(sessionId: session.uuid)),
       );
       await settle(tester);
 
@@ -387,7 +387,7 @@ void main() {
       );
 
       await tester.pumpWidget(
-        GetMaterialApp(home: LiveWorkoutPage(sessionId: session.id)),
+        GetMaterialApp(home: LiveWorkoutPage(sessionId: session.uuid)),
       );
       await settle(tester);
 
@@ -428,7 +428,7 @@ void main() {
 
     await tester.pumpWidget(
       GetMaterialApp(
-        home: LiveWorkoutPage(sessionId: session.id),
+        home: LiveWorkoutPage(sessionId: session.uuid),
       ),
     );
     await settle(tester);
@@ -473,7 +473,7 @@ void main() {
 
     await tester.pumpWidget(
       GetMaterialApp(
-        home: LiveWorkoutPage(sessionId: session.id),
+        home: LiveWorkoutPage(sessionId: session.uuid),
       ),
     );
     await settle(tester);
@@ -504,7 +504,7 @@ void main() {
       );
 
       await tester.pumpWidget(
-        GetMaterialApp(home: LiveWorkoutPage(sessionId: session.id)),
+        GetMaterialApp(home: LiveWorkoutPage(sessionId: session.uuid)),
       );
       await settle(tester);
 
@@ -575,7 +575,7 @@ void main() {
       );
 
       await tester.pumpWidget(
-        GetMaterialApp(home: LiveWorkoutPage(sessionId: session.id)),
+        GetMaterialApp(home: LiveWorkoutPage(sessionId: session.uuid)),
       );
       await settle(tester);
 
@@ -608,7 +608,7 @@ void main() {
     );
 
     await tester.pumpWidget(
-      GetMaterialApp(home: LiveWorkoutPage(sessionId: session.id)),
+      GetMaterialApp(home: LiveWorkoutPage(sessionId: session.uuid)),
     );
     await settle(tester);
 
@@ -639,7 +639,7 @@ void main() {
     );
 
     await tester.pumpWidget(
-      GetMaterialApp(home: LiveWorkoutPage(sessionId: session.id)),
+      GetMaterialApp(home: LiveWorkoutPage(sessionId: session.uuid)),
     );
     await settle(tester);
 
@@ -673,7 +673,7 @@ void main() {
     );
 
     await tester.pumpWidget(
-      GetMaterialApp(home: LiveWorkoutPage(sessionId: session.id)),
+      GetMaterialApp(home: LiveWorkoutPage(sessionId: session.uuid)),
     );
     await settle(tester);
 
@@ -714,7 +714,7 @@ void main() {
     );
 
     await tester.pumpWidget(
-      GetMaterialApp(home: LiveWorkoutPage(sessionId: session.id)),
+      GetMaterialApp(home: LiveWorkoutPage(sessionId: session.uuid)),
     );
     await settle(tester);
 
@@ -736,7 +736,7 @@ void main() {
     await bootstrap(tester);
 
     await tester.pumpWidget(
-      const GetMaterialApp(home: LiveWorkoutPage(sessionId: 999999)),
+      const GetMaterialApp(home: LiveWorkoutPage(sessionId: 'missing-session')),
     );
     await settle(tester);
 
@@ -763,7 +763,7 @@ void main() {
     );
 
     await tester.pumpWidget(
-      GetMaterialApp(home: LiveWorkoutPage(sessionId: session.id)),
+      GetMaterialApp(home: LiveWorkoutPage(sessionId: session.uuid)),
     );
     await settle(tester);
 
@@ -801,7 +801,7 @@ void main() {
     );
 
     await tester.pumpWidget(
-      GetMaterialApp(home: LiveWorkoutPage(sessionId: session.id)),
+      GetMaterialApp(home: LiveWorkoutPage(sessionId: session.uuid)),
     );
     await settle(tester);
 
@@ -828,7 +828,7 @@ void main() {
 
     await tester.pumpWidget(
       GetMaterialApp(
-        home: LiveWorkoutPage(sessionId: session.id),
+        home: LiveWorkoutPage(sessionId: session.uuid),
       ),
     );
     await settle(tester);
@@ -872,7 +872,7 @@ void main() {
       );
 
       await tester.pumpWidget(
-        GetMaterialApp(home: LiveWorkoutPage(sessionId: session.id)),
+        GetMaterialApp(home: LiveWorkoutPage(sessionId: session.uuid)),
       );
       await settle(tester);
 
@@ -995,7 +995,7 @@ void main() {
     });
 
     await tester.pumpWidget(
-      GetMaterialApp(home: LiveWorkoutPage(sessionId: fractional.id)),
+      GetMaterialApp(home: LiveWorkoutPage(sessionId: fractional.uuid)),
     );
     await settle(tester);
 
@@ -1019,7 +1019,7 @@ void main() {
     });
 
     await tester.pumpWidget(
-      GetMaterialApp(home: LiveWorkoutPage(sessionId: fractional.id)),
+      GetMaterialApp(home: LiveWorkoutPage(sessionId: fractional.uuid)),
     );
     await settle(tester);
 

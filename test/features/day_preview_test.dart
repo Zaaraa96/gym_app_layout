@@ -772,7 +772,7 @@ void main() {
 
     await tester.pumpWidget(
       GetMaterialApp(
-        home: DayPreviewPage(planId: plan.id, dayId: 'missing-day'),
+        home: DayPreviewPage(planId: plan.uuid, dayId: 'missing-day'),
       ),
     );
     await settle(tester);

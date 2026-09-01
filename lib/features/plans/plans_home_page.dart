@@ -208,7 +208,7 @@ class _PlansHomePageState extends State<PlansHomePage> {
             style: subtitleTextStyle,
           ),
           trailing: const Icon(Icons.play_arrow),
-          onTap: () => openLiveSession(live.id),
+          onTap: () => openLiveSession(live.uuid),
         ),
       ),
     );
@@ -259,7 +259,7 @@ class _PlansHomePageState extends State<PlansHomePage> {
       trailing: const Icon(Icons.arrow_forward),
       onTap: () => Get.toNamed(
         AppRoutes.plan,
-        arguments: plan.id,
+        arguments: plan.uuid,
       ),
     );
   }

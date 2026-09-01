@@ -7,8 +7,8 @@ import '../../data/session_lifecycle.dart';
 import '../../data/session_repository.dart';
 import 'live_workout_page.dart';
 
-/// Opens the live logger for [sessionId].
-Future<void> openLiveSession(int sessionId) async {
+/// Opens the live logger for the session [uuid].
+Future<void> openLiveSession(String sessionId) async {
   await Get.to(
     () => LiveWorkoutPage(sessionId: sessionId),
     routeName: AppRoutes.session,
@@ -28,7 +28,7 @@ Future<void> startWorkout({
   if (!context.mounted) return;
   if (existing != null) {
     if (existing.planId == plan.uuid && existing.planDayId == day.dayId) {
-      await openLiveSession(existing.id);
+      await openLiveSession(existing.uuid);
       return;
     }
     final action = await showDialog<_ConflictAction>(
@@ -60,7 +60,7 @@ Future<void> startWorkout({
     if (!context.mounted) return;
     if (action == null) return;
     if (action == _ConflictAction.resume) {
-      await openLiveSession(existing.id);
+      await openLiveSession(existing.uuid);
       return;
     }
     await lifecycle.abandonInProgress();
@@ -99,7 +99,7 @@ Future<void> startWorkout({
     includedCommonSectionIds: included,
   );
   if (!context.mounted) return;
-  await openLiveSession(session.id);
+  await openLiveSession(session.uuid);
 }
 
 enum _ConflictAction { resume, abandon }

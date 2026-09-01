@@ -836,7 +836,7 @@ void main() {
 
     await tester.pumpWidget(
       const GetMaterialApp(
-        home: PlanPage(planId: 999999),
+        home: PlanPage(planId: 'missing-plan'),
       ),
     );
     await settle(tester);

@@ -198,7 +198,7 @@ void main() {
     expect(progress.daysWithWorkouts, [DateTime.utc(2026, 8, 1)]);
     expect(progress.exercises, hasLength(1));
     expect(progress.exercises.single.sessions, hasLength(2));
-    expect(progress.exercises.single.sessions.first.sessionId, 2);
+    expect(progress.exercises.single.sessions.first.sessionId, '2');
     expect(progress.exercises.single.firstValue, 35);
     expect(progress.exercises.single.lastValue, 40);
   });
@@ -513,6 +513,7 @@ WorkoutSession _session({
   SessionStatus status = SessionStatus.completed,
 }) {
   final session = WorkoutSession.create(
+    uuid: '$id',
     planId: '1',
     planDayId: 'day-1',
     planTitleSnapshot: 'plan 1',

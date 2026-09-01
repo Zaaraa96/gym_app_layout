@@ -48,7 +48,7 @@ void main() {
     addTearDown(plans.dispose);
     Get.put<PlanRepository>(plans);
 
-    await tester.pumpWidget(const GetMaterialApp(home: PlanPage(planId: 1)));
+    await tester.pumpWidget(const GetMaterialApp(home: PlanPage(planId: 'plan-uuid')));
     await tester.pump();
     await tester.pump();
 
@@ -68,7 +68,7 @@ void main() {
 
     await tester.pumpWidget(
       const GetMaterialApp(
-        home: DayPreviewPage(planId: 1, dayId: 'day-1'),
+        home: DayPreviewPage(planId: 'plan-uuid', dayId: 'day-1'),
       ),
     );
     await tester.pump();
@@ -112,7 +112,7 @@ void main() {
 
     await tester.pumpWidget(
       const GetMaterialApp(
-        home: DayEditorPage(planId: 1, dayId: 'day-1'),
+        home: DayEditorPage(planId: 'plan-uuid', dayId: 'day-1'),
       ),
     );
     await tester.pump();
@@ -135,7 +135,7 @@ void main() {
 
     await tester.pumpWidget(
       const GetMaterialApp(
-        home: DayEditorPage(planId: 1, sectionId: 'sec-abs'),
+        home: DayEditorPage(planId: 'plan-uuid', sectionId: 'sec-abs'),
       ),
     );
     await tester.pump();
@@ -158,7 +158,7 @@ void main() {
 
     await tester.pumpWidget(
       const GetMaterialApp(
-        home: DayEditorPage(planId: 1, dayId: 'missing-day'),
+        home: DayEditorPage(planId: 'plan-uuid', dayId: 'missing-day'),
       ),
     );
     await tester.pump();
@@ -176,7 +176,7 @@ void main() {
 
     await tester.pumpWidget(
       const GetMaterialApp(
-        home: DayEditorPage(planId: 1, sectionId: 'missing-section'),
+        home: DayEditorPage(planId: 'plan-uuid', sectionId: 'missing-section'),
       ),
     );
     await tester.pump();
@@ -217,7 +217,7 @@ void main() {
     Get.put<SessionRepository>(sessions);
 
     await tester.pumpWidget(
-      const GetMaterialApp(home: SessionLogPage(sessionId: 1)),
+      const GetMaterialApp(home: SessionLogPage(sessionId: 'sess-uuid')),
     );
     await tester.pump();
     await tester.pump();
@@ -240,7 +240,7 @@ void main() {
     Get.put<SessionRepository>(sessions);
 
     await tester.pumpWidget(
-      const GetMaterialApp(home: SessionLogPage(sessionId: 99)),
+      const GetMaterialApp(home: SessionLogPage(sessionId: 'missing-session')),
     );
     await tester.pump();
     await tester.pump();
@@ -255,7 +255,7 @@ void main() {
     Get.put<SessionRepository>(sessions);
 
     await tester.pumpWidget(
-      const GetMaterialApp(home: LiveWorkoutPage(sessionId: 1)),
+      const GetMaterialApp(home: LiveWorkoutPage(sessionId: 'live-uuid')),
     );
     await tester.pump();
     await tester.pump();
@@ -448,7 +448,14 @@ class _EmptySessions implements SessionRepository {
   }
 
   @override
-  Future<WorkoutSession?> byUuid(String uuid) async => null;
+  Future<WorkoutSession?> byUuid(String uuid) async {
+    if (failById > 0) {
+      failById--;
+      throw StateError('disk');
+    }
+    if (session == null || session!.uuid != uuid) return null;
+    return session;
+  }
 
   @override
   Future<List<WorkoutSession>> completedNewestFirst({String? planId}) async =>

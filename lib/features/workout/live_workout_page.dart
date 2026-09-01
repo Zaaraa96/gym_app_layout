@@ -15,7 +15,8 @@ import 'workout_controller.dart';
 class LiveWorkoutPage extends StatefulWidget {
   const LiveWorkoutPage({super.key, required this.sessionId});
 
-  final int sessionId;
+  /// [WorkoutSession.uuid], not a local row key.
+  final String sessionId;
 
   @override
   State<LiveWorkoutPage> createState() => _LiveWorkoutPageState();

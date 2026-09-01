@@ -59,7 +59,7 @@ void main() {
       startedAt: DateTime.utc(2026, 8, 26, 12),
     );
     final controller = WorkoutController(
-      sessionId: session.id,
+      sessionId: session.uuid,
       sessions: sessions,
       clock: () => DateTime.utc(2026, 8, 26, 12, 5),
     );
@@ -203,7 +203,7 @@ void main() {
     expect(c.isResting, isFalse);
 
     await c.logSet(reps: 12);
-    final stored = await started.sessions.byId(c.sessionId);
+    final stored = await started.sessions.byUuid(c.sessionId);
     expect(stored!.exerciseLogs.first.sets, hasLength(1));
   });
 
@@ -299,7 +299,7 @@ void main() {
       );
 
       final missing = WorkoutController(
-        sessionId: 999999,
+        sessionId: 'missing-session',
         sessions: started.sessions,
       );
       addTearDown(missing.onClose);

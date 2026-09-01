@@ -38,9 +38,9 @@ class _ImportPreviewPageState extends State<ImportPreviewPage> {
     if (_saving) return;
     setState(() => _saving = true);
     try {
-      final id = await Get.find<PlanRepository>().save(widget.plan);
+      await Get.find<PlanRepository>().save(widget.plan);
       if (!mounted) return;
-      await Get.offAllNamed(AppRoutes.plan, arguments: id);
+      await Get.offAllNamed(AppRoutes.plan, arguments: widget.plan.uuid);
     } catch (error) {
       if (!mounted) return;
       setState(() => _saving = false);

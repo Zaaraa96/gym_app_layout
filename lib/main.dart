@@ -191,7 +191,7 @@ class MyApp extends StatelessWidget {
         GetPage(name: AppRoutes.newPlan, page: () => const AddNewPlanPage()),
         GetPage(
           name: AppRoutes.plan,
-          page: () => PlanPage(planId: Get.arguments as int),
+          page: () => PlanPage(planId: Get.arguments as String),
         ),
         GetPage(
           name: AppRoutes.day,
@@ -219,7 +219,7 @@ class MyApp extends StatelessWidget {
         ),
         GetPage(
           name: AppRoutes.session,
-          page: () => LiveWorkoutPage(sessionId: Get.arguments as int),
+          page: () => LiveWorkoutPage(sessionId: Get.arguments as String),
         ),
         GetPage(
           name: AppRoutes.dayLog,
@@ -227,7 +227,7 @@ class MyApp extends StatelessWidget {
         ),
         GetPage(
           name: AppRoutes.sessionLog,
-          page: () => SessionLogPage(sessionId: Get.arguments as int),
+          page: () => SessionLogPage(sessionId: Get.arguments as String),
         ),
       ],
     );

@@ -89,7 +89,7 @@ class _MonthTabState extends State<MonthTab> {
     final sessions = await _sessions.forCalendarDay(day);
     if (!mounted) return;
     if (sessions.length == 1) {
-      Get.toNamed(AppRoutes.sessionLog, arguments: sessions.single.id);
+      Get.toNamed(AppRoutes.sessionLog, arguments: sessions.single.uuid);
       return;
     }
     Get.toNamed(AppRoutes.dayLog, arguments: day);

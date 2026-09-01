@@ -17,7 +17,8 @@ class SessionExercisePoint {
     this.difficulty,
   });
 
-  final int sessionId;
+  /// [WorkoutSession.uuid], not a local row key.
+  final String sessionId;
   final DateTime startedAt;
   final SessionStatus status;
 
@@ -190,7 +191,7 @@ class ProgressService {
     }
 
     return SessionExercisePoint(
-      sessionId: session.id,
+      sessionId: session.uuid,
       startedAt: session.startedAt,
       status: session.status,
       primaryValue: _primaryValue(logs, metric),

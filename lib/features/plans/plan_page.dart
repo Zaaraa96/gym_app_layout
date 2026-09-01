@@ -18,7 +18,8 @@ import 'day_preview_page.dart';
 class PlanPage extends StatefulWidget {
   const PlanPage({super.key, required this.planId});
 
-  final int planId;
+  /// [WorkoutPlan.uuid], not a local row key.
+  final String planId;
 
   @override
   State<PlanPage> createState() => _PlanPageState();
@@ -48,7 +49,7 @@ class _PlanPageState extends State<PlanPage> {
   Future<void> _load() async {
     final id = ++_loadId;
     try {
-      final plan = await _plans.byId(widget.planId);
+      final plan = await _plans.byUuid(widget.planId);
       if (!mounted || id != _loadId) return;
       setState(() {
         _plan = plan;

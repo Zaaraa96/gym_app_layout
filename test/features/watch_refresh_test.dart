@@ -78,7 +78,7 @@ void main() {
     addTearDown(plans.dispose);
     Get.put<PlanRepository>(plans);
 
-    await tester.pumpWidget(const GetMaterialApp(home: PlanPage(planId: 1)));
+    await tester.pumpWidget(const GetMaterialApp(home: PlanPage(planId: 'plan-uuid')));
     await tester.pump();
     await tester.pump();
 
@@ -198,7 +198,8 @@ class _WatchableSessions implements SessionRepository {
       live != null && live!.id == id ? live : null;
 
   @override
-  Future<WorkoutSession?> byUuid(String uuid) async => null;
+  Future<WorkoutSession?> byUuid(String uuid) async =>
+      live != null && live!.uuid == uuid ? live : null;
 
   @override
   Future<List<WorkoutSession>> completedNewestFirst({String? planId}) async =>

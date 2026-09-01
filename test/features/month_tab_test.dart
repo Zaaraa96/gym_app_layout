@@ -184,14 +184,14 @@ void main() {
 
     expect(find.byKey(const Key('day-log-list')), findsOneWidget);
     final first = tester.getTopLeft(
-      find.byKey(Key('day-log-session-${morning.id}')),
+      find.byKey(Key('day-log-session-${morning.uuid}')),
     );
     final second = tester.getTopLeft(
-      find.byKey(Key('day-log-session-${evening.id}')),
+      find.byKey(Key('day-log-session-${evening.uuid}')),
     );
     expect(first.dy, lessThan(second.dy));
 
-    await tester.tap(find.byKey(Key('day-log-session-${evening.id}')));
+    await tester.tap(find.byKey(Key('day-log-session-${evening.uuid}')));
     await tester.pump();
     await settle(tester);
 
@@ -312,7 +312,7 @@ void main() {
 
     await tester.pumpWidget(
       const GetMaterialApp(
-        home: SessionLogPage(sessionId: 999999),
+        home: SessionLogPage(sessionId: 'missing-session'),
       ),
     );
     await settle(tester);

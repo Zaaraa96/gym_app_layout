@@ -16,7 +16,8 @@ class DayEditorArgs {
     this.sectionId,
   }) : assert(dayId != null || sectionId != null);
 
-  final int planId;
+  /// [WorkoutPlan.uuid], not a local row key.
+  final String planId;
   final String? dayId;
   final String? sectionId;
 }
@@ -30,7 +31,8 @@ class DayEditorPage extends StatefulWidget {
     this.sectionId,
   }) : assert(dayId != null || sectionId != null);
 
-  final int planId;
+  /// [WorkoutPlan.uuid], not a local row key.
+  final String planId;
   final String? dayId;
   final String? sectionId;
 
@@ -75,7 +77,7 @@ class _DayEditorPageState extends State<DayEditorPage> {
   Future<void> _load() async {
     final id = ++_loadId;
     try {
-      final plan = await _plans.byId(widget.planId);
+      final plan = await _plans.byUuid(widget.planId);
       PlanDay? day;
       CommonSection? section;
       if (plan != null) {

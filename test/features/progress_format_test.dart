@@ -38,7 +38,7 @@ void main() {
       feltEasier: true,
       sessions: [
         SessionExercisePoint(
-          sessionId: 1,
+          sessionId: '1',
           startedAt: DateTime.utc(2026, 8, 2),
           status: SessionStatus.completed,
           completedSets: 1,
@@ -48,7 +48,7 @@ void main() {
           primaryValue: 40,
         ),
         SessionExercisePoint(
-          sessionId: 2,
+          sessionId: '2',
           startedAt: DateTime.utc(2026, 8, 20),
           status: SessionStatus.completed,
           completedSets: 1,
@@ -71,7 +71,7 @@ void main() {
       feltEasier: false,
       sessions: [
         SessionExercisePoint(
-          sessionId: 1,
+          sessionId: '1',
           startedAt: DateTime.utc(2026, 8, 2),
           status: SessionStatus.completed,
           completedSets: 1,
@@ -94,7 +94,7 @@ void main() {
       feltEasier: false,
       sessions: [
         SessionExercisePoint(
-          sessionId: 1,
+          sessionId: '1',
           startedAt: DateTime.utc(2026, 8, 5),
           status: SessionStatus.completed,
           completedSets: 1,
@@ -104,7 +104,7 @@ void main() {
           primaryValue: 20,
         ),
         SessionExercisePoint(
-          sessionId: 2,
+          sessionId: '2',
           startedAt: DateTime.utc(2026, 8, 12),
           status: SessionStatus.completed,
           completedSets: 1,
@@ -137,7 +137,7 @@ void main() {
       feltEasier: false,
       sessions: [
         SessionExercisePoint(
-          sessionId: 1,
+          sessionId: '1',
           startedAt: DateTime.utc(2026, 8, 2),
           status: SessionStatus.completed,
           completedSets: 1,
@@ -163,7 +163,7 @@ void main() {
       feltEasier: false,
       sessions: [
         SessionExercisePoint(
-          sessionId: 1,
+          sessionId: '1',
           startedAt: DateTime.utc(2026, 8, 2),
           status: SessionStatus.completed,
           completedSets: 1,
@@ -234,7 +234,7 @@ void main() {
       feltEasier: true,
       sessions: [
         SessionExercisePoint(
-          sessionId: 1,
+          sessionId: '1',
           startedAt: DateTime.utc(2026, 8, 2),
           status: SessionStatus.completed,
           completedSets: 1,
@@ -244,7 +244,7 @@ void main() {
           primaryValue: 40,
         ),
         SessionExercisePoint(
-          sessionId: 2,
+          sessionId: '2',
           startedAt: DateTime.utc(2026, 8, 20),
           status: SessionStatus.completed,
           completedSets: 1,

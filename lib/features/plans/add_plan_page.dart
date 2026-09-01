@@ -38,23 +38,22 @@ class _AddNewPlanPageState extends State<AddNewPlanPage> {
     try {
       final now = DateTime.now().toUtc();
       final summary = _summaryController.text.trim();
-      final id = await Get.find<PlanRepository>().save(
-        WorkoutPlan.create(
-          title: _titleController.text.trim(),
-          source: PlanSource.created,
-          createdAt: now,
-          updatedAt: now,
-          days: [
-            PlanDay.create(
-              dayId: newId(),
-              title: 'Day 1',
-              summary: summary,
-            ),
-          ],
-        ),
+      final plan = WorkoutPlan.create(
+        title: _titleController.text.trim(),
+        source: PlanSource.created,
+        createdAt: now,
+        updatedAt: now,
+        days: [
+          PlanDay.create(
+            dayId: newId(),
+            title: 'Day 1',
+            summary: summary,
+          ),
+        ],
       );
+      await Get.find<PlanRepository>().save(plan);
       if (!mounted) return;
-      await Get.offAllNamed(AppRoutes.plan, arguments: id);
+      await Get.offAllNamed(AppRoutes.plan, arguments: plan.uuid);
     } catch (error) {
       if (!mounted) return;
       setState(() => _saving = false);

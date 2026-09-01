@@ -84,7 +84,7 @@ class _DayLogPageState extends State<DayLogPage> {
       children: [
         for (final session in _items)
           ListTile(
-            key: Key('day-log-session-${session.id}'),
+            key: Key('day-log-session-${session.uuid}'),
             contentPadding: EdgeInsets.zero,
             title: AppText(session.dayTitleSnapshot, style: dataTextStyle),
             subtitle: AppText(
@@ -94,7 +94,7 @@ class _DayLogPageState extends State<DayLogPage> {
             trailing: const Icon(Icons.arrow_forward),
             onTap: () => Get.toNamed(
               AppRoutes.sessionLog,
-              arguments: session.id,
+              arguments: session.uuid,
             ),
           ),
       ],
@@ -106,7 +106,8 @@ class _DayLogPageState extends State<DayLogPage> {
 class SessionLogPage extends StatefulWidget {
   const SessionLogPage({super.key, required this.sessionId});
 
-  final int sessionId;
+  /// [WorkoutSession.uuid], not a local row key.
+  final String sessionId;
 
   @override
   State<SessionLogPage> createState() => _SessionLogPageState();
@@ -128,7 +129,7 @@ class _SessionLogPageState extends State<SessionLogPage> {
   Future<void> _load() async {
     final id = ++_loadId;
     try {
-      final session = await _sessions.byId(widget.sessionId);
+      final session = await _sessions.byUuid(widget.sessionId);
       if (!mounted || id != _loadId) return;
       setState(() {
         _session = session;
@@ -168,7 +169,7 @@ class _SessionLogPageState extends State<SessionLogPage> {
     }
     final session = _session!;
     return ListView(
-      key: Key('session-log-${session.id}'),
+      key: Key('session-log-${session.uuid}'),
       children: [
         AppText(session.planTitleSnapshot, style: dataTextStyle),
         const SizedBox(height: 4),

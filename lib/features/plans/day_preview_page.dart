@@ -14,7 +14,8 @@ import 'exercise_block_row.dart';
 class DayPreviewArgs {
   const DayPreviewArgs({required this.planId, required this.dayId});
 
-  final int planId;
+  /// [WorkoutPlan.uuid], not a local row key.
+  final String planId;
   final String dayId;
 }
 
@@ -26,7 +27,8 @@ class DayPreviewPage extends StatefulWidget {
     required this.dayId,
   });
 
-  final int planId;
+  /// [WorkoutPlan.uuid], not a local row key.
+  final String planId;
   final String dayId;
 
   @override
@@ -50,7 +52,7 @@ class _DayPreviewPageState extends State<DayPreviewPage> {
   Future<void> _load() async {
     final id = ++_loadId;
     try {
-      final plan = await _plans.byId(widget.planId);
+      final plan = await _plans.byUuid(widget.planId);
       PlanDay? day;
       if (plan != null) {
         for (final item in plan.days) {
