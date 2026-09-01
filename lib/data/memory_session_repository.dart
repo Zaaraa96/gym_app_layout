@@ -1,7 +1,5 @@
 import 'dart:async';
 
-import 'package:isar/isar.dart';
-
 import 'models/models.dart';
 import 'new_id.dart';
 import 'session_repository.dart';
@@ -113,7 +111,7 @@ class MemorySessionRepository implements SessionRepository {
 
   Future<int> _put(WorkoutSession session) async {
     if (session.uuid.isEmpty) session.uuid = newUuid();
-    if (session.id == Isar.autoIncrement) {
+    if (session.id == unassignedLocalId) {
       session.id = ++_nextId;
     }
     _byId[session.id] = session;

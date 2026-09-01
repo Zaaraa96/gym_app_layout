@@ -1,16 +1,18 @@
+import 'package:isar/isar.dart';
+
+import '../models/enums.dart';
 import '../new_id.dart';
-import 'enums.dart';
 
-/// Local adapter key. `0` means the row is not persisted yet.
-/// Product identity is [WorkoutPlan.uuid], not this field.
-const int unassignedLocalId = 0;
+part 'workout_plan.g.dart';
 
-/// Prescribed program. Edits here must not rewrite past sessions.
+/// Prescribed program. Edits here must not rewrite past [WorkoutSession]s.
+@collection
 class WorkoutPlan {
-  /// Local row key assigned by a repository. Not the identity sent to a remote API.
-  int id = unassignedLocalId;
+  /// Local row key. Not the identity sent to a remote API.
+  Id id = Isar.autoIncrement;
 
-  /// Stable identity for sync and for session `planId`.
+  /// Stable identity for sync and for [WorkoutSession.planId].
+  @Index()
   late String uuid;
 
   /// True when a local write has not been acknowledged by sync.
@@ -18,10 +20,12 @@ class WorkoutPlan {
 
   late String title;
 
+  @enumerated
   late PlanSource source;
 
   late DateTime createdAt;
 
+  @Index()
   late DateTime updatedAt;
 
   /// `basic-plan` days, in display order.
@@ -46,6 +50,7 @@ class WorkoutPlan {
         commonSections = commonSections ?? [];
 }
 
+@embedded
 class PlanDay {
   late String dayId;
   late String title;
@@ -62,6 +67,7 @@ class PlanDay {
   }) : blocks = blocks ?? [];
 }
 
+@embedded
 class CommonSection {
   late String sectionId;
   late String title;
@@ -76,9 +82,11 @@ class CommonSection {
   }) : blocks = blocks ?? [];
 }
 
+@embedded
 class ExerciseBlock {
   late String blockId;
 
+  @enumerated
   late BlockKind kind;
 
   /// Legacy bundled SVG path. Prefer [mediaUri] for new data.
@@ -87,8 +95,10 @@ class ExerciseBlock {
   /// Asset path, local file path, or remote URL depending on [mediaSource].
   String? mediaUri;
 
+  @enumerated
   ExerciseMediaSource mediaSource = ExerciseMediaSource.none;
 
+  @enumerated
   ExerciseMediaKind mediaKind = ExerciseMediaKind.unknown;
 
   /// One item for [BlockKind.single]; two or more for [BlockKind.superset].
@@ -107,6 +117,7 @@ class ExerciseBlock {
   }) : exercises = exercises ?? [];
 }
 
+@embedded
 class ExercisePrescription {
   late String prescriptionId;
   late String title;

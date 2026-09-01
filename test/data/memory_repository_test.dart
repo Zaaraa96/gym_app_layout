@@ -32,6 +32,20 @@ void main() {
     expect((await plans.byUuid('older'))?.title, 'edited');
   });
 
+  test('memory plans assign a local id without Isar.autoIncrement', () async {
+    final plans = MemoryPlanRepository();
+    final plan = WorkoutPlan.create(
+      title: 'new',
+      source: PlanSource.created,
+      createdAt: DateTime.utc(2026, 1, 1),
+      updatedAt: DateTime.utc(2026, 1, 1),
+    );
+    expect(plan.id, unassignedLocalId);
+    await plans.save(plan);
+    expect(plan.id, isNot(unassignedLocalId));
+    expect(await plans.byId(plan.id), isNotNull);
+  });
+
   test('memory lastCompleted keys off plan uuid, not the row id', () async {
     final sessions = MemorySessionRepository();
     const planUuid = 'plan-uuid-not-the-isar-id';

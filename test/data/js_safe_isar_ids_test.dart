@@ -8,8 +8,8 @@ void main() {
     final idLiteral = RegExp(r'id:\s*(-?\d+)\s*,');
     const maxSafe = 9007199254740991;
     final files = [
-      File('lib/data/models/workout_plan.g.dart'),
-      File('lib/data/models/workout_session.g.dart'),
+      File('lib/data/isar/workout_plan.g.dart'),
+      File('lib/data/isar/workout_session.g.dart'),
     ];
     final offenders = <String>[];
     for (final file in files) {
