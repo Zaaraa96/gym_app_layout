@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_svg/svg.dart';
 
-import '../../data/models/models.dart';
+import '../../domain/models/models.dart';
 import 'exercise_asset_catalog.dart';
 import 'exercise_media.dart';
 import 'exercise_media_picker.dart';

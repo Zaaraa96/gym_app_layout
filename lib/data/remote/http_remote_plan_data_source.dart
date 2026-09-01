@@ -2,7 +2,7 @@ import 'dart:convert';
 
 import 'package:http/http.dart' as http;
 
-import '../models/workout_plan.dart';
+import '../../domain/models/workout_plan.dart';
 import 'entity_dto.dart';
 import 'remote_plan_data_source.dart';
 

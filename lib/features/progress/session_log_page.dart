@@ -6,8 +6,8 @@ import '../../common/widgets/app_load_error.dart';
 import '../../common/widgets/app_scaffold.dart';
 import '../../common/widgets/app_text.dart';
 import '../../data/app_ports.dart';
-import '../../data/models/models.dart';
-import '../../data/session_repository.dart';
+import '../../domain/models/models.dart';
+import '../../domain/session_repository.dart';
 import 'progress_format.dart';
 
 /// Several sessions on one calendar day, oldest [WorkoutSession.startedAt] first.

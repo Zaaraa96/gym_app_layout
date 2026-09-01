@@ -6,7 +6,7 @@ import '../../common/widgets/app_elevated_button.dart';
 import '../../common/widgets/app_scaffold.dart';
 import '../../common/widgets/app_text.dart';
 import '../../data/app_ports.dart';
-import '../../data/models/models.dart';
+import '../../domain/models/models.dart';
 import 'block_summary.dart';
 
 class ImportPreviewArgs {

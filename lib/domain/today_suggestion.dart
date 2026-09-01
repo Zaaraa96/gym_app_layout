@@ -1,6 +1,6 @@
-import '../../data/models/models.dart';
-import '../../data/plan_repository.dart';
-import '../../data/session_repository.dart';
+import 'models/models.dart';
+import 'plan_repository.dart';
+import 'session_repository.dart';
 
 /// A startable day the home screen can recommend.
 class TodaySuggestion {

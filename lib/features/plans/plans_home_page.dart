@@ -9,14 +9,14 @@ import '../../common/widgets/app_load_error.dart';
 import '../../common/widgets/app_scaffold.dart';
 import '../../common/widgets/app_text.dart';
 import '../../data/app_ports.dart';
-import '../../data/models/workout_plan.dart';
-import '../../data/models/workout_session.dart';
-import '../../data/plan_repository.dart';
-import '../../data/session_repository.dart';
+import '../../domain/models/workout_plan.dart';
+import '../../domain/models/workout_session.dart';
+import '../../domain/plan_repository.dart';
+import '../../domain/session_repository.dart';
 import '../progress/month_tab.dart';
 import '../workout/start_workout.dart';
 import 'plan_import_flow.dart';
-import 'today_suggestion.dart';
+import '../../domain/today_suggestion.dart';
 
 /// Landing screen for returning users: today, the plan list, Plans | Month.
 class PlansHomePage extends StatefulWidget {

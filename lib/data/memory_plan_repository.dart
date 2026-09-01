@@ -1,8 +1,8 @@
 import 'dart:async';
 
-import 'models/workout_plan.dart';
-import 'new_id.dart';
-import 'plan_repository.dart';
+import '../domain/models/workout_plan.dart';
+import '../domain/new_id.dart';
+import '../domain/plan_repository.dart';
 
 /// In-memory [PlanRepository] for Flutter web. Isar 3.1 cannot open on web.
 class MemoryPlanRepository implements PlanRepository {

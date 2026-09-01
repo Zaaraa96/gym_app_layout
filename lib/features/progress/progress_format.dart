@@ -1,5 +1,5 @@
-import '../../data/models/models.dart';
-import 'progress_service.dart';
+import '../../domain/models/models.dart';
+import '../../domain/progress_service.dart';
 
 const _monthNames = [
   'January',

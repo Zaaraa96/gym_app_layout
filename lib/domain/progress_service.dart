@@ -1,5 +1,5 @@
-import '../../data/models/models.dart';
-import '../../data/session_repository.dart';
+import 'models/models.dart';
+import 'session_repository.dart';
 
 /// How the month view measures an exercise group (Step 2 primary metric).
 enum ProgressMetricKind { weight, duration, setsReps }

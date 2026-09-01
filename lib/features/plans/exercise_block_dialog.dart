@@ -1,8 +1,8 @@
 import 'package:flutter/material.dart';
 
 import '../../common/widgets/app_text_field.dart';
-import '../../data/models/models.dart';
-import '../../data/new_id.dart';
+import '../../domain/models/models.dart';
+import '../../domain/new_id.dart';
 import 'exercise_asset_catalog.dart';
 import 'exercise_media.dart';
 import 'exercise_media_picker.dart';

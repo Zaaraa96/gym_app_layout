@@ -6,12 +6,12 @@ import '../../common/widgets/app_elevated_button.dart';
 import '../../common/widgets/app_load_error.dart';
 import '../../common/widgets/app_text.dart';
 import '../../data/app_ports.dart';
-import '../../data/models/models.dart';
-import '../../data/plan_repository.dart';
+import '../../domain/models/models.dart';
+import '../../domain/plan_repository.dart';
 import '../workout/start_workout.dart';
 import 'day_editor_page.dart';
 import 'exercise_block_row.dart';
-import 'today_suggestion.dart';
+import '../../domain/today_suggestion.dart';
 
 class DayPreviewArgs {
   const DayPreviewArgs({required this.planId, required this.dayId});

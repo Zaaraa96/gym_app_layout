@@ -1,5 +1,5 @@
 import 'package:flutter_test/flutter_test.dart';
-import 'package:gym_app/data/new_id.dart';
+import 'package:gym_app/domain/new_id.dart';
 
 void main() {
   test('newUuid is an RFC 4122 version-4 UUID', () {

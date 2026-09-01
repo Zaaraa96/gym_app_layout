@@ -1,6 +1,6 @@
 import 'package:flutter_test/flutter_test.dart';
 import 'package:gym_app/data/isar/mappers.dart';
-import 'package:gym_app/data/models/models.dart';
+import 'package:gym_app/domain/models/models.dart';
 import 'package:isar/isar.dart';
 
 void main() {

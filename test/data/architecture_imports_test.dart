@@ -22,9 +22,9 @@ void main() {
 
   test('repository interfaces and SessionLifecycle do not import Isar', () {
     for (final relative in [
-      'lib/data/plan_repository.dart',
-      'lib/data/session_repository.dart',
-      'lib/data/session_lifecycle.dart',
+      'lib/domain/plan_repository.dart',
+      'lib/domain/session_repository.dart',
+      'lib/domain/session_lifecycle.dart',
     ]) {
       final source = File(relative).readAsStringSync();
       expect(
@@ -37,10 +37,10 @@ void main() {
 
   test('product types do not import Isar or use @collection / Id / indexes', () {
     final files = [
-      'lib/data/models/workout_plan.dart',
-      'lib/data/models/workout_session.dart',
-      'lib/data/models/enums.dart',
-      'lib/data/models/models.dart',
+      'lib/domain/models/workout_plan.dart',
+      'lib/domain/models/workout_session.dart',
+      'lib/domain/models/enums.dart',
+      'lib/domain/models/models.dart',
     ];
     for (final relative in files) {
       final source = File(relative).readAsStringSync();
@@ -163,6 +163,46 @@ void main() {
         if (source.contains(needle)) {
           offenders.add('${file.path}: $needle');
         }
+      }
+    }
+    expect(offenders, isEmpty, reason: offenders.join(', '));
+  });
+
+  test('domain never imports isar, http, get, or features', () {
+    final offenders = <String>[];
+    for (final file in Directory('lib/domain')
+        .listSync(recursive: true)
+        .whereType<File>()) {
+      if (!file.path.endsWith('.dart')) continue;
+      final source = file.readAsStringSync();
+      for (final needle in [
+        "package:isar/",
+        "package:http/",
+        "package:get/",
+        "/features/",
+        "features/",
+      ]) {
+        if (source.contains(needle)) {
+          offenders.add('${file.path}: $needle');
+        }
+      }
+    }
+    expect(offenders, isEmpty, reason: offenders.join(', '));
+  });
+
+  test('features never import Isar adapters or HTTP remotes', () {
+    final offenders = <String>[];
+    for (final file in Directory('lib/features')
+        .listSync(recursive: true)
+        .whereType<File>()) {
+      if (!file.path.endsWith('.dart')) continue;
+      final source = file.readAsStringSync();
+      if (source.contains('isar_plan_repository.dart') ||
+          source.contains('isar_session_repository.dart') ||
+          source.contains('isar_service.dart') ||
+          source.contains('http_remote_plan_data_source.dart') ||
+          source.contains('http_remote_session_data_source.dart')) {
+        offenders.add(file.path);
       }
     }
     expect(offenders, isEmpty, reason: offenders.join(', '));

@@ -1,7 +1,7 @@
 import 'package:flutter_test/flutter_test.dart';
-import 'package:gym_app/data/models/models.dart';
+import 'package:gym_app/domain/models/models.dart';
 import 'package:gym_app/features/progress/progress_format.dart';
-import 'package:gym_app/features/progress/progress_service.dart';
+import 'package:gym_app/domain/progress_service.dart';
 
 void main() {
   test('formatMonthTitle names the calendar month', () {

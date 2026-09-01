@@ -2,9 +2,9 @@ import 'package:isar/isar.dart';
 
 import 'isar/mappers.dart';
 import 'isar/workout_session.dart' as isar_session;
-import 'models/models.dart';
-import 'new_id.dart';
-import 'session_repository.dart';
+import '../domain/models/models.dart';
+import '../domain/new_id.dart';
+import '../domain/session_repository.dart';
 
 /// Isar-backed [SessionRepository]. The only session writer the UI talks to.
 class IsarSessionRepository implements SessionRepository {

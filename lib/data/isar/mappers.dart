@@ -1,6 +1,6 @@
 import 'package:isar/isar.dart';
 
-import '../models/models.dart' as domain;
+import '../../domain/models/models.dart' as domain;
 import 'workout_plan.dart';
 import 'workout_session.dart';
 

@@ -1,8 +1,8 @@
 import 'package:flutter_test/flutter_test.dart';
 import 'package:gym_app/data/memory_plan_repository.dart';
 import 'package:gym_app/data/memory_session_repository.dart';
-import 'package:gym_app/data/models/models.dart';
-import 'package:gym_app/data/session_lifecycle.dart';
+import 'package:gym_app/domain/models/models.dart';
+import 'package:gym_app/domain/session_lifecycle.dart';
 
 void main() {
   test('memory plans assign uuid, mark dirty, and list newest first', () async {

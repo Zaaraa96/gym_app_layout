@@ -5,8 +5,8 @@ import '../../common/widgets/app_load_error.dart';
 import '../../common/widgets/app_text.dart';
 import '../../common/widgets/app_text_field.dart';
 import '../../data/app_ports.dart';
-import '../../data/models/models.dart';
-import '../../data/plan_repository.dart';
+import '../../domain/models/models.dart';
+import '../../domain/plan_repository.dart';
 import 'block_summary.dart';
 import 'exercise_block_dialog.dart';
 

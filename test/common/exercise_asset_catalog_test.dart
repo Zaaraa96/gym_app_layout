@@ -3,7 +3,7 @@ import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:gym_app/common/exercise_asset_catalog.dart';
-import 'package:gym_app/data/models/models.dart';
+import 'package:gym_app/domain/models/models.dart';
 import 'package:gym_app/features/plans/block_summary.dart';
 
 void main() {

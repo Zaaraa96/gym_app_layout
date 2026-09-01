@@ -1,7 +1,7 @@
 import 'json_plan_importer.dart';
-import 'models/models.dart';
+import '../domain/models/models.dart';
 import 'plan_import_picker.dart';
-import 'plan_repository.dart';
+import '../domain/plan_repository.dart';
 
 /// Result of picking a file and turning it into a [WorkoutPlan].
 sealed class PlanImportOutcome {

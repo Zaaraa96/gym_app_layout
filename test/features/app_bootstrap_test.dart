@@ -5,8 +5,8 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:get/get.dart';
 import 'package:gym_app/data/memory_plan_repository.dart';
 import 'package:gym_app/data/memory_session_repository.dart';
-import 'package:gym_app/data/plan_repository.dart';
-import 'package:gym_app/data/session_repository.dart';
+import 'package:gym_app/domain/plan_repository.dart';
+import 'package:gym_app/domain/session_repository.dart';
 import 'package:gym_app/common/app_routes.dart';
 import 'package:gym_app/main.dart';
 

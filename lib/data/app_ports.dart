@@ -1,9 +1,9 @@
 import 'plan_import.dart';
 import 'plan_import_picker.dart';
-import 'plan_repository.dart';
-import 'session_lifecycle.dart';
-import 'session_repository.dart';
-import 'start_session.dart';
+import '../domain/plan_repository.dart';
+import '../domain/session_lifecycle.dart';
+import '../domain/session_repository.dart';
+import '../domain/start_session.dart';
 
 /// Ports the UI may use. Composition root builds this; pages take it.
 class AppPorts {

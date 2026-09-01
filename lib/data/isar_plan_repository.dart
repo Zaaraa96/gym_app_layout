@@ -2,9 +2,9 @@ import 'package:isar/isar.dart';
 
 import 'isar/mappers.dart';
 import 'isar/workout_plan.dart' as isar_plan;
-import 'models/workout_plan.dart';
-import 'new_id.dart';
-import 'plan_repository.dart';
+import '../domain/models/workout_plan.dart';
+import '../domain/new_id.dart';
+import '../domain/plan_repository.dart';
 
 /// Isar-backed [PlanRepository]. The only plan writer the UI talks to.
 class IsarPlanRepository implements PlanRepository {

@@ -2,7 +2,7 @@ import 'dart:convert';
 
 import 'package:http/http.dart' as http;
 
-import '../models/workout_session.dart';
+import '../../domain/models/workout_session.dart';
 import 'entity_dto.dart';
 import 'http_remote_plan_data_source.dart';
 import 'remote_session_data_source.dart';

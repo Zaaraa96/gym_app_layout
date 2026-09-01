@@ -6,7 +6,7 @@ import 'package:gym_app/data/isar/mappers.dart';
 import 'package:gym_app/data/isar/workout_plan.dart' as isar_plan;
 import 'package:gym_app/data/isar/workout_session.dart' as isar_session;
 import 'package:gym_app/data/isar_service.dart';
-import 'package:gym_app/data/models/models.dart';
+import 'package:gym_app/domain/models/models.dart';
 import 'package:isar/isar.dart';
 
 import '../helpers/isar_core.dart';

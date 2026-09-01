@@ -8,7 +8,7 @@ import '../../common/widgets/app_scaffold.dart';
 import '../../common/widgets/app_text.dart';
 import '../../common/widgets/app_text_field.dart';
 import '../../data/app_ports.dart';
-import '../../data/models/models.dart';
+import '../../domain/models/models.dart';
 import 'workout_controller.dart';
 
 /// Live logger: one active exercise, log what you did, rest, then rate 1–5.

@@ -1,8 +1,8 @@
 import 'package:flutter_test/flutter_test.dart';
 import 'package:gym_app/data/memory_plan_repository.dart';
 import 'package:gym_app/data/memory_session_repository.dart';
-import 'package:gym_app/data/models/models.dart';
-import 'package:gym_app/features/plans/today_suggestion.dart';
+import 'package:gym_app/domain/models/models.dart';
+import 'package:gym_app/domain/today_suggestion.dart';
 
 void main() {
   test('with no history, the newest startable plan’s first day is today', () {

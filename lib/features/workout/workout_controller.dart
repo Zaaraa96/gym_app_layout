@@ -3,8 +3,8 @@ import 'dart:async';
 import 'package:flutter/foundation.dart';
 import 'package:get/get.dart';
 
-import '../../data/models/models.dart';
-import '../../data/session_repository.dart';
+import '../../domain/models/models.dart';
+import '../../domain/session_repository.dart';
 
 /// Thrown when a live-workout action is not valid in the current phase.
 class WorkoutActionException implements Exception {

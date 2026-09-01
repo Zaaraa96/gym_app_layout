@@ -7,9 +7,9 @@ import '../../common/app_routes.dart';
 import '../../common/widgets/app_load_error.dart';
 import '../../common/widgets/app_text.dart';
 import '../../data/app_ports.dart';
-import '../../data/session_repository.dart';
+import '../../domain/session_repository.dart';
 import 'progress_format.dart';
-import 'progress_service.dart';
+import '../../domain/progress_service.dart';
 
 /// Home-shell Month tab: calendar, dots, and per-exercise trends.
 class MonthTab extends StatefulWidget {

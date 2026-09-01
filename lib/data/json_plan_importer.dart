@@ -1,8 +1,8 @@
 import 'dart:convert';
 
 import '../common/exercise_asset_catalog.dart';
-import 'models/models.dart';
-import 'new_id.dart';
+import '../domain/models/models.dart';
+import '../domain/new_id.dart';
 
 /// Thrown when a JSON file cannot be turned into a [WorkoutPlan].
 ///

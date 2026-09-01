@@ -1,6 +1,6 @@
 import 'package:flutter_test/flutter_test.dart';
 import 'package:gym_app/data/json_plan_importer.dart';
-import 'package:gym_app/data/models/models.dart';
+import 'package:gym_app/domain/models/models.dart';
 
 /// Step 3: v1 JSON maps onto [WorkoutPlan], and invalid files fail with a
 /// message that is safe to show in the UI.

@@ -3,8 +3,8 @@ import 'package:get/get.dart';
 
 import '../../common/app_routes.dart';
 import '../../data/app_ports.dart';
-import '../../data/models/models.dart';
-import '../../data/start_session.dart';
+import '../../domain/models/models.dart';
+import '../../domain/start_session.dart';
 import 'live_workout_page.dart';
 
 /// Opens the live logger for the session [uuid].

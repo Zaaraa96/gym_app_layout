@@ -1,8 +1,8 @@
 import 'dart:async';
 
-import 'models/models.dart';
-import 'new_id.dart';
-import 'session_repository.dart';
+import '../domain/models/models.dart';
+import '../domain/new_id.dart';
+import '../domain/session_repository.dart';
 
 /// In-memory [SessionRepository] for Flutter web. Isar 3.1 cannot open on web.
 class MemorySessionRepository implements SessionRepository {

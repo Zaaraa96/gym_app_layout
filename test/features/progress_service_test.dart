@@ -1,7 +1,7 @@
 import 'package:flutter_test/flutter_test.dart';
 import 'package:gym_app/data/memory_session_repository.dart';
-import 'package:gym_app/data/models/models.dart';
-import 'package:gym_app/features/progress/progress_service.dart';
+import 'package:gym_app/domain/models/models.dart';
+import 'package:gym_app/domain/progress_service.dart';
 
 /// Step 4: [ProgressService] folds a month of sessions using the Step 2 rules.
 void main() {

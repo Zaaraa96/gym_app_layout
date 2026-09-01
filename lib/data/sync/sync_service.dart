@@ -1,8 +1,8 @@
-import '../models/models.dart';
-import '../plan_repository.dart';
+import '../../domain/models/models.dart';
+import '../../domain/plan_repository.dart';
 import '../remote/remote_plan_data_source.dart';
 import '../remote/remote_session_data_source.dart';
-import '../session_repository.dart';
+import '../../domain/session_repository.dart';
 
 /// Pull/push between Isar and HTTP. [watch] stays on the local repositories.
 class SyncService {

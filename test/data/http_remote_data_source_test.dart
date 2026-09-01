@@ -2,7 +2,7 @@ import 'dart:async';
 import 'dart:convert';
 
 import 'package:flutter_test/flutter_test.dart';
-import 'package:gym_app/data/models/models.dart';
+import 'package:gym_app/domain/models/models.dart';
 import 'package:gym_app/data/remote/entity_dto.dart';
 import 'package:gym_app/data/remote/http_remote_plan_data_source.dart';
 import 'package:gym_app/data/remote/http_remote_session_data_source.dart';

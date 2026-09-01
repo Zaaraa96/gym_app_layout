@@ -1,11 +1,11 @@
 import 'dart:async';
 
 import 'package:flutter_test/flutter_test.dart';
-import 'package:gym_app/data/models/models.dart';
-import 'package:gym_app/data/plan_repository.dart';
+import 'package:gym_app/domain/models/models.dart';
+import 'package:gym_app/domain/plan_repository.dart';
 import 'package:gym_app/data/remote/remote_plan_data_source.dart';
 import 'package:gym_app/data/remote/remote_session_data_source.dart';
-import 'package:gym_app/data/session_repository.dart';
+import 'package:gym_app/domain/session_repository.dart';
 import 'package:gym_app/data/sync/sync_service.dart';
 
 void main() {

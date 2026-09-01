@@ -1,8 +1,8 @@
 import 'package:flutter_test/flutter_test.dart';
 import 'package:gym_app/data/memory_session_repository.dart';
-import 'package:gym_app/data/models/models.dart';
-import 'package:gym_app/data/session_lifecycle.dart';
-import 'package:gym_app/data/start_session.dart';
+import 'package:gym_app/domain/models/models.dart';
+import 'package:gym_app/domain/session_lifecycle.dart';
+import 'package:gym_app/domain/start_session.dart';
 
 void main() {
   late MemorySessionRepository sessions;

@@ -1,7 +1,7 @@
 import 'package:isar/isar.dart';
 
-import '../models/enums.dart';
-import '../new_id.dart';
+import '../../domain/models/enums.dart';
+import '../../domain/new_id.dart';
 
 part 'workout_plan.g.dart';
 

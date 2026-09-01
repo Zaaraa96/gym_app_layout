@@ -3,8 +3,8 @@ import 'package:get/get.dart';
 import 'package:gym_app/common/app_routes.dart';
 import 'package:gym_app/common/app_theme.dart';
 import 'package:gym_app/data/app_ports.dart';
-import 'package:gym_app/data/models/models.dart';
-import 'package:gym_app/data/new_id.dart';
+import 'package:gym_app/domain/models/models.dart';
+import 'package:gym_app/domain/new_id.dart';
 
 import '../../common/widgets/app_scaffold.dart';
 import '../../common/widgets/app_text.dart';

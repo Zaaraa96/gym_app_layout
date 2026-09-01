@@ -4,8 +4,8 @@ import 'package:image_picker/image_picker.dart';
 import 'package:path/path.dart' as p;
 import 'package:path_provider/path_provider.dart';
 
-import '../../data/models/models.dart';
-import '../../data/new_id.dart';
+import '../../domain/models/models.dart';
+import '../../domain/new_id.dart';
 import 'exercise_media.dart';
 
 /// Result of choosing preview media for an exercise block.
