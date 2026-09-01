@@ -1,4 +1,5 @@
 import '../../data/models/models.dart';
+import '../../data/session_repository.dart';
 
 /// How the month view measures an exercise group (Step 2 primary metric).
 enum ProgressMetricKind { weight, duration, setsReps }
@@ -257,6 +258,14 @@ class ProgressService {
       }
     }
     return max;
+  }
+
+  /// Load the month from [sessions], then fold. Pages call this once.
+  Future<MonthProgress> loadMonth({
+    required SessionRepository sessions,
+    required DateTime month,
+  }) async {
+    return fold(month: month, sessions: await sessions.forMonth(month));
   }
 
   bool _feltEasier(List<SessionExercisePoint> points) {

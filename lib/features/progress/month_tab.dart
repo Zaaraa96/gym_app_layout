@@ -50,8 +50,10 @@ class _MonthTabState extends State<MonthTab> {
   Future<void> _load() async {
     final id = ++_loadId;
     try {
-      final sessions = await _sessions.forMonth(_month);
-      final data = _progress.fold(month: _month, sessions: sessions);
+      final data = await _progress.loadMonth(
+        sessions: _sessions,
+        month: _month,
+      );
       if (!mounted || id != _loadId) return;
       setState(() {
         _data = data;

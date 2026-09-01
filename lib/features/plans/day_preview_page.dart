@@ -10,6 +10,7 @@ import '../../data/plan_repository.dart';
 import '../workout/start_workout.dart';
 import 'day_editor_page.dart';
 import 'exercise_block_row.dart';
+import 'today_suggestion.dart';
 
 class DayPreviewArgs {
   const DayPreviewArgs({required this.planId, required this.dayId});
@@ -122,10 +123,11 @@ class _DayPreviewPageState extends State<DayPreviewPage> {
     );
   }
 
-  /// Start is enabled when this day has blocks, or the plan has common
-  /// sections the user can train without day work.
-  bool _canStart(PlanDay day) =>
-      day.blocks.isNotEmpty || (_plan?.commonSections.isNotEmpty ?? false);
+  bool _canStart(PlanDay day) {
+    final plan = _plan;
+    if (plan == null) return false;
+    return dayCanStart(plan, day);
+  }
 
   Widget _body(BuildContext context, PlanDay day) {
     final theme = Theme.of(context);

@@ -2,48 +2,44 @@ import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 
 import '../../common/app_routes.dart';
-import '../../data/json_plan_importer.dart';
+import '../../data/plan_import.dart';
+import '../../data/plan_repository.dart';
 import 'import_preview_page.dart';
 import 'plan_import_picker.dart';
 
 /// Pick a JSON file, parse it, and open the import preview.
 ///
 /// Cancel leaves the current screen. Parse errors stay here with a snackbar.
-Future<void> startPlanImport(BuildContext context) async {
-  final picker = Get.isRegistered<PlanImportPicker>()
-      ? Get.find<PlanImportPicker>()
-      : FilePickerPlanImportPicker();
+Future<void> startPlanImport(
+  BuildContext context, {
+  PlanImport? import,
+}) async {
+  final flow = import ??
+      PlanImport(
+        picker: Get.isRegistered<PlanImportPicker>()
+            ? Get.find<PlanImportPicker>()
+            : FilePickerPlanImportPicker(),
+        plans: Get.find<PlanRepository>(),
+      );
 
   if (context.mounted) {
     ScaffoldMessenger.of(context).clearSnackBars();
   }
 
-  final PickedPlanFile? picked;
-  try {
-    picked = await picker.pick();
-  } catch (error) {
-    if (!context.mounted) return;
-    _showError(
-      context,
-      error is PlanImportException
-          ? error.message
-          : 'Could not open a file: $error',
-    );
-    return;
-  }
-  if (picked == null) return;
+  final outcome = await flow.pickAndParse();
+  if (!context.mounted) return;
 
-  try {
-    final plan = const JsonPlanImporter().import(picked.contents);
-    if (!context.mounted) return;
-    ScaffoldMessenger.of(context).clearSnackBars();
-    await Get.toNamed(
-      AppRoutes.import,
-      arguments: ImportPreviewArgs(fileName: picked.fileName, plan: plan),
-    );
-  } on PlanImportException catch (error) {
-    if (!context.mounted) return;
-    _showError(context, error.message);
+  switch (outcome) {
+    case PlanImportCancelled():
+      return;
+    case PlanImportFailed(:final message):
+      _showError(context, message);
+    case PlanImportParsed(:final fileName, :final plan):
+      ScaffoldMessenger.of(context).clearSnackBars();
+      await Get.toNamed(
+        AppRoutes.import,
+        arguments: ImportPreviewArgs(fileName: fileName, plan: plan),
+      );
   }
 }
 

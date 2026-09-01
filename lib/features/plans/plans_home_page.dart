@@ -57,18 +57,15 @@ class _PlansHomePageState extends State<PlansHomePage> {
   Future<void> _load() async {
     final id = ++_loadId;
     try {
-      final items = await _plans.all();
-      final live = await _sessions.inProgress();
-      final completed = await _sessions.completedNewestFirst();
-      final today = suggestToday(
-        plans: items,
-        completedNewestFirst: completed,
+      final overview = await loadHomeOverview(
+        plans: _plans,
+        sessions: _sessions,
       );
       if (!mounted || id != _loadId) return;
       setState(() {
-        _items = items;
-        _live = live;
-        _today = today;
+        _items = overview.plans;
+        _live = overview.live;
+        _today = overview.today;
         _loading = false;
         _error = null;
       });

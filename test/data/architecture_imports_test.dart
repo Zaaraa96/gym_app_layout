@@ -113,4 +113,35 @@ void main() {
       );
     }
   });
+
+  test('pages call product use cases instead of assembling sessions', () {
+    expect(
+      File('lib/features/workout/start_workout.dart')
+          .readAsStringSync()
+          .contains('exerciseLogsForStart'),
+      isFalse,
+      reason: 'start dialogs must not assemble logs',
+    );
+    expect(
+      File('lib/features/plans/plan_import_flow.dart')
+          .readAsStringSync()
+          .contains('JsonPlanImporter'),
+      isFalse,
+      reason: 'import flow must not parse JSON itself',
+    );
+    expect(
+      File('lib/features/plans/plans_home_page.dart')
+          .readAsStringSync()
+          .contains('suggestToday('),
+      isFalse,
+      reason: 'home must not decide today from page state',
+    );
+    expect(
+      File('lib/features/progress/month_tab.dart')
+          .readAsStringSync()
+          .contains('forMonth('),
+      isFalse,
+      reason: 'month tab must not fold repository rows itself',
+    );
+  });
 }

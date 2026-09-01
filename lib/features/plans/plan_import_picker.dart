@@ -4,19 +4,9 @@ import 'dart:io';
 import 'package:file_picker/file_picker.dart';
 
 import '../../data/json_plan_importer.dart';
+import '../../data/plan_import_picker.dart';
 
-/// A JSON file the user chose from the device.
-class PickedPlanFile {
-  const PickedPlanFile({required this.fileName, required this.contents});
-
-  final String fileName;
-  final String contents;
-}
-
-/// Lets tests skip the platform file dialog.
-abstract class PlanImportPicker {
-  Future<PickedPlanFile?> pick();
-}
+export '../../data/plan_import_picker.dart';
 
 /// Device document picker restricted to `.json` files.
 class FilePickerPlanImportPicker implements PlanImportPicker {

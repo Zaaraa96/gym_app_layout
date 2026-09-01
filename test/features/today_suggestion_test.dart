@@ -1,4 +1,6 @@
 import 'package:flutter_test/flutter_test.dart';
+import 'package:gym_app/data/memory_plan_repository.dart';
+import 'package:gym_app/data/memory_session_repository.dart';
 import 'package:gym_app/data/models/models.dart';
 import 'package:gym_app/features/plans/today_suggestion.dart';
 
@@ -238,6 +240,56 @@ void main() {
       ),
       isFalse,
     );
+  });
+
+  test('loadHomeOverview reads repositories and suggests the next day', () async {
+    final plans = MemoryPlanRepository();
+    final sessions = MemorySessionRepository();
+    final plan = _plan(id: 1, titles: ['Day 1', 'Day 2']);
+    await plans.save(plan);
+    await sessions.save(
+      _completed(
+        planId: plan.uuid,
+        dayId: 'day-1',
+        at: DateTime.utc(2026, 8, 26),
+      ),
+    );
+
+    final overview = await loadHomeOverview(
+      plans: plans,
+      sessions: sessions,
+      now: DateTime.utc(2026, 8, 27, 12),
+    );
+    expect(overview.plans.single.uuid, plan.uuid);
+    expect(overview.live, isNull);
+    expect(overview.today, isNotNull);
+    expect(overview.today!.day.title, 'Day 2');
+    expect(overview.today!.alreadyTrainedToday, isFalse);
+  });
+
+  test('loadHomeOverview includes the live session', () async {
+    final plans = MemoryPlanRepository();
+    final sessions = MemorySessionRepository();
+    final plan = _plan(id: 1, titles: ['Day 1']);
+    await plans.save(plan);
+    final live = WorkoutSession.create(
+      uuid: 'live-1',
+      planId: plan.uuid,
+      planDayId: 'day-1',
+      planTitleSnapshot: plan.title,
+      dayTitleSnapshot: 'Day 1',
+      startedAt: DateTime.utc(2026, 8, 28, 9),
+      status: SessionStatus.inProgress,
+    );
+    await sessions.save(live);
+
+    final overview = await loadHomeOverview(
+      plans: plans,
+      sessions: sessions,
+      now: DateTime.utc(2026, 8, 28, 12),
+    );
+    expect(overview.live?.uuid, live.uuid);
+    expect(overview.today!.day.title, 'Day 1');
   });
 }
 

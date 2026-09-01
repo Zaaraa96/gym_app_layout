@@ -6,6 +6,7 @@ import '../../common/widgets/app_elevated_button.dart';
 import '../../common/widgets/app_scaffold.dart';
 import '../../common/widgets/app_text.dart';
 import '../../data/models/models.dart';
+import '../../data/plan_import.dart';
 import '../../data/plan_repository.dart';
 import 'block_summary.dart';
 
@@ -38,7 +39,7 @@ class _ImportPreviewPageState extends State<ImportPreviewPage> {
     if (_saving) return;
     setState(() => _saving = true);
     try {
-      await Get.find<PlanRepository>().save(widget.plan);
+      await PlanImport(plans: Get.find<PlanRepository>()).save(widget.plan);
       if (!mounted) return;
       await Get.offAllNamed(AppRoutes.plan, arguments: widget.plan.uuid);
     } catch (error) {
