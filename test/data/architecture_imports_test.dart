@@ -11,6 +11,7 @@ void main() {
       if (file.path.endsWith('isar_plan_repository.dart')) continue;
       if (file.path.endsWith('isar_session_repository.dart')) continue;
       if (file.path.endsWith('main.dart')) continue;
+      if (file.path.endsWith('app_bootstrap.dart')) continue;
       final source = file.readAsStringSync();
       if (source.contains('isar_plan_repository.dart') ||
           source.contains('isar_session_repository.dart')) {
@@ -83,6 +84,7 @@ void main() {
   test('routes and pages key plans and sessions by uuid, not int row ids', () {
     for (final relative in [
       'lib/main.dart',
+      'lib/app/app_routes.dart',
       'lib/features/plans/plan_page.dart',
       'lib/features/plans/day_preview_page.dart',
       'lib/features/plans/day_editor_page.dart',
@@ -221,14 +223,19 @@ void main() {
       expect(offenders, isEmpty, reason: offenders.join(', '));
     }
     expect(
-      File('lib/main.dart').readAsStringSync().contains('kIsWeb'),
+      File('lib/app/app_bootstrap.dart').readAsStringSync().contains('kIsWeb'),
       isTrue,
       reason: 'web vs native storage is chosen in bootApp',
+    );
+    expect(
+      File('lib/main.dart').readAsStringSync().contains('kIsWeb'),
+      isFalse,
+      reason: 'main.dart should only bind and runApp',
     );
   });
 
   test('boot does not register a remote store as PlanRepository', () {
-    final source = File('lib/main.dart').readAsStringSync();
+    final source = File('lib/app/app_bootstrap.dart').readAsStringSync();
     expect(source.contains('Get.put<PlanRepository>('), isTrue);
     expect(
       source.contains('Get.put<PlanRepository>(HttpRemote'),
@@ -259,5 +266,14 @@ void main() {
       }
     }
     expect(offenders, isEmpty, reason: offenders.join(', '));
+  });
+
+  test('main.dart only binds Flutter and runs the app', () {
+    final source = File('lib/main.dart').readAsStringSync();
+    expect(source.contains('WidgetsFlutterBinding.ensureInitialized'), isTrue);
+    expect(source.contains('runApp'), isTrue);
+    expect(source.contains('GetPage'), isFalse);
+    expect(source.contains('Get.put'), isFalse);
+    expect(source.contains('HttpRemotePlanDataSource'), isFalse);
   });
 }
