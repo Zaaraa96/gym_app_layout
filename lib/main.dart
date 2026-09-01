@@ -1,3 +1,4 @@
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import 'package:http/http.dart' as http;
@@ -9,6 +10,8 @@ import 'common/widgets/app_scaffold.dart';
 import 'data/isar_plan_repository.dart';
 import 'data/isar_service.dart';
 import 'data/isar_session_repository.dart';
+import 'data/memory_plan_repository.dart';
+import 'data/memory_session_repository.dart';
 import 'data/plan_repository.dart';
 import 'data/remote/http_remote_plan_data_source.dart';
 import 'data/remote/http_remote_session_data_source.dart';
@@ -38,15 +41,24 @@ Future<void> main() async {
   runApp(const AppBootstrap());
 }
 
-/// Opens Isar, registers local repositories, and picks welcome vs home.
+/// Opens local storage, registers repositories, and picks welcome vs home.
 Future<String> bootApp() async {
-  final isarService = Get.put(await IsarService.init());
-  final plans = Get.put<PlanRepository>(
-    IsarPlanRepository(isarService.isar),
-  );
-  final sessions = Get.put<SessionRepository>(
-    IsarSessionRepository(isarService.isar),
-  );
+  late final PlanRepository plans;
+  late final SessionRepository sessions;
+  if (kIsWeb) {
+    // Isar 3.1 refuses to open on web (`openIsar` throws). Keep the same
+    // repository interfaces so the UI does not change.
+    plans = Get.put<PlanRepository>(MemoryPlanRepository());
+    sessions = Get.put<SessionRepository>(MemorySessionRepository());
+  } else {
+    final isarService = Get.put(await IsarService.init());
+    plans = Get.put<PlanRepository>(
+      IsarPlanRepository(isarService.isar),
+    );
+    sessions = Get.put<SessionRepository>(
+      IsarSessionRepository(isarService.isar),
+    );
+  }
   Get.put(SessionLifecycle(sessions));
   _registerSync(plans, sessions);
   Get.put<PlanImportPicker>(FilePickerPlanImportPicker());
