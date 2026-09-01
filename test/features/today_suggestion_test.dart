@@ -40,6 +40,26 @@ void main() {
       now: DateTime.utc(2026, 8, 27),
     );
     expect(suggestion!.day.title, 'Day 1');
+    expect(suggestion.alreadyTrainedToday, isFalse);
+  });
+
+  test('completing the last day today wraps and flags already trained', () {
+    final plan = _plan(id: 1, titles: ['Day 1', 'Day 2']);
+    final suggestion = suggestToday(
+      plans: [plan],
+      completedNewestFirst: [
+        _completed(
+          planId: '1',
+          dayId: 'day-2',
+          at: DateTime.utc(2026, 8, 28, 8),
+        ),
+      ],
+      now: DateTime.utc(2026, 8, 28, 18),
+    );
+    expect(suggestion!.day.title, 'Day 1');
+    expect(suggestion.alreadyTrainedToday, isTrue);
+    expect(suggestion.headline, 'Next up: Day 1');
+    expect(suggestion.prompt, contains('You already trained today'));
   });
 
   test('a session completed today offers the next day as later work', () {
@@ -164,6 +184,21 @@ void main() {
     );
     expect(suggestion!.day.title, 'Day 1');
     expect(suggestion.alreadyTrainedToday, isFalse);
+  });
+
+  test('firstExerciseTitle falls back when the day and commons are empty', () {
+    final plan = WorkoutPlan.create(
+      title: 'empty',
+      source: PlanSource.created,
+      createdAt: DateTime.utc(2026, 8, 1),
+      updatedAt: DateTime.utc(2026, 8, 1),
+      days: [PlanDay.create(dayId: 'day-1', title: 'Empty')],
+      commonSections: [
+        CommonSection.create(sectionId: 'sec-abs', title: 'abs'),
+      ],
+    );
+    expect(firstExerciseTitle(plan.days.single, plan), 'your first exercise');
+    expect(dayCanStart(plan, plan.days.single), isTrue);
   });
 
   test('sameUtcDay is true across clock times on that UTC date', () {

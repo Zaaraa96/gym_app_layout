@@ -10,6 +10,7 @@ import 'package:gym_app/data/plan_repository.dart';
 import 'package:gym_app/data/session_lifecycle.dart';
 import 'package:gym_app/data/session_repository.dart';
 import 'package:gym_app/features/progress/progress_format.dart';
+import 'package:gym_app/features/progress/session_log_page.dart';
 import 'package:gym_app/main.dart';
 
 import '../helpers/isar_core.dart';
@@ -78,6 +79,11 @@ void main() {
   DateTime thisMonth({int day = 15, int hour = 10}) {
     final now = DateTime.now().toUtc();
     return DateTime.utc(now.year, now.month, day, hour);
+  }
+
+  DateTime lastMonth({int day = 15, int hour = 10}) {
+    final now = DateTime.now().toUtc();
+    return DateTime.utc(now.year, now.month - 1, day, hour);
   }
 
   testWidgets('an empty month still shows the calendar', (tester) async {
@@ -193,6 +199,66 @@ void main() {
     expect(find.text('Set 1  50 kg × 10'), findsOneWidget);
   });
 
+  testWidgets(
+      'an in-progress session still gets a calendar dot and opens as live',
+      (tester) async {
+    final repos = await bootstrap(tester);
+    final plan = _plan();
+    await db(tester, () => repos.plans.save(plan));
+    await db(
+      tester,
+      () => SessionLifecycle(repos.sessions).start(
+        plan: plan,
+        planDayId: 'day-1',
+        startedAt: thisMonth(day: 15),
+      ),
+    );
+
+    await launch(tester, AppRoutes.home);
+    await openMonth(tester);
+
+    expect(find.byKey(const Key('month-dot-15')), findsOneWidget);
+    expect(find.text('No workouts this month.'), findsNothing);
+    expect(find.text('kang squat'), findsOneWidget);
+
+    await tester.tap(find.byKey(const Key('month-day-15')));
+    await tester.pump();
+    await settle(tester);
+
+    expect(find.text('In progress'), findsOneWidget);
+    expect(find.text('No sets logged'), findsOneWidget);
+    expect(find.text('Completed'), findsNothing);
+  });
+
+  testWidgets('month tab picks up a session that lands after the first load',
+      (tester) async {
+    final repos = await bootstrap(tester);
+    final plan = _plan();
+    await db(tester, () => repos.plans.save(plan));
+
+    await launch(tester, AppRoutes.home);
+    await openMonth(tester);
+    expect(find.text('No workouts this month.'), findsOneWidget);
+    expect(find.byKey(const Key('month-dot-15')), findsNothing);
+
+    await db(
+      tester,
+      () => _complete(
+        repos.sessions,
+        plan: plan,
+        startedAt: thisMonth(day: 15),
+        weight: 40,
+        reps: 12,
+        difficulty: 3,
+      ),
+    );
+    await settle(tester);
+
+    expect(find.byKey(const Key('month-dot-15')), findsOneWidget);
+    expect(find.text('kang squat'), findsOneWidget);
+    expect(find.text('No workouts this month.'), findsNothing);
+  });
+
   testWidgets('abandoned sessions do not appear and next month is empty',
       (tester) async {
     final repos = await bootstrap(tester);
@@ -225,7 +291,251 @@ void main() {
     );
     expect(find.text(formatMonthTitle(next)), findsOneWidget);
     expect(find.text('No workouts this month.'), findsOneWidget);
+
+    await tester.tap(find.byKey(const Key('month-prev')));
+    await tester.pump();
+    await settle(tester);
+    await tester.tap(find.byKey(const Key('month-prev')));
+    await tester.pump();
+    await settle(tester);
+
+    final previous = DateTime.utc(
+      DateTime.now().toUtc().year,
+      DateTime.now().toUtc().month - 1,
+    );
+    expect(find.text(formatMonthTitle(previous)), findsOneWidget);
+    expect(find.text('No workouts this month.'), findsOneWidget);
   });
+
+  testWidgets('a missing session log shows that it is gone', (tester) async {
+    await bootstrap(tester);
+
+    await tester.pumpWidget(
+      const GetMaterialApp(
+        home: SessionLogPage(sessionId: 999999),
+      ),
+    );
+    await settle(tester);
+
+    expect(find.text('This session is gone.'), findsOneWidget);
+    await tester.tap(find.text('Try again'));
+    await tester.pump();
+    await settle(tester);
+    expect(find.text('This session is gone.'), findsOneWidget);
+  });
+
+  testWidgets('opening an empty day log lists no workouts', (tester) async {
+    await bootstrap(tester);
+
+    await tester.pumpWidget(
+      GetMaterialApp(
+        home: DayLogPage(day: DateTime.utc(2026, 8, 15)),
+      ),
+    );
+    await settle(tester);
+
+    expect(find.text('No workouts this day.'), findsOneWidget);
+    expect(find.byKey(const Key('day-log-list')), findsNothing);
+  });
+
+  testWidgets('a live session gets a dot and opens as in progress with no sets',
+      (tester) async {
+    final repos = await bootstrap(tester);
+    final plan = _plan();
+    await db(tester, () => repos.plans.save(plan));
+    await db(
+      tester,
+      () => SessionLifecycle(repos.sessions).start(
+        plan: plan,
+        planDayId: 'day-1',
+        startedAt: thisMonth(day: 8, hour: 9),
+      ),
+    );
+
+    await launch(tester, AppRoutes.home);
+    await openMonth(tester);
+
+    expect(find.byKey(const Key('month-dot-8')), findsOneWidget);
+    expect(find.text('No workouts this month.'), findsNothing);
+    expect(find.text('0 reps'), findsOneWidget);
+
+    await tester.tap(find.byKey(const Key('month-day-8')));
+    await tester.pump();
+    await settle(tester);
+
+    expect(find.text('In progress'), findsOneWidget);
+    expect(find.text('No sets logged'), findsOneWidget);
+    expect(find.text('kang squat'), findsWidgets);
+  });
+
+  testWidgets('an empty calendar day lists no workouts', (tester) async {
+    final repos = await bootstrap(tester);
+    final plan = _plan();
+    await db(tester, () => repos.plans.save(plan));
+    await db(
+      tester,
+      () => _complete(
+        repos.sessions,
+        plan: plan,
+        startedAt: thisMonth(day: 15),
+        weight: 40,
+        reps: 12,
+      ),
+    );
+
+    await launch(tester, AppRoutes.home);
+    await openMonth(tester);
+
+    await tester.tap(find.byKey(const Key('month-day-1')));
+    await tester.pump();
+    await settle(tester);
+
+    expect(find.text('No workouts this day.'), findsOneWidget);
+    expect(find.byKey(const Key('day-log-list')), findsNothing);
+  });
+
+  testWidgets('previous month shows that month’s completed session',
+      (tester) async {
+    final repos = await bootstrap(tester);
+    final plan = _plan();
+    await db(tester, () => repos.plans.save(plan));
+    await db(
+      tester,
+      () => _complete(
+        repos.sessions,
+        plan: plan,
+        startedAt: lastMonth(day: 10),
+        weight: 35,
+        reps: 8,
+      ),
+    );
+
+    await launch(tester, AppRoutes.home);
+    await openMonth(tester);
+
+    expect(find.text('No workouts this month.'), findsOneWidget);
+    expect(find.byKey(const Key('month-dot-10')), findsNothing);
+
+    await tester.tap(find.byKey(const Key('month-prev')));
+    await tester.pump();
+    await settle(tester);
+
+    final previous = DateTime.utc(
+      DateTime.now().toUtc().year,
+      DateTime.now().toUtc().month - 1,
+    );
+    expect(find.text(formatMonthTitle(previous)), findsOneWidget);
+    expect(find.byKey(const Key('month-dot-10')), findsOneWidget);
+    expect(find.text('35 kg'), findsOneWidget);
+  });
+
+  testWidgets('a duration session with no sets shows no logged work',
+      (tester) async {
+    final repos = await bootstrap(tester);
+    final plan = _holdPlan();
+    await db(tester, () => repos.plans.save(plan));
+    await db(tester, () async {
+      final session = await SessionLifecycle(repos.sessions).start(
+        plan: plan,
+        planDayId: 'day-1',
+        startedAt: thisMonth(day: 18),
+      );
+      session.status = SessionStatus.completed;
+      session.endedAt = thisMonth(day: 18, hour: 11);
+      await repos.sessions.save(session);
+    });
+
+    await launch(tester, AppRoutes.home);
+    await openMonth(tester);
+
+    expect(find.text('shoot out'), findsOneWidget);
+    expect(find.text('No logged sets'), findsOneWidget);
+
+    await tester.tap(find.byKey(const Key('exercise-trend-shoot out')));
+    await tester.pump();
+    await settle(tester);
+    expect(find.text('0/1 sets'), findsOneWidget);
+
+    await tester.tap(find.byKey(const Key('month-day-18')));
+    await tester.pump();
+    await settle(tester);
+
+    expect(find.text('Completed'), findsOneWidget);
+    expect(find.text('No sets logged'), findsOneWidget);
+  });
+
+  testWidgets('a logged duration hold shows the clock line on the session log',
+      (tester) async {
+    final repos = await bootstrap(tester);
+    final plan = _holdPlan();
+    await db(tester, () => repos.plans.save(plan));
+    await db(tester, () async {
+      final session = await SessionLifecycle(repos.sessions).start(
+        plan: plan,
+        planDayId: 'day-1',
+        startedAt: thisMonth(day: 18),
+      );
+      final log = session.exerciseLogs.single;
+      log.sets = [
+        SetLog.create(
+          setIndex: 1,
+          completedAt: thisMonth(day: 18, hour: 10),
+          durationSeconds: 35,
+        ),
+      ];
+      log.difficulty = 2;
+      log.completedAt = thisMonth(day: 18, hour: 10);
+      session.exerciseLogs = [log];
+      session.status = SessionStatus.completed;
+      session.endedAt = thisMonth(day: 18, hour: 11);
+      await repos.sessions.save(session);
+    });
+
+    await launch(tester, AppRoutes.home);
+    await openMonth(tester);
+
+    expect(find.text('shoot out'), findsOneWidget);
+    expect(find.text('0:35'), findsOneWidget);
+
+    await tester.tap(find.byKey(const Key('month-day-18')));
+    await tester.pump();
+    await settle(tester);
+
+    expect(find.text('Completed'), findsOneWidget);
+    expect(find.text('Set 1  0:35'), findsOneWidget);
+    expect(find.text('★2'), findsOneWidget);
+    expect(find.text('No sets logged'), findsNothing);
+  });
+}
+
+WorkoutPlan _holdPlan() {
+  final now = DateTime.utc(2026, 8, 1);
+  return WorkoutPlan.create(
+    title: 'holds',
+    source: PlanSource.created,
+    createdAt: now,
+    updatedAt: now,
+    days: [
+      PlanDay.create(
+        dayId: 'day-1',
+        title: 'holds',
+        blocks: [
+          ExerciseBlock.create(
+            blockId: 'block-hold',
+            kind: BlockKind.single,
+            exercises: [
+              ExercisePrescription.create(
+                prescriptionId: 'p-hold',
+                title: 'shoot out',
+                prescribedSets: 1,
+                prescribedDurationSeconds: 30,
+              ),
+            ],
+          ),
+        ],
+      ),
+    ],
+  );
 }
 
 WorkoutPlan _plan({int dayCount = 1}) {
