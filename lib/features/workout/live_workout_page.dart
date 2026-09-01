@@ -7,16 +7,21 @@ import '../../common/widgets/app_load_error.dart';
 import '../../common/widgets/app_scaffold.dart';
 import '../../common/widgets/app_text.dart';
 import '../../common/widgets/app_text_field.dart';
+import '../../data/app_ports.dart';
 import '../../data/models/models.dart';
-import '../../data/session_repository.dart';
 import 'workout_controller.dart';
 
 /// Live logger: one active exercise, log what you did, rest, then rate 1–5.
 class LiveWorkoutPage extends StatefulWidget {
-  const LiveWorkoutPage({super.key, required this.sessionId});
+  const LiveWorkoutPage({
+    super.key,
+    required this.sessionId,
+    required this.ports,
+  });
 
   /// [WorkoutSession.uuid], not a local row key.
   final String sessionId;
+  final AppPorts ports;
 
   @override
   State<LiveWorkoutPage> createState() => _LiveWorkoutPageState();
@@ -35,7 +40,7 @@ class _LiveWorkoutPageState extends State<LiveWorkoutPage> {
     super.initState();
     _controller = WorkoutController(
       sessionId: widget.sessionId,
-      sessions: Get.find<SessionRepository>(),
+      sessions: widget.ports.sessions,
     );
     Get.put(_controller);
     _load();

@@ -14,6 +14,8 @@ import 'package:gym_app/features/progress/month_tab.dart';
 import 'package:gym_app/features/progress/session_log_page.dart';
 import 'package:gym_app/features/workout/live_workout_page.dart';
 
+import '../helpers/ports.dart';
+
 /// Load-error + Try again, using repository fakes (the PR 18 interfaces).
 void main() {
   tearDown(Get.reset);
@@ -26,10 +28,9 @@ void main() {
       plans.dispose();
       sessions.dispose();
     });
-    Get.put<PlanRepository>(plans);
-    Get.put<SessionRepository>(sessions);
-
-    await tester.pumpWidget(const GetMaterialApp(home: PlansHomePage()));
+    await tester.pumpWidget(GetMaterialApp(
+      home: PlansHomePage(ports: testPorts(plans: plans, sessions: sessions)),
+    ));
     await tester.pump();
     await tester.pump();
 
@@ -46,9 +47,9 @@ void main() {
   testWidgets('plan page retry reloads after a failed byId', (tester) async {
     final plans = _FlakyPlans(plan: _plan());
     addTearDown(plans.dispose);
-    Get.put<PlanRepository>(plans);
-
-    await tester.pumpWidget(const GetMaterialApp(home: PlanPage(planId: 'plan-uuid')));
+    await tester.pumpWidget(GetMaterialApp(
+      home: PlanPage(planId: 'plan-uuid', ports: testPorts(plans: plans)),
+    ));
     await tester.pump();
     await tester.pump();
 
@@ -64,11 +65,13 @@ void main() {
   testWidgets('day preview retry reloads after a failed byId', (tester) async {
     final plans = _FlakyPlans(plan: _plan());
     addTearDown(plans.dispose);
-    Get.put<PlanRepository>(plans);
-
     await tester.pumpWidget(
-      const GetMaterialApp(
-        home: DayPreviewPage(planId: 'plan-uuid', dayId: 'day-1'),
+      GetMaterialApp(
+        home: DayPreviewPage(
+          planId: 'plan-uuid',
+          dayId: 'day-1',
+          ports: testPorts(plans: plans),
+        ),
       ),
     );
     await tester.pump();
@@ -86,11 +89,14 @@ void main() {
   testWidgets('month tab retry reloads after a failed forMonth', (tester) async {
     final sessions = _EmptySessions()..failForMonth = 1;
     addTearDown(sessions.dispose);
-    Get.put<SessionRepository>(sessions);
-
     await tester.pumpWidget(
       GetMaterialApp(
-        home: Scaffold(body: MonthTab(now: DateTime.utc(2026, 8, 15))),
+        home: Scaffold(
+          body: MonthTab(
+            now: DateTime.utc(2026, 8, 15),
+            ports: testPorts(sessions: sessions),
+          ),
+        ),
       ),
     );
     await tester.pump();
@@ -108,11 +114,13 @@ void main() {
   testWidgets('day editor retry reloads after a failed byId', (tester) async {
     final plans = _FlakyPlans(plan: _plan());
     addTearDown(plans.dispose);
-    Get.put<PlanRepository>(plans);
-
     await tester.pumpWidget(
-      const GetMaterialApp(
-        home: DayEditorPage(planId: 'plan-uuid', dayId: 'day-1'),
+      GetMaterialApp(
+        home: DayEditorPage(
+          planId: 'plan-uuid',
+          dayId: 'day-1',
+          ports: testPorts(plans: plans),
+        ),
       ),
     );
     await tester.pump();
@@ -131,11 +139,13 @@ void main() {
       (tester) async {
     final plans = _FlakyPlans(plan: _plan());
     addTearDown(plans.dispose);
-    Get.put<PlanRepository>(plans);
-
     await tester.pumpWidget(
-      const GetMaterialApp(
-        home: DayEditorPage(planId: 'plan-uuid', sectionId: 'sec-abs'),
+      GetMaterialApp(
+        home: DayEditorPage(
+          planId: 'plan-uuid',
+          sectionId: 'sec-abs',
+          ports: testPorts(plans: plans),
+        ),
       ),
     );
     await tester.pump();
@@ -154,11 +164,13 @@ void main() {
       (tester) async {
     final plans = _FlakyPlans(plan: _plan())..remainingFailures = 0;
     addTearDown(plans.dispose);
-    Get.put<PlanRepository>(plans);
-
     await tester.pumpWidget(
-      const GetMaterialApp(
-        home: DayEditorPage(planId: 'plan-uuid', dayId: 'missing-day'),
+      GetMaterialApp(
+        home: DayEditorPage(
+          planId: 'plan-uuid',
+          dayId: 'missing-day',
+          ports: testPorts(plans: plans),
+        ),
       ),
     );
     await tester.pump();
@@ -172,11 +184,13 @@ void main() {
       (tester) async {
     final plans = _FlakyPlans(plan: _plan())..remainingFailures = 0;
     addTearDown(plans.dispose);
-    Get.put<PlanRepository>(plans);
-
     await tester.pumpWidget(
-      const GetMaterialApp(
-        home: DayEditorPage(planId: 'plan-uuid', sectionId: 'missing-section'),
+      GetMaterialApp(
+        home: DayEditorPage(
+          planId: 'plan-uuid',
+          sectionId: 'missing-section',
+          ports: testPorts(plans: plans),
+        ),
       ),
     );
     await tester.pump();
@@ -191,11 +205,12 @@ void main() {
     final sessions = _EmptySessions(daySessions: [_session()])
       ..failForCalendarDay = 1;
     addTearDown(sessions.dispose);
-    Get.put<SessionRepository>(sessions);
-
     await tester.pumpWidget(
       GetMaterialApp(
-        home: DayLogPage(day: DateTime.utc(2026, 8, 15)),
+        home: DayLogPage(
+          day: DateTime.utc(2026, 8, 15),
+          ports: testPorts(sessions: sessions),
+        ),
       ),
     );
     await tester.pump();
@@ -214,10 +229,13 @@ void main() {
   testWidgets('session log retry reloads after a failed byId', (tester) async {
     final sessions = _EmptySessions(session: _session())..failById = 1;
     addTearDown(sessions.dispose);
-    Get.put<SessionRepository>(sessions);
-
     await tester.pumpWidget(
-      const GetMaterialApp(home: SessionLogPage(sessionId: 'sess-uuid')),
+      GetMaterialApp(
+        home: SessionLogPage(
+          sessionId: 'sess-uuid',
+          ports: testPorts(sessions: sessions),
+        ),
+      ),
     );
     await tester.pump();
     await tester.pump();
@@ -237,10 +255,13 @@ void main() {
       (tester) async {
     final sessions = _EmptySessions();
     addTearDown(sessions.dispose);
-    Get.put<SessionRepository>(sessions);
-
     await tester.pumpWidget(
-      const GetMaterialApp(home: SessionLogPage(sessionId: 'missing-session')),
+      GetMaterialApp(
+        home: SessionLogPage(
+          sessionId: 'missing-session',
+          ports: testPorts(sessions: sessions),
+        ),
+      ),
     );
     await tester.pump();
     await tester.pump();
@@ -252,10 +273,13 @@ void main() {
   testWidgets('live workout retry reloads after a failed byId', (tester) async {
     final sessions = _EmptySessions(session: _liveSession())..failById = 1;
     addTearDown(sessions.dispose);
-    Get.put<SessionRepository>(sessions);
-
     await tester.pumpWidget(
-      const GetMaterialApp(home: LiveWorkoutPage(sessionId: 'live-uuid')),
+      GetMaterialApp(
+        home: LiveWorkoutPage(
+          sessionId: 'live-uuid',
+          ports: testPorts(sessions: sessions),
+        ),
+      ),
     );
     await tester.pump();
     await tester.pump();

@@ -4,6 +4,7 @@ import 'package:get/get.dart';
 import '../../common/widgets/app_load_error.dart';
 import '../../common/widgets/app_text.dart';
 import '../../common/widgets/app_text_field.dart';
+import '../../data/app_ports.dart';
 import '../../data/models/models.dart';
 import '../../data/plan_repository.dart';
 import 'block_summary.dart';
@@ -27,6 +28,7 @@ class DayEditorPage extends StatefulWidget {
   const DayEditorPage({
     super.key,
     required this.planId,
+    required this.ports,
     this.dayId,
     this.sectionId,
   }) : assert(dayId != null || sectionId != null);
@@ -35,6 +37,7 @@ class DayEditorPage extends StatefulWidget {
   final String planId;
   final String? dayId;
   final String? sectionId;
+  final AppPorts ports;
 
   bool get isCommonSection => sectionId != null;
 
@@ -43,7 +46,7 @@ class DayEditorPage extends StatefulWidget {
 }
 
 class _DayEditorPageState extends State<DayEditorPage> {
-  final PlanRepository _plans = Get.find<PlanRepository>();
+  PlanRepository get _plans => widget.ports.plans;
   final _titleController = TextEditingController();
   final _summaryController = TextEditingController();
   WorkoutPlan? _plan;

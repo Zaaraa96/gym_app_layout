@@ -4,6 +4,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:get/get.dart';
 import 'package:gym_app/common/app_routes.dart';
+import 'package:gym_app/data/app_ports.dart';
 import 'package:gym_app/data/isar_service.dart';
 import 'package:gym_app/data/models/models.dart';
 import 'package:gym_app/data/plan_repository.dart';
@@ -311,8 +312,11 @@ void main() {
     await bootstrap(tester);
 
     await tester.pumpWidget(
-      const GetMaterialApp(
-        home: SessionLogPage(sessionId: 'missing-session'),
+      GetMaterialApp(
+        home: SessionLogPage(
+          sessionId: 'missing-session',
+          ports: Get.find<AppPorts>(),
+        ),
       ),
     );
     await settle(tester);
@@ -329,7 +333,10 @@ void main() {
 
     await tester.pumpWidget(
       GetMaterialApp(
-        home: DayLogPage(day: DateTime.utc(2026, 8, 15)),
+        home: DayLogPage(
+          day: DateTime.utc(2026, 8, 15),
+          ports: Get.find<AppPorts>(),
+        ),
       ),
     );
     await settle(tester);

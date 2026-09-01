@@ -7,6 +7,7 @@ import '../../common/app_routes.dart';
 import '../../common/widgets/app_load_error.dart';
 import '../../common/widgets/app_text.dart';
 import '../../common/widgets/app_text_field.dart';
+import '../../data/app_ports.dart';
 import '../../data/models/models.dart';
 import '../../data/new_id.dart';
 import '../../data/plan_repository.dart';
@@ -16,17 +17,18 @@ import 'day_preview_page.dart';
 
 /// One plan: rename it, add days, open a day to edit its workout.
 class PlanPage extends StatefulWidget {
-  const PlanPage({super.key, required this.planId});
+  const PlanPage({super.key, required this.planId, required this.ports});
 
   /// [WorkoutPlan.uuid], not a local row key.
   final String planId;
+  final AppPorts ports;
 
   @override
   State<PlanPage> createState() => _PlanPageState();
 }
 
 class _PlanPageState extends State<PlanPage> {
-  final PlanRepository _plans = Get.find<PlanRepository>();
+  PlanRepository get _plans => widget.ports.plans;
   WorkoutPlan? _plan;
   bool _loading = true;
   String? _error;
@@ -272,7 +274,11 @@ class _PlanPageState extends State<PlanPage> {
 
   Future<void> _openDay(PlanDay day) async {
     await Get.to(
-      () => DayPreviewPage(planId: widget.planId, dayId: day.dayId),
+      () => DayPreviewPage(
+        planId: widget.planId,
+        dayId: day.dayId,
+        ports: widget.ports,
+      ),
       routeName: AppRoutes.day,
     );
     await _load();
@@ -280,7 +286,11 @@ class _PlanPageState extends State<PlanPage> {
 
   Future<void> _openEditor(PlanDay day) async {
     await Get.to(
-      () => DayEditorPage(planId: widget.planId, dayId: day.dayId),
+      () => DayEditorPage(
+        planId: widget.planId,
+        dayId: day.dayId,
+        ports: widget.ports,
+      ),
       routeName: AppRoutes.editDay,
     );
     await _load();
@@ -291,6 +301,7 @@ class _PlanPageState extends State<PlanPage> {
       () => DayEditorPage(
         planId: widget.planId,
         sectionId: section.sectionId,
+        ports: widget.ports,
       ),
       routeName: AppRoutes.editSection,
     );

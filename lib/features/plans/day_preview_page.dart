@@ -5,6 +5,7 @@ import '../../common/app_routes.dart';
 import '../../common/widgets/app_elevated_button.dart';
 import '../../common/widgets/app_load_error.dart';
 import '../../common/widgets/app_text.dart';
+import '../../data/app_ports.dart';
 import '../../data/models/models.dart';
 import '../../data/plan_repository.dart';
 import '../workout/start_workout.dart';
@@ -26,18 +27,20 @@ class DayPreviewPage extends StatefulWidget {
     super.key,
     required this.planId,
     required this.dayId,
+    required this.ports,
   });
 
   /// [WorkoutPlan.uuid], not a local row key.
   final String planId;
   final String dayId;
+  final AppPorts ports;
 
   @override
   State<DayPreviewPage> createState() => _DayPreviewPageState();
 }
 
 class _DayPreviewPageState extends State<DayPreviewPage> {
-  final PlanRepository _plans = Get.find<PlanRepository>();
+  PlanRepository get _plans => widget.ports.plans;
   WorkoutPlan? _plan;
   PlanDay? _day;
   bool _loading = true;
@@ -93,7 +96,11 @@ class _DayPreviewPageState extends State<DayPreviewPage> {
     // Push the editor widget directly. GetX nested-route rules make
     // `Get.toNamed` from some plan screens a no-op.
     await Get.to(
-      () => DayEditorPage(planId: widget.planId, dayId: widget.dayId),
+      () => DayEditorPage(
+        planId: widget.planId,
+        dayId: widget.dayId,
+        ports: widget.ports,
+      ),
       routeName: AppRoutes.editDay,
     );
     await _load();
@@ -103,7 +110,13 @@ class _DayPreviewPageState extends State<DayPreviewPage> {
     final plan = _plan;
     final day = _day;
     if (plan == null || day == null) return;
-    await startWorkout(context: context, plan: plan, day: day);
+    await startWorkout(
+      context: context,
+      plan: plan,
+      day: day,
+      start: widget.ports.startSession,
+      ports: widget.ports,
+    );
   }
 
   @override

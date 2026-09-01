@@ -9,6 +9,8 @@ import 'package:gym_app/data/session_repository.dart';
 import 'package:gym_app/features/plans/plan_page.dart';
 import 'package:gym_app/features/plans/plans_home_page.dart';
 
+import '../helpers/ports.dart';
+
 /// Home and plan screens reload from [PlanRepository.watch] / [SessionRepository.watch].
 void main() {
   tearDown(Get.reset);
@@ -21,10 +23,9 @@ void main() {
       plans.dispose();
       sessions.dispose();
     });
-    Get.put<PlanRepository>(plans);
-    Get.put<SessionRepository>(sessions);
-
-    await tester.pumpWidget(const GetMaterialApp(home: PlansHomePage()));
+    await tester.pumpWidget(GetMaterialApp(
+      home: PlansHomePage(ports: testPorts(plans: plans, sessions: sessions)),
+    ));
     await tester.pump();
     await tester.pump();
 
@@ -53,10 +54,9 @@ void main() {
       plans.dispose();
       sessions.dispose();
     });
-    Get.put<PlanRepository>(plans);
-    Get.put<SessionRepository>(sessions);
-
-    await tester.pumpWidget(const GetMaterialApp(home: PlansHomePage()));
+    await tester.pumpWidget(GetMaterialApp(
+      home: PlansHomePage(ports: testPorts(plans: plans, sessions: sessions)),
+    ));
     await tester.pump();
     await tester.pump();
 
@@ -76,9 +76,9 @@ void main() {
       (tester) async {
     final plans = _WatchablePlans(plan: _plan());
     addTearDown(plans.dispose);
-    Get.put<PlanRepository>(plans);
-
-    await tester.pumpWidget(const GetMaterialApp(home: PlanPage(planId: 'plan-uuid')));
+    await tester.pumpWidget(GetMaterialApp(
+      home: PlanPage(planId: 'plan-uuid', ports: testPorts(plans: plans)),
+    ));
     await tester.pump();
     await tester.pump();
 

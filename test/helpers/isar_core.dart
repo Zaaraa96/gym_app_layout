@@ -1,7 +1,9 @@
 import 'package:flutter_test/flutter_test.dart';
 import 'package:get/get.dart';
+import 'package:gym_app/data/app_ports.dart';
 import 'package:gym_app/data/isar_plan_repository.dart';
 import 'package:gym_app/data/isar_session_repository.dart';
+import 'package:gym_app/data/plan_import_picker.dart';
 import 'package:gym_app/data/plan_repository.dart';
 import 'package:gym_app/data/session_lifecycle.dart';
 import 'package:gym_app/data/session_repository.dart';
@@ -22,10 +24,14 @@ Future<void> ensureIsarCore() async {
   }
 }
 
-PlanRepository putPlans(Isar isar) => Get.put<PlanRepository>(
-      IsarPlanRepository(isar),
-      permanent: true,
-    );
+PlanRepository putPlans(Isar isar) {
+  final plans = Get.put<PlanRepository>(
+    IsarPlanRepository(isar),
+    permanent: true,
+  );
+  _putAppPorts();
+  return plans;
+}
 
 SessionRepository putSessions(Isar isar) {
   final sessions = Get.put<SessionRepository>(
@@ -33,7 +39,28 @@ SessionRepository putSessions(Isar isar) {
     permanent: true,
   );
   Get.put(SessionLifecycle(sessions), permanent: true);
+  _putAppPorts();
   return sessions;
+}
+
+void _putAppPorts() {
+  if (!Get.isRegistered<PlanRepository>() ||
+      !Get.isRegistered<SessionRepository>()) {
+    return;
+  }
+  Get.put(
+    AppPorts(
+      plans: Get.find<PlanRepository>(),
+      sessions: Get.find<SessionRepository>(),
+      lifecycle: Get.isRegistered<SessionLifecycle>()
+          ? Get.find<SessionLifecycle>()
+          : null,
+      picker: Get.isRegistered<PlanImportPicker>()
+          ? Get.find<PlanImportPicker>()
+          : null,
+    ),
+    permanent: true,
+  );
 }
 
 /// Finish a GetX page transition and let a real Isar read land.

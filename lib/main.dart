@@ -7,6 +7,7 @@ import 'common/app_routes.dart';
 import 'common/app_theme.dart';
 import 'common/widgets/app_load_error.dart';
 import 'common/widgets/app_scaffold.dart';
+import 'data/app_ports.dart';
 import 'data/isar_plan_repository.dart';
 import 'data/isar_service.dart';
 import 'data/isar_session_repository.dart';
@@ -60,8 +61,17 @@ Future<String> bootApp() async {
     );
   }
   Get.put(SessionLifecycle(sessions));
+  final picker = FilePickerPlanImportPicker();
+  Get.put<PlanImportPicker>(picker);
+  Get.put(
+    AppPorts(
+      plans: plans,
+      sessions: sessions,
+      lifecycle: Get.find<SessionLifecycle>(),
+      picker: picker,
+    ),
+  );
   _registerSync(plans, sessions);
-  Get.put<PlanImportPicker>(FilePickerPlanImportPicker());
   Get.put<ExerciseGalleryPicker>(ImagePickerExerciseGalleryPicker());
   return resolveInitialRoute(plans);
 }
@@ -157,6 +167,19 @@ void _registerSync(PlanRepository plans, SessionRepository sessions) {
 Future<String> resolveInitialRoute(PlanRepository plans) async =>
     await plans.count() > 0 ? AppRoutes.home : AppRoutes.welcome;
 
+AppPorts resolveAppPorts() {
+  return AppPorts(
+    plans: Get.find<PlanRepository>(),
+    sessions: Get.find<SessionRepository>(),
+    lifecycle: Get.isRegistered<SessionLifecycle>()
+        ? Get.find<SessionLifecycle>()
+        : null,
+    picker: Get.isRegistered<PlanImportPicker>()
+        ? Get.find<PlanImportPicker>()
+        : null,
+  );
+}
+
 class MyApp extends StatelessWidget {
   const MyApp({super.key, this.initialRoute = AppRoutes.welcome});
 
@@ -178,33 +201,60 @@ class MyApp extends StatelessWidget {
         );
       },
       getPages: [
-        GetPage(name: AppRoutes.welcome, page: () => const WelcomePage()),
-        GetPage(name: AppRoutes.home, page: () => const PlansHomePage()),
-        GetPage(name: AppRoutes.starters, page: () => const StarterPlansPage()),
+        GetPage(
+          name: AppRoutes.welcome,
+          page: () => WelcomePage(ports: resolveAppPorts()),
+        ),
+        GetPage(
+          name: AppRoutes.home,
+          page: () => PlansHomePage(ports: resolveAppPorts()),
+        ),
+        GetPage(
+          name: AppRoutes.starters,
+          page: () => StarterPlansPage(ports: resolveAppPorts()),
+        ),
         GetPage(
           name: AppRoutes.import,
           page: () {
             final args = Get.arguments as ImportPreviewArgs;
-            return ImportPreviewPage(fileName: args.fileName, plan: args.plan);
+            return ImportPreviewPage(
+              fileName: args.fileName,
+              plan: args.plan,
+              ports: resolveAppPorts(),
+            );
           },
         ),
-        GetPage(name: AppRoutes.newPlan, page: () => const AddNewPlanPage()),
+        GetPage(
+          name: AppRoutes.newPlan,
+          page: () => AddNewPlanPage(ports: resolveAppPorts()),
+        ),
         GetPage(
           name: AppRoutes.plan,
-          page: () => PlanPage(planId: Get.arguments as String),
+          page: () => PlanPage(
+            planId: Get.arguments as String,
+            ports: resolveAppPorts(),
+          ),
         ),
         GetPage(
           name: AppRoutes.day,
           page: () {
             final args = Get.arguments as DayPreviewArgs;
-            return DayPreviewPage(planId: args.planId, dayId: args.dayId);
+            return DayPreviewPage(
+              planId: args.planId,
+              dayId: args.dayId,
+              ports: resolveAppPorts(),
+            );
           },
         ),
         GetPage(
           name: AppRoutes.editDay,
           page: () {
             final args = Get.arguments as DayEditorArgs;
-            return DayEditorPage(planId: args.planId, dayId: args.dayId);
+            return DayEditorPage(
+              planId: args.planId,
+              dayId: args.dayId,
+              ports: resolveAppPorts(),
+            );
           },
         ),
         GetPage(
@@ -214,20 +264,30 @@ class MyApp extends StatelessWidget {
             return DayEditorPage(
               planId: args.planId,
               sectionId: args.sectionId,
+              ports: resolveAppPorts(),
             );
           },
         ),
         GetPage(
           name: AppRoutes.session,
-          page: () => LiveWorkoutPage(sessionId: Get.arguments as String),
+          page: () => LiveWorkoutPage(
+            sessionId: Get.arguments as String,
+            ports: resolveAppPorts(),
+          ),
         ),
         GetPage(
           name: AppRoutes.dayLog,
-          page: () => DayLogPage(day: Get.arguments as DateTime),
+          page: () => DayLogPage(
+            day: Get.arguments as DateTime,
+            ports: resolveAppPorts(),
+          ),
         ),
         GetPage(
           name: AppRoutes.sessionLog,
-          page: () => SessionLogPage(sessionId: Get.arguments as String),
+          page: () => SessionLogPage(
+            sessionId: Get.arguments as String,
+            ports: resolveAppPorts(),
+          ),
         ),
       ],
     );

@@ -8,6 +8,7 @@ import '../../common/widgets/app_elevated_button.dart';
 import '../../common/widgets/app_load_error.dart';
 import '../../common/widgets/app_scaffold.dart';
 import '../../common/widgets/app_text.dart';
+import '../../data/app_ports.dart';
 import '../../data/models/workout_plan.dart';
 import '../../data/models/workout_session.dart';
 import '../../data/plan_repository.dart';
@@ -19,15 +20,17 @@ import 'today_suggestion.dart';
 
 /// Landing screen for returning users: today, the plan list, Plans | Month.
 class PlansHomePage extends StatefulWidget {
-  const PlansHomePage({super.key});
+  const PlansHomePage({super.key, required this.ports});
+
+  final AppPorts ports;
 
   @override
   State<PlansHomePage> createState() => _PlansHomePageState();
 }
 
 class _PlansHomePageState extends State<PlansHomePage> {
-  final PlanRepository _plans = Get.find<PlanRepository>();
-  final SessionRepository _sessions = Get.find<SessionRepository>();
+  PlanRepository get _plans => widget.ports.plans;
+  SessionRepository get _sessions => widget.ports.sessions;
 
   List<WorkoutPlan> _items = const [];
   WorkoutSession? _live;
@@ -98,7 +101,7 @@ class _PlansHomePageState extends State<PlansHomePage> {
         index: _tab,
         children: [
           _plansTab(),
-          const MonthTab(),
+          MonthTab(ports: widget.ports),
         ],
       ),
       bottomNavigationBar: NavigationBar(
@@ -153,7 +156,11 @@ class _PlansHomePageState extends State<PlansHomePage> {
               Expanded(
                 child: AppElevatedButton(
                   data: 'Import',
-                  onPressed: () => startPlanImport(context),
+                  onPressed: () => startPlanImport(
+                    context,
+                    import: widget.ports.planImport,
+                    ports: widget.ports,
+                  ),
                 ),
               ),
               const SizedBox(width: 12),
@@ -205,7 +212,7 @@ class _PlansHomePageState extends State<PlansHomePage> {
             style: subtitleTextStyle,
           ),
           trailing: const Icon(Icons.play_arrow),
-          onTap: () => openLiveSession(live.uuid),
+          onTap: () => openLiveSession(live.uuid, widget.ports),
         ),
       ),
     );
@@ -235,6 +242,8 @@ class _PlansHomePageState extends State<PlansHomePage> {
                   context: context,
                   plan: today.plan,
                   day: today.day,
+                  start: widget.ports.startSession,
+                  ports: widget.ports,
                 ),
               ),
             ],

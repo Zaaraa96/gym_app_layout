@@ -5,9 +5,8 @@ import '../../common/app_routes.dart';
 import '../../common/widgets/app_elevated_button.dart';
 import '../../common/widgets/app_scaffold.dart';
 import '../../common/widgets/app_text.dart';
+import '../../data/app_ports.dart';
 import '../../data/models/models.dart';
-import '../../data/plan_import.dart';
-import '../../data/plan_repository.dart';
 import 'block_summary.dart';
 
 class ImportPreviewArgs {
@@ -23,10 +22,12 @@ class ImportPreviewPage extends StatefulWidget {
     super.key,
     required this.fileName,
     required this.plan,
+    required this.ports,
   });
 
   final String fileName;
   final WorkoutPlan plan;
+  final AppPorts ports;
 
   @override
   State<ImportPreviewPage> createState() => _ImportPreviewPageState();
@@ -39,7 +40,7 @@ class _ImportPreviewPageState extends State<ImportPreviewPage> {
     if (_saving) return;
     setState(() => _saving = true);
     try {
-      await PlanImport(plans: Get.find<PlanRepository>()).save(widget.plan);
+      await widget.ports.planImport.save(widget.plan);
       if (!mounted) return;
       await Get.offAllNamed(AppRoutes.plan, arguments: widget.plan.uuid);
     } catch (error) {

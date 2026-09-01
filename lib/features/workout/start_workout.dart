@@ -2,16 +2,15 @@ import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 
 import '../../common/app_routes.dart';
+import '../../data/app_ports.dart';
 import '../../data/models/models.dart';
-import '../../data/session_lifecycle.dart';
-import '../../data/session_repository.dart';
 import '../../data/start_session.dart';
 import 'live_workout_page.dart';
 
 /// Opens the live logger for the session [uuid].
-Future<void> openLiveSession(String sessionId) async {
+Future<void> openLiveSession(String sessionId, AppPorts ports) async {
   await Get.to(
-    () => LiveWorkoutPage(sessionId: sessionId),
+    () => LiveWorkoutPage(sessionId: sessionId, ports: ports),
     routeName: AppRoutes.session,
   );
 }
@@ -21,15 +20,10 @@ Future<void> startWorkout({
   required BuildContext context,
   required WorkoutPlan plan,
   required PlanDay day,
-  StartSession? start,
+  required StartSession start,
+  required AppPorts ports,
 }) async {
-  final runner = start ??
-      StartSession(
-        Get.find<SessionLifecycle>(),
-        Get.find<SessionRepository>(),
-      );
-
-  final result = await runner.run(
+  final result = await start.run(
     plan: plan,
     planDayId: day.dayId,
     onConflict: (existing) => _askConflict(context, existing, day),
@@ -39,7 +33,7 @@ Future<void> startWorkout({
 
   switch (result) {
     case StartSessionOpened(:final session):
-      await openLiveSession(session.uuid);
+      await openLiveSession(session.uuid, ports);
     case StartSessionCancelled():
       return;
     case StartSessionEmpty():

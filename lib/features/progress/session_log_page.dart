@@ -5,22 +5,24 @@ import '../../common/app_routes.dart';
 import '../../common/widgets/app_load_error.dart';
 import '../../common/widgets/app_scaffold.dart';
 import '../../common/widgets/app_text.dart';
+import '../../data/app_ports.dart';
 import '../../data/models/models.dart';
 import '../../data/session_repository.dart';
 import 'progress_format.dart';
 
 /// Several sessions on one calendar day, oldest [WorkoutSession.startedAt] first.
 class DayLogPage extends StatefulWidget {
-  const DayLogPage({super.key, required this.day});
+  const DayLogPage({super.key, required this.day, required this.ports});
 
   final DateTime day;
+  final AppPorts ports;
 
   @override
   State<DayLogPage> createState() => _DayLogPageState();
 }
 
 class _DayLogPageState extends State<DayLogPage> {
-  final SessionRepository _sessions = Get.find<SessionRepository>();
+  SessionRepository get _sessions => widget.ports.sessions;
   List<WorkoutSession> _items = const [];
   bool _loading = true;
   String? _error;
@@ -104,17 +106,18 @@ class _DayLogPageState extends State<DayLogPage> {
 
 /// Read-only log of one session from the month calendar.
 class SessionLogPage extends StatefulWidget {
-  const SessionLogPage({super.key, required this.sessionId});
+  const SessionLogPage({super.key, required this.sessionId, required this.ports});
 
   /// [WorkoutSession.uuid], not a local row key.
   final String sessionId;
+  final AppPorts ports;
 
   @override
   State<SessionLogPage> createState() => _SessionLogPageState();
 }
 
 class _SessionLogPageState extends State<SessionLogPage> {
-  final SessionRepository _sessions = Get.find<SessionRepository>();
+  SessionRepository get _sessions => widget.ports.sessions;
   WorkoutSession? _session;
   bool _loading = true;
   String? _error;

@@ -6,23 +6,25 @@ import 'package:get/get.dart';
 import '../../common/app_routes.dart';
 import '../../common/widgets/app_load_error.dart';
 import '../../common/widgets/app_text.dart';
+import '../../data/app_ports.dart';
 import '../../data/session_repository.dart';
 import 'progress_format.dart';
 import 'progress_service.dart';
 
 /// Home-shell Month tab: calendar, dots, and per-exercise trends.
 class MonthTab extends StatefulWidget {
-  const MonthTab({super.key, this.now});
+  const MonthTab({super.key, required this.ports, this.now});
 
   /// Visible month defaults to this instant (UTC). Tests pass a fixed clock.
   final DateTime? now;
+  final AppPorts ports;
 
   @override
   State<MonthTab> createState() => _MonthTabState();
 }
 
 class _MonthTabState extends State<MonthTab> {
-  final SessionRepository _sessions = Get.find<SessionRepository>();
+  SessionRepository get _sessions => widget.ports.sessions;
   final ProgressService _progress = const ProgressService();
 
   late DateTime _month;

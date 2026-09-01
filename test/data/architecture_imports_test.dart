@@ -144,4 +144,27 @@ void main() {
       reason: 'month tab must not fold repository rows itself',
     );
   });
+
+  test('feature widgets do not look up repositories with Get.find', () {
+    final offenders = <String>[];
+    for (final file in Directory('lib/features')
+        .listSync(recursive: true)
+        .whereType<File>()) {
+      if (!file.path.endsWith('.dart')) continue;
+      final source = file.readAsStringSync();
+      for (final needle in [
+        'Get.find<PlanRepository>',
+        'Get.find<SessionRepository>',
+        'Get.find<SessionLifecycle>',
+        'Get.find<PlanImport',
+        'Get.find<StartSession>',
+        'Get.find<AppPorts>',
+      ]) {
+        if (source.contains(needle)) {
+          offenders.add('${file.path}: $needle');
+        }
+      }
+    }
+    expect(offenders, isEmpty, reason: offenders.join(', '));
+  });
 }
