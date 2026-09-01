@@ -186,6 +186,28 @@ void main() {
     expect(suggestion.alreadyTrainedToday, isFalse);
   });
 
+  test('history matches the plan uuid, not the local Isar row id', () {
+    final plan = _plan(id: 99, titles: ['Day 1', 'Day 2'])..uuid = 'plan-abc';
+    final suggestion = suggestToday(
+      plans: [plan],
+      completedNewestFirst: [
+        _completed(
+          planId: '99',
+          dayId: 'day-1',
+          at: DateTime.utc(2026, 8, 26),
+        ),
+        _completed(
+          planId: 'plan-abc',
+          dayId: 'day-1',
+          at: DateTime.utc(2026, 8, 27),
+        ),
+      ],
+      now: DateTime.utc(2026, 8, 28),
+    );
+    expect(suggestion!.day.title, 'Day 2');
+    expect(suggestion.alreadyTrainedToday, isFalse);
+  });
+
   test('firstExerciseTitle falls back when the day and commons are empty', () {
     final plan = WorkoutPlan.create(
       title: 'empty',

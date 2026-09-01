@@ -328,6 +328,34 @@ void main() {
     );
   });
 
+  test('lastCompleted keys off plan uuid, not the Isar row id', () async {
+    final db = await open();
+    final plan = _plan();
+    await db.plans.save(plan);
+    expect(plan.id.toString(), isNot(plan.uuid));
+
+    final session = await db.lifecycle.start(
+      plan: plan,
+      planDayId: 'day-1',
+      startedAt: DateTime.utc(2026, 8, 10, 8),
+    );
+    session.status = SessionStatus.completed;
+    session.endedAt = DateTime.utc(2026, 8, 10, 9);
+    await db.sessions.save(session);
+
+    expect(session.planId, plan.uuid);
+    expect(
+      (await db.sessions.lastCompleted(planId: plan.id.toString()))?.id,
+      isNull,
+    );
+    expect(
+        (await db.sessions.lastCompleted(planId: plan.uuid))?.id, session.id);
+    expect(
+      (await db.sessions.completedNewestFirst(planId: plan.id.toString())),
+      isEmpty,
+    );
+  });
+
   test('start throws when the day is not on the plan', () async {
     final db = await open();
     final plan = _plan();
@@ -472,7 +500,8 @@ void main() {
       commonSections: plan.commonSections,
       includedCommonSectionIds: const [],
     );
-    expect(empty.map((log) => log.exerciseTitle), ['kang squat', 'leg extension']);
+    expect(
+        empty.map((log) => log.exerciseTitle), ['kang squat', 'leg extension']);
     expect(empty.every((log) => log.fromCommonSection == false), isTrue);
 
     final withAbs = exerciseLogsForStart(
@@ -489,7 +518,8 @@ void main() {
     expect(withAbs.last.exerciseTitleKey, 'shoot out');
   });
 
-  test('save marks dirty and bumps updatedAt; putSynced clears dirty', () async {
+  test('save marks dirty and bumps updatedAt; putSynced clears dirty',
+      () async {
     final db = await open();
     final session = WorkoutSession.create(
       uuid: '',
@@ -532,7 +562,8 @@ void main() {
       status: SessionStatus.completed,
     );
 
-    await _expectWatchFires(db.sessions.watch(), () => db.sessions.save(session));
+    await _expectWatchFires(
+        db.sessions.watch(), () => db.sessions.save(session));
     expect(session.id, isNot(0));
     await _expectWatchFires(
       db.sessions.watch(),

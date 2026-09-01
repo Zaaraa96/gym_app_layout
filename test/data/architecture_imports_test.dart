@@ -19,4 +19,19 @@ void main() {
     }
     expect(offenders, isEmpty, reason: offenders.join(', '));
   });
+
+  test('repository interfaces and SessionLifecycle do not import Isar', () {
+    for (final relative in [
+      'lib/data/plan_repository.dart',
+      'lib/data/session_repository.dart',
+      'lib/data/session_lifecycle.dart',
+    ]) {
+      final source = File(relative).readAsStringSync();
+      expect(
+        source.contains("package:isar/isar.dart"),
+        isFalse,
+        reason: '$relative must stay Isar-free',
+      );
+    }
+  });
 }
