@@ -112,8 +112,8 @@ class _PlanPageState extends State<PlanPage> {
         ],
       ),
     );
-    controller.dispose();
     if (next == null || next.isEmpty) return;
+
     plan.title = next;
     await _save(plan);
   }
