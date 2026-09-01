@@ -207,4 +207,57 @@ void main() {
     }
     expect(offenders, isEmpty, reason: offenders.join(', '));
   });
+
+  test('kIsWeb stays in boot composition, not pages', () {
+    for (final dir in ['lib/features', 'lib/domain']) {
+      final offenders = <String>[];
+      for (final file
+          in Directory(dir).listSync(recursive: true).whereType<File>()) {
+        if (!file.path.endsWith('.dart')) continue;
+        if (file.readAsStringSync().contains('kIsWeb')) {
+          offenders.add(file.path);
+        }
+      }
+      expect(offenders, isEmpty, reason: offenders.join(', '));
+    }
+    expect(
+      File('lib/main.dart').readAsStringSync().contains('kIsWeb'),
+      isTrue,
+      reason: 'web vs native storage is chosen in bootApp',
+    );
+  });
+
+  test('boot does not register a remote store as PlanRepository', () {
+    final source = File('lib/main.dart').readAsStringSync();
+    expect(source.contains('Get.put<PlanRepository>('), isTrue);
+    expect(
+      source.contains('Get.put<PlanRepository>(HttpRemote'),
+      isFalse,
+    );
+    expect(
+      source.contains('Get.put<PlanRepository>(RemotePlan'),
+      isFalse,
+    );
+    expect(source.contains('HttpRemotePlanDataSource'), isTrue);
+    expect(source.contains('SyncService('), isTrue);
+  });
+
+  test('domain does not import HTTP DTOs or JSON field maps', () {
+    final offenders = <String>[];
+    for (final file in Directory('lib/domain')
+        .listSync(recursive: true)
+        .whereType<File>()) {
+      if (!file.path.endsWith('.dart')) continue;
+      final source = file.readAsStringSync();
+      if (source.contains('entity_dto.dart') ||
+          source.contains('http_remote_') ||
+          source.contains('dart:convert') ||
+          source.contains('jsonDecode') ||
+          source.contains("'basic-plan'") ||
+          source.contains('"basic-plan"')) {
+        offenders.add(file.path);
+      }
+    }
+    expect(offenders, isEmpty, reason: offenders.join(', '));
+  });
 }
