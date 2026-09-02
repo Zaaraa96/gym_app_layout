@@ -4,7 +4,6 @@ import '../../common/widgets/app_text_field.dart';
 import '../../domain/models/models.dart';
 import '../../domain/new_id.dart';
 import 'exercise_asset_catalog.dart';
-import 'exercise_media.dart';
 import 'exercise_media_picker.dart';
 import 'exercise_media_picker_sheet.dart';
 import 'exercise_media_thumbnail.dart';
