@@ -1,8 +1,10 @@
 import 'package:isar/isar.dart';
 
-import 'models/models.dart';
-import 'new_id.dart';
-import 'session_repository.dart';
+import 'isar/mappers.dart';
+import 'isar/workout_session.dart' as isar_session;
+import '../domain/models/models.dart';
+import '../domain/new_id.dart';
+import '../domain/session_repository.dart';
 
 /// Isar-backed [SessionRepository]. The only session writer the UI talks to.
 class IsarSessionRepository implements SessionRepository {
@@ -11,11 +13,17 @@ class IsarSessionRepository implements SessionRepository {
   final Isar _isar;
 
   @override
-  Future<WorkoutSession?> byId(int id) => _isar.workoutSessions.get(id);
+  Future<WorkoutSession?> byId(int id) async {
+    final row = await _isar.workoutSessions.get(id);
+    return row == null ? null : sessionFromIsar(row);
+  }
 
   @override
-  Future<WorkoutSession?> byUuid(String uuid) =>
-      _isar.workoutSessions.filter().uuidEqualTo(uuid).findFirst();
+  Future<WorkoutSession?> byUuid(String uuid) async {
+    final row =
+        await _isar.workoutSessions.filter().uuidEqualTo(uuid).findFirst();
+    return row == null ? null : sessionFromIsar(row);
+  }
 
   @override
   Future<int> save(WorkoutSession session) {
@@ -31,44 +39,50 @@ class IsarSessionRepository implements SessionRepository {
   }
 
   @override
-  Future<List<WorkoutSession>> unsynced() =>
-      _isar.workoutSessions.filter().dirtyEqualTo(true).findAll();
+  Future<List<WorkoutSession>> unsynced() async {
+    final rows =
+        await _isar.workoutSessions.filter().dirtyEqualTo(true).findAll();
+    return [for (final row in rows) sessionFromIsar(row)];
+  }
 
   @override
   Future<bool> delete(int id) =>
       _isar.writeTxn(() => _isar.workoutSessions.delete(id));
 
   @override
-  Future<WorkoutSession?> inProgress() => _isar.workoutSessions
-      .filter()
-      .statusEqualTo(SessionStatus.inProgress)
-      .findFirst();
-
-  @override
-  Future<WorkoutSession?> lastCompleted({String? planId}) {
-    final query =
-        _isar.workoutSessions.filter().statusEqualTo(SessionStatus.completed);
-    if (planId == null) {
-      return query.sortByStartedAtDesc().findFirst();
-    }
-    return query.planIdEqualTo(planId).sortByStartedAtDesc().findFirst();
+  Future<WorkoutSession?> inProgress() async {
+    final row = await _isar.workoutSessions
+        .filter()
+        .statusEqualTo(SessionStatus.inProgress)
+        .findFirst();
+    return row == null ? null : sessionFromIsar(row);
   }
 
   @override
-  Future<List<WorkoutSession>> completedNewestFirst({String? planId}) {
+  Future<WorkoutSession?> lastCompleted({String? planId}) async {
     final query =
         _isar.workoutSessions.filter().statusEqualTo(SessionStatus.completed);
-    if (planId == null) {
-      return query.sortByStartedAtDesc().findAll();
-    }
-    return query.planIdEqualTo(planId).sortByStartedAtDesc().findAll();
+    final row = planId == null
+        ? await query.sortByStartedAtDesc().findFirst()
+        : await query.planIdEqualTo(planId).sortByStartedAtDesc().findFirst();
+    return row == null ? null : sessionFromIsar(row);
   }
 
   @override
-  Future<List<WorkoutSession>> forMonth(DateTime month) {
+  Future<List<WorkoutSession>> completedNewestFirst({String? planId}) async {
+    final query =
+        _isar.workoutSessions.filter().statusEqualTo(SessionStatus.completed);
+    final rows = planId == null
+        ? await query.sortByStartedAtDesc().findAll()
+        : await query.planIdEqualTo(planId).sortByStartedAtDesc().findAll();
+    return [for (final row in rows) sessionFromIsar(row)];
+  }
+
+  @override
+  Future<List<WorkoutSession>> forMonth(DateTime month) async {
     final start = DateTime.utc(month.year, month.month);
     final end = DateTime.utc(month.year, month.month + 1);
-    return _isar.workoutSessions
+    final rows = await _isar.workoutSessions
         .where()
         .startedAtBetween(start, end, includeLower: true, includeUpper: false)
         .filter()
@@ -80,13 +94,14 @@ class IsarSessionRepository implements SessionRepository {
         )
         .sortByStartedAt()
         .findAll();
+    return [for (final row in rows) sessionFromIsar(row)];
   }
 
   @override
-  Future<List<WorkoutSession>> forCalendarDay(DateTime day) {
+  Future<List<WorkoutSession>> forCalendarDay(DateTime day) async {
     final start = DateTime.utc(day.year, day.month, day.day);
     final end = start.add(const Duration(days: 1));
-    return _isar.workoutSessions
+    final rows = await _isar.workoutSessions
         .where()
         .startedAtBetween(start, end, includeLower: true, includeUpper: false)
         .filter()
@@ -98,6 +113,7 @@ class IsarSessionRepository implements SessionRepository {
         )
         .sortByStartedAt()
         .findAll();
+    return [for (final row in rows) sessionFromIsar(row)];
   }
 
   @override
@@ -106,6 +122,11 @@ class IsarSessionRepository implements SessionRepository {
 
   Future<int> _put(WorkoutSession session) {
     if (session.uuid.isEmpty) session.uuid = newUuid();
-    return _isar.writeTxn(() => _isar.workoutSessions.put(session));
+    final row = sessionToIsar(session);
+    return _isar.writeTxn(() async {
+      final id = await _isar.workoutSessions.put(row);
+      session.id = id;
+      return id;
+    });
   }
 }

@@ -8,26 +8,29 @@ import '../../common/widgets/app_elevated_button.dart';
 import '../../common/widgets/app_load_error.dart';
 import '../../common/widgets/app_scaffold.dart';
 import '../../common/widgets/app_text.dart';
-import '../../data/models/workout_plan.dart';
-import '../../data/models/workout_session.dart';
-import '../../data/plan_repository.dart';
-import '../../data/session_repository.dart';
+import '../../data/app_ports.dart';
+import '../../domain/models/workout_plan.dart';
+import '../../domain/models/workout_session.dart';
+import '../../domain/plan_repository.dart';
+import '../../domain/session_repository.dart';
 import '../progress/month_tab.dart';
 import '../workout/start_workout.dart';
 import 'plan_import_flow.dart';
-import 'today_suggestion.dart';
+import '../../domain/today_suggestion.dart';
 
 /// Landing screen for returning users: today, the plan list, Plans | Month.
 class PlansHomePage extends StatefulWidget {
-  const PlansHomePage({super.key});
+  const PlansHomePage({super.key, required this.ports});
+
+  final AppPorts ports;
 
   @override
   State<PlansHomePage> createState() => _PlansHomePageState();
 }
 
 class _PlansHomePageState extends State<PlansHomePage> {
-  final PlanRepository _plans = Get.find<PlanRepository>();
-  final SessionRepository _sessions = Get.find<SessionRepository>();
+  PlanRepository get _plans => widget.ports.plans;
+  SessionRepository get _sessions => widget.ports.sessions;
 
   List<WorkoutPlan> _items = const [];
   WorkoutSession? _live;
@@ -57,18 +60,15 @@ class _PlansHomePageState extends State<PlansHomePage> {
   Future<void> _load() async {
     final id = ++_loadId;
     try {
-      final items = await _plans.all();
-      final live = await _sessions.inProgress();
-      final completed = await _sessions.completedNewestFirst();
-      final today = suggestToday(
-        plans: items,
-        completedNewestFirst: completed,
+      final overview = await loadHomeOverview(
+        plans: _plans,
+        sessions: _sessions,
       );
       if (!mounted || id != _loadId) return;
       setState(() {
-        _items = items;
-        _live = live;
-        _today = today;
+        _items = overview.plans;
+        _live = overview.live;
+        _today = overview.today;
         _loading = false;
         _error = null;
       });
@@ -101,7 +101,7 @@ class _PlansHomePageState extends State<PlansHomePage> {
         index: _tab,
         children: [
           _plansTab(),
-          const MonthTab(),
+          MonthTab(ports: widget.ports),
         ],
       ),
       bottomNavigationBar: NavigationBar(
@@ -156,7 +156,11 @@ class _PlansHomePageState extends State<PlansHomePage> {
               Expanded(
                 child: AppElevatedButton(
                   data: 'Import',
-                  onPressed: () => startPlanImport(context),
+                  onPressed: () => startPlanImport(
+                    context,
+                    import: widget.ports.planImport,
+                    ports: widget.ports,
+                  ),
                 ),
               ),
               const SizedBox(width: 12),
@@ -208,7 +212,7 @@ class _PlansHomePageState extends State<PlansHomePage> {
             style: subtitleTextStyle,
           ),
           trailing: const Icon(Icons.play_arrow),
-          onTap: () => openLiveSession(live.id),
+          onTap: () => openLiveSession(live.uuid, widget.ports),
         ),
       ),
     );
@@ -238,6 +242,8 @@ class _PlansHomePageState extends State<PlansHomePage> {
                   context: context,
                   plan: today.plan,
                   day: today.day,
+                  start: widget.ports.startSession,
+                  ports: widget.ports,
                 ),
               ),
             ],
@@ -259,7 +265,7 @@ class _PlansHomePageState extends State<PlansHomePage> {
       trailing: const Icon(Icons.arrow_forward),
       onTap: () => Get.toNamed(
         AppRoutes.plan,
-        arguments: plan.id,
+        arguments: plan.uuid,
       ),
     );
   }

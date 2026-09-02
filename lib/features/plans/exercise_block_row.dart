@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 
 import '../../common/widgets/app_text.dart';
-import '../../data/models/models.dart';
+import '../../domain/models/models.dart';
 import 'block_summary.dart';
 import 'exercise_media_thumbnail.dart';
 

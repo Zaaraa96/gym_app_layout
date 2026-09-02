@@ -15,7 +15,7 @@ from pathlib import Path
 
 MAX_SAFE = 9007199254740991
 ID_RE = re.compile(r"(id:\s*)(-?\d+)(\s*,)")
-ROOT = Path(__file__).resolve().parents[1] / "lib" / "data" / "models"
+ROOT = Path(__file__).resolve().parents[1] / "lib" / "data" / "isar"
 
 
 def patch(path: Path) -> None:

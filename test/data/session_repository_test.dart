@@ -6,10 +6,10 @@ import 'package:get/get.dart';
 import 'package:gym_app/data/isar_plan_repository.dart';
 import 'package:gym_app/data/isar_service.dart';
 import 'package:gym_app/data/isar_session_repository.dart';
-import 'package:gym_app/data/models/models.dart';
-import 'package:gym_app/data/plan_repository.dart';
-import 'package:gym_app/data/session_lifecycle.dart';
-import 'package:gym_app/data/session_repository.dart';
+import 'package:gym_app/domain/models/models.dart';
+import 'package:gym_app/domain/plan_repository.dart';
+import 'package:gym_app/domain/session_lifecycle.dart';
+import 'package:gym_app/domain/session_repository.dart';
 
 import '../helpers/isar_core.dart';
 

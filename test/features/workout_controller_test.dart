@@ -6,9 +6,9 @@ import 'package:get/get.dart';
 import 'package:gym_app/data/isar_plan_repository.dart';
 import 'package:gym_app/data/isar_service.dart';
 import 'package:gym_app/data/isar_session_repository.dart';
-import 'package:gym_app/data/models/models.dart';
-import 'package:gym_app/data/session_lifecycle.dart';
-import 'package:gym_app/data/session_repository.dart';
+import 'package:gym_app/domain/models/models.dart';
+import 'package:gym_app/domain/session_lifecycle.dart';
+import 'package:gym_app/domain/session_repository.dart';
 import 'package:gym_app/features/workout/workout_controller.dart';
 
 import '../helpers/isar_core.dart';
@@ -59,7 +59,7 @@ void main() {
       startedAt: DateTime.utc(2026, 8, 26, 12),
     );
     final controller = WorkoutController(
-      sessionId: session.id,
+      sessionId: session.uuid,
       sessions: sessions,
       clock: () => DateTime.utc(2026, 8, 26, 12, 5),
     );
@@ -203,7 +203,7 @@ void main() {
     expect(c.isResting, isFalse);
 
     await c.logSet(reps: 12);
-    final stored = await started.sessions.byId(c.sessionId);
+    final stored = await started.sessions.byUuid(c.sessionId);
     expect(stored!.exerciseLogs.first.sets, hasLength(1));
   });
 
@@ -299,7 +299,7 @@ void main() {
       );
 
       final missing = WorkoutController(
-        sessionId: 999999,
+        sessionId: 'missing-session',
         sessions: started.sessions,
       );
       addTearDown(missing.onClose);

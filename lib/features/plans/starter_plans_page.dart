@@ -5,12 +5,14 @@ import '../../common/app_routes.dart';
 import '../../common/widgets/app_elevated_button.dart';
 import '../../common/widgets/app_scaffold.dart';
 import '../../common/widgets/app_text.dart';
-import '../../data/plan_repository.dart';
+import '../../data/app_ports.dart';
 import '../../data/starter_plans.dart';
 
 /// First-run (and empty-home) picker for bundled beginner programs.
 class StarterPlansPage extends StatefulWidget {
-  const StarterPlansPage({super.key});
+  const StarterPlansPage({super.key, required this.ports});
+
+  final AppPorts ports;
 
   @override
   State<StarterPlansPage> createState() => _StarterPlansPageState();
@@ -25,7 +27,7 @@ class _StarterPlansPageState extends State<StarterPlansPage> {
     try {
       await installStarterPlan(
         spec,
-        plans: Get.find<PlanRepository>(),
+        plans: widget.ports.plans,
       );
       if (!mounted) return;
       await Get.offAllNamed(AppRoutes.home);

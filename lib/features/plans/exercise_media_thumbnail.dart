@@ -3,7 +3,7 @@ import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:flutter_svg/svg.dart';
 
-import '../../data/models/models.dart';
+import '../../domain/models/models.dart';
 import 'exercise_media.dart';
 
 /// Renders a block's preview media from assets, gallery, or network.

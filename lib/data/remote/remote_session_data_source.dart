@@ -1,4 +1,4 @@
-import '../models/workout_session.dart';
+import '../../domain/models/workout_session.dart';
 
 /// HTTP access for sessions. Not registered as [SessionRepository].
 abstract class RemoteSessionDataSource {

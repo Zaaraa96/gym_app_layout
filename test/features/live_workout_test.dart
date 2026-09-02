@@ -4,11 +4,12 @@ import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:get/get.dart';
 import 'package:gym_app/common/app_routes.dart';
+import 'package:gym_app/data/app_ports.dart';
 import 'package:gym_app/data/isar_service.dart';
-import 'package:gym_app/data/models/models.dart';
-import 'package:gym_app/data/plan_repository.dart';
-import 'package:gym_app/data/session_lifecycle.dart';
-import 'package:gym_app/data/session_repository.dart';
+import 'package:gym_app/domain/models/models.dart';
+import 'package:gym_app/domain/plan_repository.dart';
+import 'package:gym_app/domain/session_lifecycle.dart';
+import 'package:gym_app/domain/session_repository.dart';
 import 'package:gym_app/data/starter_plans.dart';
 import 'package:gym_app/features/workout/live_workout_page.dart';
 import 'package:gym_app/main.dart';
@@ -128,7 +129,7 @@ void main() {
     );
 
     await tester.pumpWidget(
-      GetMaterialApp(home: LiveWorkoutPage(sessionId: session.id)),
+      GetMaterialApp(home: LiveWorkoutPage(sessionId: session.uuid, ports: Get.find<AppPorts>())),
     );
     await settle(tester);
 
@@ -168,7 +169,7 @@ void main() {
     );
 
     await tester.pumpWidget(
-      GetMaterialApp(home: LiveWorkoutPage(sessionId: session.id)),
+      GetMaterialApp(home: LiveWorkoutPage(sessionId: session.uuid, ports: Get.find<AppPorts>())),
     );
     await settle(tester);
 
@@ -357,7 +358,7 @@ void main() {
       await db(tester, () => repos.sessions.save(session));
 
       await tester.pumpWidget(
-        GetMaterialApp(home: LiveWorkoutPage(sessionId: session.id)),
+        GetMaterialApp(home: LiveWorkoutPage(sessionId: session.uuid, ports: Get.find<AppPorts>())),
       );
       await settle(tester);
 
@@ -387,7 +388,7 @@ void main() {
       );
 
       await tester.pumpWidget(
-        GetMaterialApp(home: LiveWorkoutPage(sessionId: session.id)),
+        GetMaterialApp(home: LiveWorkoutPage(sessionId: session.uuid, ports: Get.find<AppPorts>())),
       );
       await settle(tester);
 
@@ -428,7 +429,7 @@ void main() {
 
     await tester.pumpWidget(
       GetMaterialApp(
-        home: LiveWorkoutPage(sessionId: session.id),
+        home: LiveWorkoutPage(sessionId: session.uuid, ports: Get.find<AppPorts>()),
       ),
     );
     await settle(tester);
@@ -473,7 +474,7 @@ void main() {
 
     await tester.pumpWidget(
       GetMaterialApp(
-        home: LiveWorkoutPage(sessionId: session.id),
+        home: LiveWorkoutPage(sessionId: session.uuid, ports: Get.find<AppPorts>()),
       ),
     );
     await settle(tester);
@@ -504,7 +505,7 @@ void main() {
       );
 
       await tester.pumpWidget(
-        GetMaterialApp(home: LiveWorkoutPage(sessionId: session.id)),
+        GetMaterialApp(home: LiveWorkoutPage(sessionId: session.uuid, ports: Get.find<AppPorts>())),
       );
       await settle(tester);
 
@@ -575,7 +576,7 @@ void main() {
       );
 
       await tester.pumpWidget(
-        GetMaterialApp(home: LiveWorkoutPage(sessionId: session.id)),
+        GetMaterialApp(home: LiveWorkoutPage(sessionId: session.uuid, ports: Get.find<AppPorts>())),
       );
       await settle(tester);
 
@@ -608,7 +609,7 @@ void main() {
     );
 
     await tester.pumpWidget(
-      GetMaterialApp(home: LiveWorkoutPage(sessionId: session.id)),
+      GetMaterialApp(home: LiveWorkoutPage(sessionId: session.uuid, ports: Get.find<AppPorts>())),
     );
     await settle(tester);
 
@@ -639,7 +640,7 @@ void main() {
     );
 
     await tester.pumpWidget(
-      GetMaterialApp(home: LiveWorkoutPage(sessionId: session.id)),
+      GetMaterialApp(home: LiveWorkoutPage(sessionId: session.uuid, ports: Get.find<AppPorts>())),
     );
     await settle(tester);
 
@@ -673,7 +674,7 @@ void main() {
     );
 
     await tester.pumpWidget(
-      GetMaterialApp(home: LiveWorkoutPage(sessionId: session.id)),
+      GetMaterialApp(home: LiveWorkoutPage(sessionId: session.uuid, ports: Get.find<AppPorts>())),
     );
     await settle(tester);
 
@@ -714,7 +715,7 @@ void main() {
     );
 
     await tester.pumpWidget(
-      GetMaterialApp(home: LiveWorkoutPage(sessionId: session.id)),
+      GetMaterialApp(home: LiveWorkoutPage(sessionId: session.uuid, ports: Get.find<AppPorts>())),
     );
     await settle(tester);
 
@@ -736,7 +737,7 @@ void main() {
     await bootstrap(tester);
 
     await tester.pumpWidget(
-      const GetMaterialApp(home: LiveWorkoutPage(sessionId: 999999)),
+      GetMaterialApp(home: LiveWorkoutPage(sessionId: 'missing-session', ports: Get.find<AppPorts>())),
     );
     await settle(tester);
 
@@ -763,7 +764,7 @@ void main() {
     );
 
     await tester.pumpWidget(
-      GetMaterialApp(home: LiveWorkoutPage(sessionId: session.id)),
+      GetMaterialApp(home: LiveWorkoutPage(sessionId: session.uuid, ports: Get.find<AppPorts>())),
     );
     await settle(tester);
 
@@ -801,7 +802,7 @@ void main() {
     );
 
     await tester.pumpWidget(
-      GetMaterialApp(home: LiveWorkoutPage(sessionId: session.id)),
+      GetMaterialApp(home: LiveWorkoutPage(sessionId: session.uuid, ports: Get.find<AppPorts>())),
     );
     await settle(tester);
 
@@ -828,7 +829,7 @@ void main() {
 
     await tester.pumpWidget(
       GetMaterialApp(
-        home: LiveWorkoutPage(sessionId: session.id),
+        home: LiveWorkoutPage(sessionId: session.uuid, ports: Get.find<AppPorts>()),
       ),
     );
     await settle(tester);
@@ -872,7 +873,7 @@ void main() {
       );
 
       await tester.pumpWidget(
-        GetMaterialApp(home: LiveWorkoutPage(sessionId: session.id)),
+        GetMaterialApp(home: LiveWorkoutPage(sessionId: session.uuid, ports: Get.find<AppPorts>())),
       );
       await settle(tester);
 
@@ -995,7 +996,7 @@ void main() {
     });
 
     await tester.pumpWidget(
-      GetMaterialApp(home: LiveWorkoutPage(sessionId: fractional.id)),
+      GetMaterialApp(home: LiveWorkoutPage(sessionId: fractional.uuid, ports: Get.find<AppPorts>())),
     );
     await settle(tester);
 
@@ -1019,7 +1020,7 @@ void main() {
     });
 
     await tester.pumpWidget(
-      GetMaterialApp(home: LiveWorkoutPage(sessionId: fractional.id)),
+      GetMaterialApp(home: LiveWorkoutPage(sessionId: fractional.uuid, ports: Get.find<AppPorts>())),
     );
     await settle(tester);
 

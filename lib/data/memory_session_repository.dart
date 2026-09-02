@@ -1,10 +1,8 @@
 import 'dart:async';
 
-import 'package:isar/isar.dart';
-
-import 'models/models.dart';
-import 'new_id.dart';
-import 'session_repository.dart';
+import '../domain/models/models.dart';
+import '../domain/new_id.dart';
+import '../domain/session_repository.dart';
 
 /// In-memory [SessionRepository] for Flutter web. Isar 3.1 cannot open on web.
 class MemorySessionRepository implements SessionRepository {
@@ -113,7 +111,7 @@ class MemorySessionRepository implements SessionRepository {
 
   Future<int> _put(WorkoutSession session) async {
     if (session.uuid.isEmpty) session.uuid = newUuid();
-    if (session.id == Isar.autoIncrement) {
+    if (session.id == unassignedLocalId) {
       session.id = ++_nextId;
     }
     _byId[session.id] = session;

@@ -2,8 +2,8 @@ import 'package:get/get.dart';
 import 'package:isar/isar.dart';
 import 'package:path_provider/path_provider.dart';
 
-import 'models/workout_plan.dart';
-import 'models/workout_session.dart';
+import 'isar/workout_plan.dart';
+import 'isar/workout_session.dart';
 
 /// Opens Isar once for the process and exposes the instance as a GetX service.
 class IsarService extends GetxService {

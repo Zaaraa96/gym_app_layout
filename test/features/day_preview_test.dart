@@ -4,11 +4,12 @@ import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:get/get.dart';
 import 'package:gym_app/common/app_routes.dart';
+import 'package:gym_app/data/app_ports.dart';
 import 'package:gym_app/data/isar_service.dart';
-import 'package:gym_app/data/models/models.dart';
-import 'package:gym_app/data/plan_repository.dart';
-import 'package:gym_app/data/session_lifecycle.dart';
-import 'package:gym_app/data/session_repository.dart';
+import 'package:gym_app/domain/models/models.dart';
+import 'package:gym_app/domain/plan_repository.dart';
+import 'package:gym_app/domain/session_lifecycle.dart';
+import 'package:gym_app/domain/session_repository.dart';
 import 'package:gym_app/features/plans/day_preview_page.dart';
 import 'package:gym_app/main.dart';
 
@@ -772,7 +773,11 @@ void main() {
 
     await tester.pumpWidget(
       GetMaterialApp(
-        home: DayPreviewPage(planId: plan.id, dayId: 'missing-day'),
+        home: DayPreviewPage(
+          planId: plan.uuid,
+          dayId: 'missing-day',
+          ports: Get.find<AppPorts>(),
+        ),
       ),
     );
     await settle(tester);

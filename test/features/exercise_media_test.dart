@@ -1,5 +1,5 @@
 import 'package:flutter_test/flutter_test.dart';
-import 'package:gym_app/data/models/models.dart';
+import 'package:gym_app/domain/models/models.dart';
 import 'package:gym_app/features/plans/exercise_asset_catalog.dart';
 import 'package:gym_app/features/plans/exercise_media.dart';
 import 'package:gym_app/features/plans/exercise_media_picker.dart';

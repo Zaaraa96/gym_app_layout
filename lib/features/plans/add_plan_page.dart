@@ -2,16 +2,18 @@ import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import 'package:gym_app/common/app_routes.dart';
 import 'package:gym_app/common/app_theme.dart';
-import 'package:gym_app/data/models/models.dart';
-import 'package:gym_app/data/new_id.dart';
-import 'package:gym_app/data/plan_repository.dart';
+import 'package:gym_app/data/app_ports.dart';
+import 'package:gym_app/domain/models/models.dart';
+import 'package:gym_app/domain/new_id.dart';
 
 import '../../common/widgets/app_scaffold.dart';
 import '../../common/widgets/app_text.dart';
 import '../../common/widgets/app_text_field.dart';
 
 class AddNewPlanPage extends StatefulWidget {
-  const AddNewPlanPage({super.key});
+  const AddNewPlanPage({super.key, required this.ports});
+
+  final AppPorts ports;
 
   @override
   State<AddNewPlanPage> createState() => _AddNewPlanPageState();
@@ -38,23 +40,22 @@ class _AddNewPlanPageState extends State<AddNewPlanPage> {
     try {
       final now = DateTime.now().toUtc();
       final summary = _summaryController.text.trim();
-      final id = await Get.find<PlanRepository>().save(
-        WorkoutPlan.create(
-          title: _titleController.text.trim(),
-          source: PlanSource.created,
-          createdAt: now,
-          updatedAt: now,
-          days: [
-            PlanDay.create(
-              dayId: newId(),
-              title: 'Day 1',
-              summary: summary,
-            ),
-          ],
-        ),
+      final plan = WorkoutPlan.create(
+        title: _titleController.text.trim(),
+        source: PlanSource.created,
+        createdAt: now,
+        updatedAt: now,
+        days: [
+          PlanDay.create(
+            dayId: newId(),
+            title: 'Day 1',
+            summary: summary,
+          ),
+        ],
       );
+      await widget.ports.plans.save(plan);
       if (!mounted) return;
-      await Get.offAllNamed(AppRoutes.plan, arguments: id);
+      await Get.offAllNamed(AppRoutes.plan, arguments: plan.uuid);
     } catch (error) {
       if (!mounted) return;
       setState(() => _saving = false);

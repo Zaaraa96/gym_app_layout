@@ -4,9 +4,10 @@ import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:get/get.dart';
 import 'package:gym_app/common/app_routes.dart';
+import 'package:gym_app/data/app_ports.dart';
 import 'package:gym_app/data/isar_service.dart';
-import 'package:gym_app/data/models/models.dart';
-import 'package:gym_app/data/plan_repository.dart';
+import 'package:gym_app/domain/models/models.dart';
+import 'package:gym_app/domain/plan_repository.dart';
 import 'package:gym_app/features/plans/day_editor_page.dart';
 import 'package:gym_app/features/plans/exercise_media_picker.dart';
 import 'package:gym_app/features/plans/plan_page.dart';
@@ -835,8 +836,8 @@ void main() {
     await bootstrap(tester);
 
     await tester.pumpWidget(
-      const GetMaterialApp(
-        home: PlanPage(planId: 999999),
+      GetMaterialApp(
+        home: PlanPage(planId: 'missing-plan', ports: Get.find<AppPorts>()),
       ),
     );
     await settle(tester);

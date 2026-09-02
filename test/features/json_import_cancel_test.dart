@@ -7,7 +7,7 @@ import 'package:get/get.dart';
 import 'package:gym_app/common/app_routes.dart';
 import 'package:gym_app/data/isar_service.dart';
 import 'package:gym_app/data/json_plan_importer.dart';
-import 'package:gym_app/data/plan_repository.dart';
+import 'package:gym_app/domain/plan_repository.dart';
 import 'package:gym_app/features/plans/plan_import_picker.dart';
 import 'package:gym_app/main.dart';
 

@@ -1,4 +1,5 @@
-import '../../data/models/models.dart';
+import 'models/models.dart';
+import 'session_repository.dart';
 
 /// How the month view measures an exercise group (Step 2 primary metric).
 enum ProgressMetricKind { weight, duration, setsReps }
@@ -17,7 +18,8 @@ class SessionExercisePoint {
     this.difficulty,
   });
 
-  final int sessionId;
+  /// [WorkoutSession.uuid], not a local row key.
+  final String sessionId;
   final DateTime startedAt;
   final SessionStatus status;
 
@@ -190,7 +192,7 @@ class ProgressService {
     }
 
     return SessionExercisePoint(
-      sessionId: session.id,
+      sessionId: session.uuid,
       startedAt: session.startedAt,
       status: session.status,
       primaryValue: _primaryValue(logs, metric),
@@ -256,6 +258,14 @@ class ProgressService {
       }
     }
     return max;
+  }
+
+  /// Load the month from [sessions], then fold. Pages call this once.
+  Future<MonthProgress> loadMonth({
+    required SessionRepository sessions,
+    required DateTime month,
+  }) async {
+    return fold(month: month, sessions: await sessions.forMonth(month));
   }
 
   bool _feltEasier(List<SessionExercisePoint> points) {

@@ -6,23 +6,25 @@ import 'package:get/get.dart';
 import '../../common/app_routes.dart';
 import '../../common/widgets/app_load_error.dart';
 import '../../common/widgets/app_text.dart';
-import '../../data/session_repository.dart';
+import '../../data/app_ports.dart';
+import '../../domain/session_repository.dart';
 import 'progress_format.dart';
-import 'progress_service.dart';
+import '../../domain/progress_service.dart';
 
 /// Home-shell Month tab: calendar, dots, and per-exercise trends.
 class MonthTab extends StatefulWidget {
-  const MonthTab({super.key, this.now});
+  const MonthTab({super.key, required this.ports, this.now});
 
   /// Visible month defaults to this instant (UTC). Tests pass a fixed clock.
   final DateTime? now;
+  final AppPorts ports;
 
   @override
   State<MonthTab> createState() => _MonthTabState();
 }
 
 class _MonthTabState extends State<MonthTab> {
-  final SessionRepository _sessions = Get.find<SessionRepository>();
+  SessionRepository get _sessions => widget.ports.sessions;
   final ProgressService _progress = const ProgressService();
 
   late DateTime _month;
@@ -50,8 +52,10 @@ class _MonthTabState extends State<MonthTab> {
   Future<void> _load() async {
     final id = ++_loadId;
     try {
-      final sessions = await _sessions.forMonth(_month);
-      final data = _progress.fold(month: _month, sessions: sessions);
+      final data = await _progress.loadMonth(
+        sessions: _sessions,
+        month: _month,
+      );
       if (!mounted || id != _loadId) return;
       setState(() {
         _data = data;
@@ -89,7 +93,7 @@ class _MonthTabState extends State<MonthTab> {
     final sessions = await _sessions.forCalendarDay(day);
     if (!mounted) return;
     if (sessions.length == 1) {
-      Get.toNamed(AppRoutes.sessionLog, arguments: sessions.single.id);
+      Get.toNamed(AppRoutes.sessionLog, arguments: sessions.single.uuid);
       return;
     }
     Get.toNamed(AppRoutes.dayLog, arguments: day);

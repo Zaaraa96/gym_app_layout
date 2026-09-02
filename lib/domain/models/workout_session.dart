@@ -1,23 +1,17 @@
-import 'package:isar/isar.dart';
-
 import '../new_id.dart';
 import 'enums.dart';
-
-part 'workout_session.g.dart';
+import 'workout_plan.dart';
 
 /// What happened on a date. Snapshots the prescription at start so plan edits
 /// do not rewrite history.
-@collection
 class WorkoutSession {
-  /// Local row key. Not the identity sent to a remote API.
-  Id id = Isar.autoIncrement;
+  /// Local row key assigned by a repository. Not the identity sent to a remote API.
+  int id = unassignedLocalId;
 
   /// Stable identity for sync.
-  @Index()
   late String uuid;
 
   /// [WorkoutPlan.uuid]. Plan may later be deleted; this snapshot still stands.
-  @Index()
   late String planId;
 
   late String planDayId;
@@ -27,7 +21,6 @@ class WorkoutSession {
   /// Common sections chosen when the session started.
   List<String> includedCommonSectionIds = [];
 
-  @Index()
   late DateTime startedAt;
 
   DateTime? endedAt;
@@ -38,7 +31,6 @@ class WorkoutSession {
   /// True when a local write has not been acknowledged by sync.
   bool dirty = true;
 
-  @enumerated
   late SessionStatus status;
 
   /// Day blocks, then included common blocks, in order.
@@ -65,13 +57,11 @@ class WorkoutSession {
         exerciseLogs = exerciseLogs ?? [];
 }
 
-@embedded
 class ExerciseLog {
   /// From the template prescription.
   late String prescriptionId;
   late String blockId;
 
-  @enumerated
   late BlockKind blockKind;
 
   late bool fromCommonSection;
@@ -113,7 +103,6 @@ class ExerciseLog {
   bool get isComplete => difficulty != null;
 }
 
-@embedded
 class SetLog {
   /// 1-based.
   late int setIndex;

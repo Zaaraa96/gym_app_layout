@@ -1,10 +1,8 @@
 import 'dart:async';
 
-import 'package:isar/isar.dart';
-
-import 'models/workout_plan.dart';
-import 'new_id.dart';
-import 'plan_repository.dart';
+import '../domain/models/workout_plan.dart';
+import '../domain/new_id.dart';
+import '../domain/plan_repository.dart';
 
 /// In-memory [PlanRepository] for Flutter web. Isar 3.1 cannot open on web.
 class MemoryPlanRepository implements PlanRepository {
@@ -65,7 +63,7 @@ class MemoryPlanRepository implements PlanRepository {
 
   Future<int> _put(WorkoutPlan plan) async {
     if (plan.uuid.isEmpty) plan.uuid = newUuid();
-    if (plan.id == Isar.autoIncrement) {
+    if (plan.id == unassignedLocalId) {
       plan.id = ++_nextId;
     }
     _byId[plan.id] = plan;

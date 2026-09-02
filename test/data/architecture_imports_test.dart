@@ -11,6 +11,7 @@ void main() {
       if (file.path.endsWith('isar_plan_repository.dart')) continue;
       if (file.path.endsWith('isar_session_repository.dart')) continue;
       if (file.path.endsWith('main.dart')) continue;
+      if (file.path.endsWith('app_bootstrap.dart')) continue;
       final source = file.readAsStringSync();
       if (source.contains('isar_plan_repository.dart') ||
           source.contains('isar_session_repository.dart')) {
@@ -22,9 +23,9 @@ void main() {
 
   test('repository interfaces and SessionLifecycle do not import Isar', () {
     for (final relative in [
-      'lib/data/plan_repository.dart',
-      'lib/data/session_repository.dart',
-      'lib/data/session_lifecycle.dart',
+      'lib/domain/plan_repository.dart',
+      'lib/domain/session_repository.dart',
+      'lib/domain/session_lifecycle.dart',
     ]) {
       final source = File(relative).readAsStringSync();
       expect(
@@ -33,5 +34,246 @@ void main() {
         reason: '$relative must stay Isar-free',
       );
     }
+  });
+
+  test('product types do not import Isar or use @collection / Id / indexes', () {
+    final files = [
+      'lib/domain/models/workout_plan.dart',
+      'lib/domain/models/workout_session.dart',
+      'lib/domain/models/enums.dart',
+      'lib/domain/models/models.dart',
+    ];
+    for (final relative in files) {
+      final source = File(relative).readAsStringSync();
+      expect(
+        source.contains("package:isar/isar.dart"),
+        isFalse,
+        reason: '$relative must stay Isar-free',
+      );
+      expect(source.contains('@collection'), isFalse, reason: relative);
+      expect(source.contains('@embedded'), isFalse, reason: relative);
+      expect(source.contains('@Index'), isFalse, reason: relative);
+      expect(source.contains('@enumerated'), isFalse, reason: relative);
+      expect(
+        RegExp(r'\bId\b').hasMatch(source),
+        isFalse,
+        reason: '$relative must not use Isar Id',
+      );
+    }
+  });
+
+  test('memory repositories only know domain ids, not Isar.autoIncrement', () {
+    for (final relative in [
+      'lib/data/memory_plan_repository.dart',
+      'lib/data/memory_session_repository.dart',
+    ]) {
+      final source = File(relative).readAsStringSync();
+      expect(
+        source.contains("package:isar/isar.dart"),
+        isFalse,
+        reason: '$relative must not import Isar',
+      );
+      expect(
+        source.contains('Isar.autoIncrement'),
+        isFalse,
+        reason: '$relative must assign domain ids without Isar sentinels',
+      );
+    }
+  });
+
+  test('routes and pages key plans and sessions by uuid, not int row ids', () {
+    for (final relative in [
+      'lib/main.dart',
+      'lib/app/app_routes.dart',
+      'lib/features/plans/plan_page.dart',
+      'lib/features/plans/day_preview_page.dart',
+      'lib/features/plans/day_editor_page.dart',
+      'lib/features/plans/plans_home_page.dart',
+      'lib/features/plans/add_plan_page.dart',
+      'lib/features/plans/import_preview_page.dart',
+      'lib/features/workout/start_workout.dart',
+      'lib/features/workout/live_workout_page.dart',
+      'lib/features/workout/workout_controller.dart',
+      'lib/features/progress/session_log_page.dart',
+      'lib/features/progress/month_tab.dart',
+    ]) {
+      final source = File(relative).readAsStringSync();
+      expect(
+        source.contains('Get.arguments as int'),
+        isFalse,
+        reason: '$relative must not pass Isar row ids through routes',
+      );
+      expect(
+        source.contains('final int planId'),
+        isFalse,
+        reason: '$relative must not take an int planId',
+      );
+      expect(
+        source.contains('final int sessionId'),
+        isFalse,
+        reason: '$relative must not take an int sessionId',
+      );
+    }
+  });
+
+  test('pages call product use cases instead of assembling sessions', () {
+    expect(
+      File('lib/features/workout/start_workout.dart')
+          .readAsStringSync()
+          .contains('exerciseLogsForStart'),
+      isFalse,
+      reason: 'start dialogs must not assemble logs',
+    );
+    expect(
+      File('lib/features/plans/plan_import_flow.dart')
+          .readAsStringSync()
+          .contains('JsonPlanImporter'),
+      isFalse,
+      reason: 'import flow must not parse JSON itself',
+    );
+    expect(
+      File('lib/features/plans/plans_home_page.dart')
+          .readAsStringSync()
+          .contains('suggestToday('),
+      isFalse,
+      reason: 'home must not decide today from page state',
+    );
+    expect(
+      File('lib/features/progress/month_tab.dart')
+          .readAsStringSync()
+          .contains('forMonth('),
+      isFalse,
+      reason: 'month tab must not fold repository rows itself',
+    );
+  });
+
+  test('feature widgets do not look up repositories with Get.find', () {
+    final offenders = <String>[];
+    for (final file in Directory('lib/features')
+        .listSync(recursive: true)
+        .whereType<File>()) {
+      if (!file.path.endsWith('.dart')) continue;
+      final source = file.readAsStringSync();
+      for (final needle in [
+        'Get.find<PlanRepository>',
+        'Get.find<SessionRepository>',
+        'Get.find<SessionLifecycle>',
+        'Get.find<PlanImport',
+        'Get.find<StartSession>',
+        'Get.find<AppPorts>',
+      ]) {
+        if (source.contains(needle)) {
+          offenders.add('${file.path}: $needle');
+        }
+      }
+    }
+    expect(offenders, isEmpty, reason: offenders.join(', '));
+  });
+
+  test('domain never imports isar, http, get, or features', () {
+    final offenders = <String>[];
+    for (final file in Directory('lib/domain')
+        .listSync(recursive: true)
+        .whereType<File>()) {
+      if (!file.path.endsWith('.dart')) continue;
+      final source = file.readAsStringSync();
+      for (final needle in [
+        "package:isar/",
+        "package:http/",
+        "package:get/",
+        "/features/",
+        "features/",
+      ]) {
+        if (source.contains(needle)) {
+          offenders.add('${file.path}: $needle');
+        }
+      }
+    }
+    expect(offenders, isEmpty, reason: offenders.join(', '));
+  });
+
+  test('features never import Isar adapters or HTTP remotes', () {
+    final offenders = <String>[];
+    for (final file in Directory('lib/features')
+        .listSync(recursive: true)
+        .whereType<File>()) {
+      if (!file.path.endsWith('.dart')) continue;
+      final source = file.readAsStringSync();
+      if (source.contains('isar_plan_repository.dart') ||
+          source.contains('isar_session_repository.dart') ||
+          source.contains('isar_service.dart') ||
+          source.contains('http_remote_plan_data_source.dart') ||
+          source.contains('http_remote_session_data_source.dart')) {
+        offenders.add(file.path);
+      }
+    }
+    expect(offenders, isEmpty, reason: offenders.join(', '));
+  });
+
+  test('kIsWeb stays in boot composition, not pages', () {
+    for (final dir in ['lib/features', 'lib/domain']) {
+      final offenders = <String>[];
+      for (final file
+          in Directory(dir).listSync(recursive: true).whereType<File>()) {
+        if (!file.path.endsWith('.dart')) continue;
+        if (file.readAsStringSync().contains('kIsWeb')) {
+          offenders.add(file.path);
+        }
+      }
+      expect(offenders, isEmpty, reason: offenders.join(', '));
+    }
+    expect(
+      File('lib/app/app_bootstrap.dart').readAsStringSync().contains('kIsWeb'),
+      isTrue,
+      reason: 'web vs native storage is chosen in bootApp',
+    );
+    expect(
+      File('lib/main.dart').readAsStringSync().contains('kIsWeb'),
+      isFalse,
+      reason: 'main.dart should only bind and runApp',
+    );
+  });
+
+  test('boot does not register a remote store as PlanRepository', () {
+    final source = File('lib/app/app_bootstrap.dart').readAsStringSync();
+    expect(source.contains('Get.put<PlanRepository>('), isTrue);
+    expect(
+      source.contains('Get.put<PlanRepository>(HttpRemote'),
+      isFalse,
+    );
+    expect(
+      source.contains('Get.put<PlanRepository>(RemotePlan'),
+      isFalse,
+    );
+    expect(source.contains('HttpRemotePlanDataSource'), isTrue);
+    expect(source.contains('SyncService('), isTrue);
+  });
+
+  test('domain does not import HTTP DTOs or JSON field maps', () {
+    final offenders = <String>[];
+    for (final file in Directory('lib/domain')
+        .listSync(recursive: true)
+        .whereType<File>()) {
+      if (!file.path.endsWith('.dart')) continue;
+      final source = file.readAsStringSync();
+      if (source.contains('entity_dto.dart') ||
+          source.contains('http_remote_') ||
+          source.contains('dart:convert') ||
+          source.contains('jsonDecode') ||
+          source.contains("'basic-plan'") ||
+          source.contains('"basic-plan"')) {
+        offenders.add(file.path);
+      }
+    }
+    expect(offenders, isEmpty, reason: offenders.join(', '));
+  });
+
+  test('main.dart only binds Flutter and runs the app', () {
+    final source = File('lib/main.dart').readAsStringSync();
+    expect(source.contains('WidgetsFlutterBinding.ensureInitialized'), isTrue);
+    expect(source.contains('runApp'), isTrue);
+    expect(source.contains('GetPage'), isFalse);
+    expect(source.contains('Get.put'), isFalse);
+    expect(source.contains('HttpRemotePlanDataSource'), isFalse);
   });
 }

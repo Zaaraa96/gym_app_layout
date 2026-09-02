@@ -1,4 +1,4 @@
-import '../models/workout_plan.dart';
+import '../../domain/models/workout_plan.dart';
 
 /// HTTP access for plans. Not registered as [PlanRepository].
 abstract class RemotePlanDataSource {

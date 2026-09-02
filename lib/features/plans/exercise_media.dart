@@ -1,4 +1,4 @@
-import '../../data/models/models.dart';
+import '../../domain/models/models.dart';
 import 'exercise_asset_catalog.dart';
 
 /// Resolved preview media for an [ExerciseBlock].

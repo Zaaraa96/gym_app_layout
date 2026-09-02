@@ -2,15 +2,15 @@ import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 
 import '../../common/app_routes.dart';
-import '../../data/models/models.dart';
-import '../../data/session_lifecycle.dart';
-import '../../data/session_repository.dart';
+import '../../data/app_ports.dart';
+import '../../domain/models/models.dart';
+import '../../domain/start_session.dart';
 import 'live_workout_page.dart';
 
-/// Opens the live logger for [sessionId].
-Future<void> openLiveSession(int sessionId) async {
+/// Opens the live logger for the session [uuid].
+Future<void> openLiveSession(String sessionId, AppPorts ports) async {
   await Get.to(
-    () => LiveWorkoutPage(sessionId: sessionId),
+    () => LiveWorkoutPage(sessionId: sessionId, ports: ports),
     routeName: AppRoutes.session,
   );
 }
@@ -20,86 +20,76 @@ Future<void> startWorkout({
   required BuildContext context,
   required WorkoutPlan plan,
   required PlanDay day,
+  required StartSession start,
+  required AppPorts ports,
 }) async {
-  final sessions = Get.find<SessionRepository>();
-  final lifecycle = Get.find<SessionLifecycle>();
-
-  final existing = await sessions.inProgress();
-  if (!context.mounted) return;
-  if (existing != null) {
-    if (existing.planId == plan.uuid && existing.planDayId == day.dayId) {
-      await openLiveSession(existing.id);
-      return;
-    }
-    final action = await showDialog<_ConflictAction>(
-      context: context,
-      builder: (context) => AlertDialog(
-        title: const Text('A workout is already in progress'),
-        content: Text(
-          'You still have "${existing.dayTitleSnapshot}" open. '
-          'Resume it, or abandon it and start ${day.title}.',
-        ),
-        actions: [
-          TextButton(
-            key: const Key('resume-existing'),
-            onPressed: () => Navigator.pop(context, _ConflictAction.resume),
-            child: const Text('Resume existing'),
-          ),
-          TextButton(
-            key: const Key('abandon-and-start'),
-            onPressed: () => Navigator.pop(context, _ConflictAction.abandon),
-            child: const Text('Abandon and start this day'),
-          ),
-          TextButton(
-            onPressed: () => Navigator.pop(context),
-            child: const Text('Cancel'),
-          ),
-        ],
-      ),
-    );
-    if (!context.mounted) return;
-    if (action == null) return;
-    if (action == _ConflictAction.resume) {
-      await openLiveSession(existing.id);
-      return;
-    }
-    await lifecycle.abandonInProgress();
-    if (!context.mounted) return;
-  }
-
-  var included = <String>[];
-  if (plan.commonSections.isNotEmpty) {
-    final chosen = await showDialog<List<String>>(
-      context: context,
-      builder: (context) => _IncludeCommonsDialog(plan: plan),
-    );
-    if (!context.mounted) return;
-    if (chosen == null) return;
-    included = chosen;
-  }
-
-  final logs = exerciseLogsForStart(
-    day: day,
-    commonSections: plan.commonSections,
-    includedCommonSectionIds: included,
-  );
-  if (logs.isEmpty) {
-    if (!context.mounted) return;
-    ScaffoldMessenger.of(context).showSnackBar(
-      const SnackBar(
-        content: Text('Turn on a section or add an exercise first.'),
-      ),
-    );
-    return;
-  }
-
-  final session = await lifecycle.start(
+  final result = await start.run(
     plan: plan,
     planDayId: day.dayId,
-    includedCommonSectionIds: included,
+    onConflict: (existing) => _askConflict(context, existing, day),
+    onCommons: (_) => _askCommons(context, plan),
   );
   if (!context.mounted) return;
-  await openLiveSession(session.id);
+
+  switch (result) {
+    case StartSessionOpened(:final session):
+      await openLiveSession(session.uuid, ports);
+    case StartSessionCancelled():
+      return;
+    case StartSessionEmpty():
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('Turn on a section or add an exercise first.'),
+        ),
+      );
+  }
+}
+
+Future<LiveSessionChoice> _askConflict(
+  BuildContext context,
+  WorkoutSession existing,
+  PlanDay day,
+) async {
+  if (!context.mounted) return LiveSessionChoice.cancel;
+  final action = await showDialog<_ConflictAction>(
+    context: context,
+    builder: (context) => AlertDialog(
+      title: const Text('A workout is already in progress'),
+      content: Text(
+        'You still have "${existing.dayTitleSnapshot}" open. '
+        'Resume it, or abandon it and start ${day.title}.',
+      ),
+      actions: [
+        TextButton(
+          key: const Key('resume-existing'),
+          onPressed: () => Navigator.pop(context, _ConflictAction.resume),
+          child: const Text('Resume existing'),
+        ),
+        TextButton(
+          key: const Key('abandon-and-start'),
+          onPressed: () => Navigator.pop(context, _ConflictAction.abandon),
+          child: const Text('Abandon and start this day'),
+        ),
+        TextButton(
+          onPressed: () => Navigator.pop(context),
+          child: const Text('Cancel'),
+        ),
+      ],
+    ),
+  );
+  return switch (action) {
+    _ConflictAction.resume => LiveSessionChoice.resumeExisting,
+    _ConflictAction.abandon => LiveSessionChoice.abandonAndStart,
+    null => LiveSessionChoice.cancel,
+  };
+}
+
+Future<List<String>?> _askCommons(BuildContext context, WorkoutPlan plan) {
+  if (!context.mounted) return Future<List<String>?>.value();
+  return showDialog<List<String>>(
+    context: context,
+    builder: (context) => _IncludeCommonsDialog(plan: plan),
+  );
 }
 
 enum _ConflictAction { resume, abandon }

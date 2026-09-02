@@ -4,11 +4,12 @@ import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:get/get.dart';
 import 'package:gym_app/common/app_routes.dart';
+import 'package:gym_app/data/app_ports.dart';
 import 'package:gym_app/data/isar_service.dart';
-import 'package:gym_app/data/models/models.dart';
-import 'package:gym_app/data/plan_repository.dart';
-import 'package:gym_app/data/session_lifecycle.dart';
-import 'package:gym_app/data/session_repository.dart';
+import 'package:gym_app/domain/models/models.dart';
+import 'package:gym_app/domain/plan_repository.dart';
+import 'package:gym_app/domain/session_lifecycle.dart';
+import 'package:gym_app/domain/session_repository.dart';
 import 'package:gym_app/features/progress/progress_format.dart';
 import 'package:gym_app/features/progress/session_log_page.dart';
 import 'package:gym_app/main.dart';
@@ -184,14 +185,14 @@ void main() {
 
     expect(find.byKey(const Key('day-log-list')), findsOneWidget);
     final first = tester.getTopLeft(
-      find.byKey(Key('day-log-session-${morning.id}')),
+      find.byKey(Key('day-log-session-${morning.uuid}')),
     );
     final second = tester.getTopLeft(
-      find.byKey(Key('day-log-session-${evening.id}')),
+      find.byKey(Key('day-log-session-${evening.uuid}')),
     );
     expect(first.dy, lessThan(second.dy));
 
-    await tester.tap(find.byKey(Key('day-log-session-${evening.id}')));
+    await tester.tap(find.byKey(Key('day-log-session-${evening.uuid}')));
     await tester.pump();
     await settle(tester);
 
@@ -311,8 +312,11 @@ void main() {
     await bootstrap(tester);
 
     await tester.pumpWidget(
-      const GetMaterialApp(
-        home: SessionLogPage(sessionId: 999999),
+      GetMaterialApp(
+        home: SessionLogPage(
+          sessionId: 'missing-session',
+          ports: Get.find<AppPorts>(),
+        ),
       ),
     );
     await settle(tester);
@@ -329,7 +333,10 @@ void main() {
 
     await tester.pumpWidget(
       GetMaterialApp(
-        home: DayLogPage(day: DateTime.utc(2026, 8, 15)),
+        home: DayLogPage(
+          day: DateTime.utc(2026, 8, 15),
+          ports: Get.find<AppPorts>(),
+        ),
       ),
     );
     await settle(tester);

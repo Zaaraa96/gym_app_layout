@@ -3,11 +3,13 @@ import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:get/get.dart';
-import 'package:gym_app/data/models/models.dart';
-import 'package:gym_app/data/plan_repository.dart';
-import 'package:gym_app/data/session_repository.dart';
+import 'package:gym_app/domain/models/models.dart';
+import 'package:gym_app/domain/plan_repository.dart';
+import 'package:gym_app/domain/session_repository.dart';
 import 'package:gym_app/features/plans/plan_page.dart';
 import 'package:gym_app/features/plans/plans_home_page.dart';
+
+import '../helpers/ports.dart';
 
 /// Home and plan screens reload from [PlanRepository.watch] / [SessionRepository.watch].
 void main() {
@@ -21,10 +23,9 @@ void main() {
       plans.dispose();
       sessions.dispose();
     });
-    Get.put<PlanRepository>(plans);
-    Get.put<SessionRepository>(sessions);
-
-    await tester.pumpWidget(const GetMaterialApp(home: PlansHomePage()));
+    await tester.pumpWidget(GetMaterialApp(
+      home: PlansHomePage(ports: testPorts(plans: plans, sessions: sessions)),
+    ));
     await tester.pump();
     await tester.pump();
 
@@ -53,10 +54,9 @@ void main() {
       plans.dispose();
       sessions.dispose();
     });
-    Get.put<PlanRepository>(plans);
-    Get.put<SessionRepository>(sessions);
-
-    await tester.pumpWidget(const GetMaterialApp(home: PlansHomePage()));
+    await tester.pumpWidget(GetMaterialApp(
+      home: PlansHomePage(ports: testPorts(plans: plans, sessions: sessions)),
+    ));
     await tester.pump();
     await tester.pump();
 
@@ -76,9 +76,9 @@ void main() {
       (tester) async {
     final plans = _WatchablePlans(plan: _plan());
     addTearDown(plans.dispose);
-    Get.put<PlanRepository>(plans);
-
-    await tester.pumpWidget(const GetMaterialApp(home: PlanPage(planId: 1)));
+    await tester.pumpWidget(GetMaterialApp(
+      home: PlanPage(planId: 'plan-uuid', ports: testPorts(plans: plans)),
+    ));
     await tester.pump();
     await tester.pump();
 
@@ -198,7 +198,8 @@ class _WatchableSessions implements SessionRepository {
       live != null && live!.id == id ? live : null;
 
   @override
-  Future<WorkoutSession?> byUuid(String uuid) async => null;
+  Future<WorkoutSession?> byUuid(String uuid) async =>
+      live != null && live!.uuid == uuid ? live : null;
 
   @override
   Future<List<WorkoutSession>> completedNewestFirst({String? planId}) async =>

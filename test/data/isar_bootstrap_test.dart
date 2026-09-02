@@ -2,8 +2,11 @@ import 'dart:io';
 
 import 'package:flutter_test/flutter_test.dart';
 import 'package:get/get.dart';
+import 'package:gym_app/data/isar/mappers.dart';
+import 'package:gym_app/data/isar/workout_plan.dart' as isar_plan;
+import 'package:gym_app/data/isar/workout_session.dart' as isar_session;
 import 'package:gym_app/data/isar_service.dart';
-import 'package:gym_app/data/models/models.dart';
+import 'package:gym_app/domain/models/models.dart';
 import 'package:isar/isar.dart';
 
 import '../helpers/isar_core.dart';
@@ -49,13 +52,14 @@ void main() {
     final now = DateTime.utc(2026, 8, 24, 12);
 
     final plan = _samplePlan(now);
+    final planRow = planToIsar(plan);
     await isar.writeTxn(() async {
-      await isar.workoutPlans.put(plan);
+      await isar.workoutPlans.put(planRow);
     });
+    plan.id = planRow.id;
 
-    final loadedPlan = await isar.workoutPlans.get(plan.id);
-    expect(loadedPlan, isNotNull);
-    expect(loadedPlan!.title, 'plan 1');
+    final loadedPlan = planFromIsar((await isar.workoutPlans.get(plan.id))!);
+    expect(loadedPlan.title, 'plan 1');
     expect(loadedPlan.source, PlanSource.imported);
     expect(loadedPlan.days, hasLength(1));
 
@@ -78,13 +82,15 @@ void main() {
     expect(abs.blocks.single.exercises.single.prescribedReps, isNull);
 
     final session = _sampleSession(planId: plan.uuid, startedAt: now);
+    final sessionRow = sessionToIsar(session);
     await isar.writeTxn(() async {
-      await isar.workoutSessions.put(session);
+      await isar.workoutSessions.put(sessionRow);
     });
+    session.id = sessionRow.id;
 
-    final loadedSession = await isar.workoutSessions.get(session.id);
-    expect(loadedSession, isNotNull);
-    expect(loadedSession!.planTitleSnapshot, 'plan 1');
+    final loadedSession =
+        sessionFromIsar((await isar.workoutSessions.get(session.id))!);
+    expect(loadedSession.planTitleSnapshot, 'plan 1');
     expect(loadedSession.dayTitleSnapshot, 'day 1- 4sar');
     expect(loadedSession.includedCommonSectionIds, ['sec-abs']);
     expect(loadedSession.status, SessionStatus.inProgress);
@@ -121,10 +127,11 @@ void main() {
 
     await isar.writeTxn(() async {
       loadedPlan.title = 'edited later';
-      await isar.workoutPlans.put(loadedPlan);
+      await isar.workoutPlans.put(planToIsar(loadedPlan));
     });
-    final sessionAfterEdit = await isar.workoutSessions.get(session.id);
-    expect(sessionAfterEdit!.planTitleSnapshot, 'plan 1');
+    final sessionAfterEdit =
+        sessionFromIsar((await isar.workoutSessions.get(session.id))!);
+    expect(sessionAfterEdit.planTitleSnapshot, 'plan 1');
   });
 }
 

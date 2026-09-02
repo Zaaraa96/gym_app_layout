@@ -1,8 +1,8 @@
 import 'package:flutter_test/flutter_test.dart';
 import 'package:gym_app/data/memory_plan_repository.dart';
 import 'package:gym_app/data/memory_session_repository.dart';
-import 'package:gym_app/data/models/models.dart';
-import 'package:gym_app/data/session_lifecycle.dart';
+import 'package:gym_app/domain/models/models.dart';
+import 'package:gym_app/domain/session_lifecycle.dart';
 
 void main() {
   test('memory plans assign uuid, mark dirty, and list newest first', () async {
@@ -30,6 +30,20 @@ void main() {
     expect(older.dirty, isTrue);
     expect((await plans.unsynced()).map((plan) => plan.id), [older.id]);
     expect((await plans.byUuid('older'))?.title, 'edited');
+  });
+
+  test('memory plans assign a local id without Isar.autoIncrement', () async {
+    final plans = MemoryPlanRepository();
+    final plan = WorkoutPlan.create(
+      title: 'new',
+      source: PlanSource.created,
+      createdAt: DateTime.utc(2026, 1, 1),
+      updatedAt: DateTime.utc(2026, 1, 1),
+    );
+    expect(plan.id, unassignedLocalId);
+    await plans.save(plan);
+    expect(plan.id, isNot(unassignedLocalId));
+    expect(await plans.byId(plan.id), isNotNull);
   });
 
   test('memory lastCompleted keys off plan uuid, not the row id', () async {

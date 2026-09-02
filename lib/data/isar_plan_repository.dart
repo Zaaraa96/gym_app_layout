@@ -1,8 +1,10 @@
 import 'package:isar/isar.dart';
 
-import 'models/workout_plan.dart';
-import 'new_id.dart';
-import 'plan_repository.dart';
+import 'isar/mappers.dart';
+import 'isar/workout_plan.dart' as isar_plan;
+import '../domain/models/workout_plan.dart';
+import '../domain/new_id.dart';
+import '../domain/plan_repository.dart';
 
 /// Isar-backed [PlanRepository]. The only plan writer the UI talks to.
 class IsarPlanRepository implements PlanRepository {
@@ -14,15 +16,23 @@ class IsarPlanRepository implements PlanRepository {
   Future<int> count() => _isar.workoutPlans.count();
 
   @override
-  Future<List<WorkoutPlan>> all() =>
-      _isar.workoutPlans.where().sortByUpdatedAtDesc().findAll();
+  Future<List<WorkoutPlan>> all() async {
+    final rows =
+        await _isar.workoutPlans.where().sortByUpdatedAtDesc().findAll();
+    return [for (final row in rows) planFromIsar(row)];
+  }
 
   @override
-  Future<WorkoutPlan?> byId(int id) => _isar.workoutPlans.get(id);
+  Future<WorkoutPlan?> byId(int id) async {
+    final row = await _isar.workoutPlans.get(id);
+    return row == null ? null : planFromIsar(row);
+  }
 
   @override
-  Future<WorkoutPlan?> byUuid(String uuid) =>
-      _isar.workoutPlans.filter().uuidEqualTo(uuid).findFirst();
+  Future<WorkoutPlan?> byUuid(String uuid) async {
+    final row = await _isar.workoutPlans.filter().uuidEqualTo(uuid).findFirst();
+    return row == null ? null : planFromIsar(row);
+  }
 
   @override
   Future<int> save(WorkoutPlan plan) {
@@ -38,8 +48,10 @@ class IsarPlanRepository implements PlanRepository {
   }
 
   @override
-  Future<List<WorkoutPlan>> unsynced() =>
-      _isar.workoutPlans.filter().dirtyEqualTo(true).findAll();
+  Future<List<WorkoutPlan>> unsynced() async {
+    final rows = await _isar.workoutPlans.filter().dirtyEqualTo(true).findAll();
+    return [for (final row in rows) planFromIsar(row)];
+  }
 
   @override
   Future<bool> delete(int id) =>
@@ -51,6 +63,11 @@ class IsarPlanRepository implements PlanRepository {
 
   Future<int> _put(WorkoutPlan plan) {
     if (plan.uuid.isEmpty) plan.uuid = newUuid();
-    return _isar.writeTxn(() => _isar.workoutPlans.put(plan));
+    final row = planToIsar(plan);
+    return _isar.writeTxn(() async {
+      final id = await _isar.workoutPlans.put(row);
+      plan.id = id;
+      return id;
+    });
   }
 }

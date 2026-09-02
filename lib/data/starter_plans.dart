@@ -1,8 +1,8 @@
 import 'package:flutter/services.dart';
 
 import 'json_plan_importer.dart';
-import 'models/models.dart';
-import 'plan_repository.dart';
+import '../domain/models/models.dart';
+import '../domain/plan_repository.dart';
 
 /// Bundled first-run programs. One tap writes a real [WorkoutPlan].
 class StarterPlanSpec {

@@ -4,8 +4,9 @@ import 'package:get/get.dart';
 import '../../common/widgets/app_load_error.dart';
 import '../../common/widgets/app_text.dart';
 import '../../common/widgets/app_text_field.dart';
-import '../../data/models/models.dart';
-import '../../data/plan_repository.dart';
+import '../../data/app_ports.dart';
+import '../../domain/models/models.dart';
+import '../../domain/plan_repository.dart';
 import 'block_summary.dart';
 import 'exercise_block_dialog.dart';
 
@@ -16,7 +17,8 @@ class DayEditorArgs {
     this.sectionId,
   }) : assert(dayId != null || sectionId != null);
 
-  final int planId;
+  /// [WorkoutPlan.uuid], not a local row key.
+  final String planId;
   final String? dayId;
   final String? sectionId;
 }
@@ -26,13 +28,16 @@ class DayEditorPage extends StatefulWidget {
   const DayEditorPage({
     super.key,
     required this.planId,
+    required this.ports,
     this.dayId,
     this.sectionId,
   }) : assert(dayId != null || sectionId != null);
 
-  final int planId;
+  /// [WorkoutPlan.uuid], not a local row key.
+  final String planId;
   final String? dayId;
   final String? sectionId;
+  final AppPorts ports;
 
   bool get isCommonSection => sectionId != null;
 
@@ -41,7 +46,7 @@ class DayEditorPage extends StatefulWidget {
 }
 
 class _DayEditorPageState extends State<DayEditorPage> {
-  final PlanRepository _plans = Get.find<PlanRepository>();
+  PlanRepository get _plans => widget.ports.plans;
   final _titleController = TextEditingController();
   final _summaryController = TextEditingController();
   WorkoutPlan? _plan;
@@ -75,7 +80,7 @@ class _DayEditorPageState extends State<DayEditorPage> {
   Future<void> _load() async {
     final id = ++_loadId;
     try {
-      final plan = await _plans.byId(widget.planId);
+      final plan = await _plans.byUuid(widget.planId);
       PlanDay? day;
       CommonSection? section;
       if (plan != null) {

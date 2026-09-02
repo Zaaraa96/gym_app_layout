@@ -1,4 +1,6 @@
-import '../../data/models/models.dart';
+import 'models/models.dart';
+import 'plan_repository.dart';
+import 'session_repository.dart';
 
 /// A startable day the home screen can recommend.
 class TodaySuggestion {
@@ -122,5 +124,38 @@ TodaySuggestion? suggestToday({
     alreadyTrainedToday: false,
     headline: 'Today: ${day.title}',
     prompt: 'Start with $first, then log what you did.',
+  );
+}
+
+/// Plans, live session, and today's suggestion loaded from repositories.
+class HomeOverview {
+  const HomeOverview({
+    required this.plans,
+    this.live,
+    this.today,
+  });
+
+  final List<WorkoutPlan> plans;
+  final WorkoutSession? live;
+  final TodaySuggestion? today;
+}
+
+/// One read for the home screen. Suggestion math stays [suggestToday].
+Future<HomeOverview> loadHomeOverview({
+  required PlanRepository plans,
+  required SessionRepository sessions,
+  DateTime? now,
+}) async {
+  final items = await plans.all();
+  final live = await sessions.inProgress();
+  final completed = await sessions.completedNewestFirst();
+  return HomeOverview(
+    plans: items,
+    live: live,
+    today: suggestToday(
+      plans: items,
+      completedNewestFirst: completed,
+      now: now,
+    ),
   );
 }

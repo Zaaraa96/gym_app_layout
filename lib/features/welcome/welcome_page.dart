@@ -6,11 +6,14 @@ import '../../common/app_routes.dart';
 import '../../common/widgets/app_elevated_button.dart';
 import '../../common/widgets/app_scaffold.dart';
 import '../../common/widgets/app_text.dart';
+import '../../data/app_ports.dart';
 import '../plans/plan_import_flow.dart';
 
 /// First-run fork: get a plan in by starter, import, or create.
 class WelcomePage extends StatelessWidget {
-  const WelcomePage({super.key});
+  const WelcomePage({super.key, required this.ports});
+
+  final AppPorts ports;
 
   @override
   Widget build(BuildContext context) {
@@ -47,7 +50,11 @@ class WelcomePage extends StatelessWidget {
                 child: AppElevatedButton(
                   outlined: true,
                   data: 'Import a plan',
-                  onPressed: () => startPlanImport(context),
+                  onPressed: () => startPlanImport(
+                    context,
+                    import: ports.planImport,
+                    ports: ports,
+                  ),
                 ),
               ),
               const SizedBox(height: 12),

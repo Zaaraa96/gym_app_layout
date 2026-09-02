@@ -3,8 +3,8 @@ import 'dart:async';
 import 'package:flutter/foundation.dart';
 import 'package:get/get.dart';
 
-import '../../data/models/models.dart';
-import '../../data/session_repository.dart';
+import '../../domain/models/models.dart';
+import '../../domain/session_repository.dart';
 
 /// Thrown when a live-workout action is not valid in the current phase.
 class WorkoutActionException implements Exception {
@@ -27,7 +27,8 @@ class WorkoutController extends GetxController {
   })  : _sessions = sessions,
         _now = clock ?? DateTime.now;
 
-  final int sessionId;
+  /// [WorkoutSession.uuid], not a local row key.
+  final String sessionId;
   final SessionRepository _sessions;
   final DateTime Function() _now;
 
@@ -104,7 +105,7 @@ class WorkoutController extends GetxController {
   int get headerPrescribedSets => activeLog?.prescribedSets ?? 0;
 
   Future<void> load() async {
-    _session = await _sessions.byId(sessionId);
+    _session = await _sessions.byUuid(sessionId);
     if (_session == null) {
       throw const WorkoutActionException('That workout is no longer here.');
     }

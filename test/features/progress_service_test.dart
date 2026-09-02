@@ -1,6 +1,7 @@
 import 'package:flutter_test/flutter_test.dart';
-import 'package:gym_app/data/models/models.dart';
-import 'package:gym_app/features/progress/progress_service.dart';
+import 'package:gym_app/data/memory_session_repository.dart';
+import 'package:gym_app/domain/models/models.dart';
+import 'package:gym_app/domain/progress_service.dart';
 
 /// Step 4: [ProgressService] folds a month of sessions using the Step 2 rules.
 void main() {
@@ -198,7 +199,7 @@ void main() {
     expect(progress.daysWithWorkouts, [DateTime.utc(2026, 8, 1)]);
     expect(progress.exercises, hasLength(1));
     expect(progress.exercises.single.sessions, hasLength(2));
-    expect(progress.exercises.single.sessions.first.sessionId, 2);
+    expect(progress.exercises.single.sessions.first.sessionId, '2');
     expect(progress.exercises.single.firstValue, 35);
     expect(progress.exercises.single.lastValue, 40);
   });
@@ -504,6 +505,44 @@ void main() {
     expect(progress.exercises.last.sessions.first.primaryValue, isNull);
     expect(progress.exercises.last.sessions.first.completedSets, 0);
   });
+
+  test('loadMonth reads sessions from the repository then folds', () async {
+    final sessions = MemorySessionRepository();
+    await sessions.save(
+      _session(
+        id: 1,
+        startedAt: DateTime.utc(2026, 8, 2, 9),
+        logs: [
+          _repLog(
+            title: 'Kang Squat',
+            reps: [12],
+            weight: 40,
+            difficulty: 4,
+          ),
+        ],
+      ),
+    );
+    await sessions.save(
+      _session(
+        id: 2,
+        startedAt: DateTime.utc(2026, 8, 20, 9),
+        logs: [
+          _repLog(title: 'kang squat', reps: [12], weight: 45, difficulty: 3),
+        ],
+      ),
+    );
+
+    final progress = await service.loadMonth(
+      sessions: sessions,
+      month: DateTime.utc(2026, 8),
+    );
+    expect(progress.daysWithWorkouts, [
+      DateTime.utc(2026, 8, 2),
+      DateTime.utc(2026, 8, 20),
+    ]);
+    expect(progress.exercises.single.feltEasier, isTrue);
+    expect(progress.exercises.single.delta, 5);
+  });
 }
 
 WorkoutSession _session({
@@ -513,6 +552,7 @@ WorkoutSession _session({
   SessionStatus status = SessionStatus.completed,
 }) {
   final session = WorkoutSession.create(
+    uuid: '$id',
     planId: '1',
     planDayId: 'day-1',
     planTitleSnapshot: 'plan 1',

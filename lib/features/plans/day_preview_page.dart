@@ -5,16 +5,19 @@ import '../../common/app_routes.dart';
 import '../../common/widgets/app_elevated_button.dart';
 import '../../common/widgets/app_load_error.dart';
 import '../../common/widgets/app_text.dart';
-import '../../data/models/models.dart';
-import '../../data/plan_repository.dart';
+import '../../data/app_ports.dart';
+import '../../domain/models/models.dart';
+import '../../domain/plan_repository.dart';
 import '../workout/start_workout.dart';
 import 'day_editor_page.dart';
 import 'exercise_block_row.dart';
+import '../../domain/today_suggestion.dart';
 
 class DayPreviewArgs {
   const DayPreviewArgs({required this.planId, required this.dayId});
 
-  final int planId;
+  /// [WorkoutPlan.uuid], not a local row key.
+  final String planId;
   final String dayId;
 }
 
@@ -24,17 +27,20 @@ class DayPreviewPage extends StatefulWidget {
     super.key,
     required this.planId,
     required this.dayId,
+    required this.ports,
   });
 
-  final int planId;
+  /// [WorkoutPlan.uuid], not a local row key.
+  final String planId;
   final String dayId;
+  final AppPorts ports;
 
   @override
   State<DayPreviewPage> createState() => _DayPreviewPageState();
 }
 
 class _DayPreviewPageState extends State<DayPreviewPage> {
-  final PlanRepository _plans = Get.find<PlanRepository>();
+  PlanRepository get _plans => widget.ports.plans;
   WorkoutPlan? _plan;
   PlanDay? _day;
   bool _loading = true;
@@ -50,7 +56,7 @@ class _DayPreviewPageState extends State<DayPreviewPage> {
   Future<void> _load() async {
     final id = ++_loadId;
     try {
-      final plan = await _plans.byId(widget.planId);
+      final plan = await _plans.byUuid(widget.planId);
       PlanDay? day;
       if (plan != null) {
         for (final item in plan.days) {
@@ -90,7 +96,11 @@ class _DayPreviewPageState extends State<DayPreviewPage> {
     // Push the editor widget directly. GetX nested-route rules make
     // `Get.toNamed` from some plan screens a no-op.
     await Get.to(
-      () => DayEditorPage(planId: widget.planId, dayId: widget.dayId),
+      () => DayEditorPage(
+        planId: widget.planId,
+        dayId: widget.dayId,
+        ports: widget.ports,
+      ),
       routeName: AppRoutes.editDay,
     );
     await _load();
@@ -100,7 +110,13 @@ class _DayPreviewPageState extends State<DayPreviewPage> {
     final plan = _plan;
     final day = _day;
     if (plan == null || day == null) return;
-    await startWorkout(context: context, plan: plan, day: day);
+    await startWorkout(
+      context: context,
+      plan: plan,
+      day: day,
+      start: widget.ports.startSession,
+      ports: widget.ports,
+    );
   }
 
   @override
@@ -120,10 +136,11 @@ class _DayPreviewPageState extends State<DayPreviewPage> {
     );
   }
 
-  /// Start is enabled when this day has blocks, or the plan has common
-  /// sections the user can train without day work.
-  bool _canStart(PlanDay day) =>
-      day.blocks.isNotEmpty || (_plan?.commonSections.isNotEmpty ?? false);
+  bool _canStart(PlanDay day) {
+    final plan = _plan;
+    if (plan == null) return false;
+    return dayCanStart(plan, day);
+  }
 
   Widget _body(BuildContext context, PlanDay day) {
     final theme = Theme.of(context);
