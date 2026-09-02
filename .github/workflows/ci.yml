@@ -1,0 +1,48 @@
+# Merge gate for main: analyzer + every host test.
+# Require the job named "test" in branch protection / rulesets so PRs
+# cannot merge until this workflow passes.
+name: CI
+
+on:
+  pull_request:
+    branches: [main]
+  push:
+    branches: [main]
+  merge_group:
+    branches: [main]
+  workflow_dispatch:
+
+concurrency:
+  group: ci-${{ github.workflow }}-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+
+jobs:
+  test:
+    name: test
+    runs-on: ubuntu-latest
+    timeout-minutes: 45
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v6
+
+      - name: Set up Flutter
+        uses: subosito/flutter-action@v2
+        with:
+          channel: stable
+          # Match .cursor/Dockerfile (Flutter 3.44.9 / Dart 3.12.2).
+          flutter-version: "3.44.9"
+          cache: true
+
+      - name: Install dependencies
+        run: flutter pub get --enforce-lockfile
+
+      - name: Analyze
+        run: flutter analyze
+
+      - name: Run tests
+        # --concurrency=1 is required: Isar host tests share a native library
+        # and race when run in parallel.
+        run: flutter test --concurrency=1 --reporter expanded
