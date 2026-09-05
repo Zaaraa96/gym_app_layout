@@ -173,15 +173,17 @@ class _PlansHomePageState extends State<PlansHomePage> {
                   onPressed: () => Get.toNamed(AppRoutes.newPlan),
                 ),
               ),
-              const SizedBox(width: 12),
-              Expanded(
-                child: AppElevatedButton(
-                  key: const Key('open-starters'),
-                  outlined: true,
-                  data: 'Beginner',
-                  onPressed: () => Get.toNamed(AppRoutes.starters),
+              if (_items.isNotEmpty) ...[
+                const SizedBox(width: 12),
+                Expanded(
+                  child: AppElevatedButton(
+                    key: const Key('open-starters'),
+                    outlined: true,
+                    data: 'Beginner',
+                    onPressed: () => Get.toNamed(AppRoutes.starters),
+                  ),
                 ),
-              ),
+              ],
             ],
           ),
         ),

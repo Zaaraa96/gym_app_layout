@@ -131,6 +131,10 @@ void main() {
     await tester.tap(find.byKey(const Key('confirm-delete-plan')));
     await tester.pump();
     await settle(tester);
+    // Isar delete finishes during settle, then offAllNamed starts the home
+    // transition. One more settle so the bottom nav is on-screen to tap.
+    await tester.pump(const Duration(milliseconds: 400));
+    await settle(tester);
   }
 
   testWidgets('tapping a plan opens it and a day can be added', (tester) async {
@@ -1417,7 +1421,12 @@ void main() {
     expect(remaining.single.planTitleSnapshot, 'Push week');
     expect(remaining.single.status, SessionStatus.completed);
 
-    await tester.tap(find.byIcon(Icons.calendar_month_outlined));
+    await tester.tap(
+      find.descendant(
+        of: find.byType(NavigationBar),
+        matching: find.text('Month'),
+      ),
+    );
     await tester.pump(const Duration(milliseconds: 500));
     await settle(tester);
 
