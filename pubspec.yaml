@@ -58,6 +58,7 @@ dev_dependencies:
   fake_async: ^1.3.3
   isar_generator: *isar_version
   build_runner: any
+  patrol: ^4.1.1
 
   # The "flutter_lints" package below contains a set of recommended lints to
   # encourage good coding practices. The lint set provided by the package is
@@ -110,3 +111,11 @@ flutter:
   #
   # For details regarding fonts from package dependencies,
   # see https://flutter.dev/custom-fonts/#from-packages
+
+patrol:
+  app_name: gym_app
+  test_directory: integration_test/flows
+  android:
+    package_name: com.zahra.gym_app
+  ios:
+    bundle_id: com.zahra.gymApp
