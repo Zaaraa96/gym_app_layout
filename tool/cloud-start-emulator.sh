@@ -8,7 +8,7 @@ source "$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)/android-env.sh"
 
 # Install is not rerun on pods that boot from an environment snapshot.
 if command -v flutter >/dev/null 2>&1; then
-  flutter config --no-enable-web >/dev/null
+  flutter config --no-enable-web >/dev/null || true
 fi
 
 AVD_NAME="${AVD_NAME:-patrol_pixel}"
