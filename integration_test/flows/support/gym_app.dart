@@ -400,28 +400,34 @@ class GymApp {
   Future<bool> _tapDocumentsUiRow(String fileName) async {
     try {
       final tree = await $.platform.android.getNativeViews(null);
-      var index = 0;
-      var found = -1;
-      void walk(AndroidNativeView view) {
-        final isRow = view.resourceName?.endsWith('id/item_root') ?? false;
-        if (isRow) {
-          if (_nativeTreeContains(view, fileName)) found = index;
-          index++;
+      final rows = <AndroidNativeView>[];
+      void collect(AndroidNativeView view) {
+        if (view.resourceName?.endsWith('id/item_root') ?? false) {
+          rows.add(view);
         }
         for (final child in view.children) {
-          walk(child);
+          collect(child);
         }
       }
 
       for (final root in tree.roots) {
-        walk(root);
+        collect(root);
       }
-      if (found < 0) return nativeTapText(fileName);
+      AndroidNativeView? match;
+      for (final row in rows) {
+        if (_nativeTreeContains(row, fileName)) {
+          match = row;
+          break;
+        }
+      }
+      if (match == null) return nativeTapText(fileName);
 
+      final sameRes =
+          rows.where((row) => row.resourceName == match!.resourceName).toList();
       await $.platform.android.tap(
         AndroidSelector(
-          resourceName: 'com.android.documentsui:id/item_root',
-          instance: found,
+          resourceName: match.resourceName,
+          instance: sameRes.indexOf(match),
         ),
         timeout: const Duration(seconds: 5),
       );
