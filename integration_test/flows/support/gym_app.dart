@@ -370,20 +370,30 @@ class GymApp {
     }
   }
 
-  /// DocumentsUI on the API 34 emulator: tap the clickable `item_root` row,
-  /// not the filename TextView (that view is not clickable).
+  /// DocumentsUI on the API 34 emulator: tap the clickable row that contains
+  /// the filename. The title TextView itself is not clickable.
   Future<void> pickJsonFromDownloads(String fileName) async {
     await dismissPermissionIfAny();
     await nativeTapText('Allow');
-    if (!await _tapDocumentsUiRow(fileName)) {
+    await Future<void>.delayed(const Duration(seconds: 1));
+    try {
+      await $.platform.android.waitUntilVisible(
+        AndroidSelector(textContains: fileName),
+        timeout: const Duration(seconds: 8),
+      );
+    } catch (_) {
       await nativeTapText('Show roots');
       if (!await nativeTapText('Downloads')) {
         await nativeTapText('Download');
       }
-      final picked = await _tapDocumentsUiRow(fileName);
-      if (!picked) {
-        fail('Native picker did not show $fileName in Downloads');
-      }
+      await $.platform.android.waitUntilVisible(
+        AndroidSelector(textContains: fileName),
+        timeout: const Duration(seconds: 8),
+      );
+    }
+    final tapped = await _tapDocumentsUiRow(fileName);
+    if (!tapped) {
+      fail('Native picker did not show $fileName in Downloads');
     }
     await nativeTapText('SELECT');
     await nativeTapText('Select');
@@ -402,7 +412,9 @@ class GymApp {
       final tree = await $.platform.android.getNativeViews(null);
       final rows = <AndroidNativeView>[];
       void collect(AndroidNativeView view) {
-        if (view.resourceName?.endsWith('id/item_root') ?? false) {
+        final isRow = (view.resourceName?.endsWith('id/item_root') ?? false) ||
+            (view.isClickable && _nativeTreeContains(view, fileName));
+        if (isRow && _nativeTreeContains(view, fileName)) {
           rows.add(view);
         }
         for (final child in view.children) {
@@ -413,25 +425,33 @@ class GymApp {
       for (final root in tree.roots) {
         collect(root);
       }
-      AndroidNativeView? match;
-      for (final row in rows) {
-        if (_nativeTreeContains(row, fileName)) {
-          match = row;
-          break;
-        }
-      }
-      if (match == null) return nativeTapText(fileName);
+      if (rows.isEmpty) return nativeTapText(fileName);
 
+      final match = rows.last;
       final sameRes =
-          rows.where((row) => row.resourceName == match!.resourceName).toList();
-      await $.platform.android.tap(
-        AndroidSelector(
-          resourceName: match.resourceName,
-          instance: sameRes.indexOf(match),
-        ),
-        timeout: const Duration(seconds: 5),
-      );
-      return true;
+          rows.where((row) => row.resourceName == match.resourceName).toList();
+      try {
+        await $.platform.android.tap(
+          AndroidSelector(
+            resourceName: match.resourceName,
+            instance: sameRes.indexOf(match),
+          ),
+          timeout: const Duration(seconds: 5),
+        );
+        return true;
+      } catch (_) {
+        final screen = tree.roots.first.visibleBounds;
+        final width = screen.maxX - screen.minX;
+        final height = screen.maxY - screen.minY;
+        if (width <= 0 || height <= 0) return nativeTapText(fileName);
+        await $.platform.android.tapAt(
+          Offset(
+            ((match.visibleCenter.x - screen.minX) / width).clamp(0.0, 1.0),
+            ((match.visibleCenter.y - screen.minY) / height).clamp(0.0, 1.0),
+          ),
+        );
+        return true;
+      }
     } catch (_) {
       return nativeTapText(fileName);
     }
