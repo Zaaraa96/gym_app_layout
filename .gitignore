@@ -47,3 +47,6 @@ isar.dll
 isar.dylib
 libisar.so
 
+# Patrol generates this when running device tests
+integration_test/flows/test_bundle.dart
+

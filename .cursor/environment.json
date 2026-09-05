@@ -5,5 +5,6 @@
     "dockerfile": "Dockerfile",
     "context": ".."
   },
-  "install": "flutter pub get && flutter config --enable-linux-desktop && xdg-user-dirs-update && sudo apt-get update && sudo apt-get install -y zenity"
+  "install": "./tool/cloud-agent-install.sh",
+  "start": "./tool/cloud-start-emulator.sh"
 }
