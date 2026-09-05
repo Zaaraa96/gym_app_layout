@@ -412,9 +412,8 @@ class GymApp {
       final tree = await $.platform.android.getNativeViews(null);
       final rows = <AndroidNativeView>[];
       void collect(AndroidNativeView view) {
-        final isRow = (view.resourceName?.endsWith('id/item_root') ?? false) ||
-            (view.isClickable && _nativeTreeContains(view, fileName));
-        if (isRow && _nativeTreeContains(view, fileName)) {
+        if ((view.resourceName?.endsWith('id/item_root') ?? false) &&
+            _nativeTreeContains(view, fileName)) {
           rows.add(view);
         }
         for (final child in view.children) {
@@ -427,23 +426,18 @@ class GymApp {
       }
       if (rows.isEmpty) return nativeTapText(fileName);
 
-      final match = rows.last;
-      final sameRes =
-          rows.where((row) => row.resourceName == match.resourceName).toList();
-      try {
-        await $.platform.android.tap(
-          AndroidSelector(
-            resourceName: match.resourceName,
-            instance: sameRes.indexOf(match),
-          ),
-          timeout: const Duration(seconds: 5),
-        );
-        return true;
-      } catch (_) {
-        final screen = tree.roots.first.visibleBounds;
-        final width = screen.maxX - screen.minX;
-        final height = screen.maxY - screen.minY;
-        if (width <= 0 || height <= 0) return nativeTapText(fileName);
+      rows.sort((a, b) {
+        final areaA = (a.visibleBounds.maxX - a.visibleBounds.minX) *
+            (a.visibleBounds.maxY - a.visibleBounds.minY);
+        final areaB = (b.visibleBounds.maxX - b.visibleBounds.minX) *
+            (b.visibleBounds.maxY - b.visibleBounds.minY);
+        return areaA.compareTo(areaB);
+      });
+      final match = rows.first;
+      final screen = tree.roots.first.visibleBounds;
+      final width = screen.maxX - screen.minX;
+      final height = screen.maxY - screen.minY;
+      if (width > 0 && height > 0) {
         await $.platform.android.tapAt(
           Offset(
             ((match.visibleCenter.x - screen.minX) / width).clamp(0.0, 1.0),
@@ -452,6 +446,7 @@ class GymApp {
         );
         return true;
       }
+      return nativeTapText(fileName);
     } catch (_) {
       return nativeTapText(fileName);
     }
