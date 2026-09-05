@@ -2,11 +2,15 @@
 # Idempotent Cloud Agent install: Dart deps + Patrol CLI.
 set -euo pipefail
 
-export JAVA_HOME="${JAVA_HOME:-/usr/lib/jvm/java-17-openjdk-amd64}"
-export ANDROID_SDK_ROOT="${ANDROID_SDK_ROOT:-/opt/android-sdk}"
-export ANDROID_HOME="$ANDROID_SDK_ROOT"
-export ANDROID_AVD_HOME="${ANDROID_AVD_HOME:-$ANDROID_SDK_ROOT/avd}"
-export PATH="/opt/flutter/bin:/opt/flutter/bin/cache/dart-sdk/bin:$HOME/.pub-cache/bin:$JAVA_HOME/bin:$ANDROID_HOME/platform-tools:$ANDROID_HOME/emulator:$ANDROID_HOME/cmdline-tools/latest/bin:$PATH"
+# shellcheck source=android-env.sh
+source "$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)/android-env.sh"
+
+# Persist PATH for later agent shells that do not inherit Docker ENV PATH.
+profile_snippet='[ -f /workspace/tool/android-env.sh ] && . /workspace/tool/android-env.sh'
+for rc in "$HOME/.bashrc" "$HOME/.profile"; do
+  touch "$rc"
+  grep -Fqx "$profile_snippet" "$rc" 2>/dev/null || echo "$profile_snippet" >> "$rc"
+done
 
 flutter config --no-analytics
 flutter config --enable-linux-desktop

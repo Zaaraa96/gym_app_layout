@@ -1,15 +1,14 @@
 #!/usr/bin/env bash
 # Start the patrol_pixel AVD if no Android device is connected. Idempotent.
+# Software emulation (no /dev/kvm) can take ~10 minutes to reach boot_completed.
 set -euo pipefail
 
-export JAVA_HOME="${JAVA_HOME:-/usr/lib/jvm/java-17-openjdk-amd64}"
-export ANDROID_SDK_ROOT="${ANDROID_SDK_ROOT:-/opt/android-sdk}"
-export ANDROID_HOME="$ANDROID_SDK_ROOT"
-export ANDROID_AVD_HOME="${ANDROID_AVD_HOME:-$ANDROID_SDK_ROOT/avd}"
-export PATH="/opt/flutter/bin:$HOME/.pub-cache/bin:$JAVA_HOME/bin:$ANDROID_HOME/platform-tools:$ANDROID_HOME/emulator:$ANDROID_HOME/cmdline-tools/latest/bin:$PATH"
+# shellcheck source=android-env.sh
+source "$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)/android-env.sh"
 
 AVD_NAME="${AVD_NAME:-patrol_pixel}"
 LOG="${EMULATOR_LOG:-/tmp/cursor-patrol-emulator.log}"
+BOOT_TIMEOUT_SEC="${EMULATOR_BOOT_TIMEOUT_SEC:-900}"
 
 if [[ ! -x "$ANDROID_HOME/platform-tools/adb" ]]; then
   echo "Android SDK is not installed at $ANDROID_HOME" >&2
@@ -22,10 +21,27 @@ fi
 
 adb start-server >/dev/null
 
+wait_for_boot() {
+  local deadline=$((SECONDS + BOOT_TIMEOUT_SEC))
+  adb wait-for-device
+  while (( SECONDS < deadline )); do
+    booted="$(adb shell getprop sys.boot_completed 2>/dev/null | tr -d '\r' || true)"
+    if [[ "$booted" == "1" ]]; then
+      echo "Emulator booted."
+      adb devices
+      return 0
+    fi
+    sleep 2
+  done
+  echo "Emulator did not reach boot_completed in ${BOOT_TIMEOUT_SEC}s. Last log lines:" >&2
+  tail -n 50 "$LOG" >&2 || true
+  return 1
+}
+
 if adb devices | awk 'NR>1 && $2=="device" { found=1 } END { exit found ? 0 : 1 }'; then
-  echo "Android device already connected."
-  adb devices
-  exit 0
+  echo "Android device already listed; waiting for boot_completed if needed."
+  wait_for_boot
+  exit $?
 fi
 
 if ! command -v emulator >/dev/null 2>&1; then
@@ -35,6 +51,7 @@ fi
 
 accel_args=(-accel on)
 if [[ ! -e /dev/kvm ]] || [[ ! -w /dev/kvm ]]; then
+  echo "KVM is not usable; starting emulator with software acceleration (slow boot)."
   accel_args=(-accel off)
 fi
 
@@ -50,18 +67,4 @@ nohup emulator -avd "$AVD_NAME" \
   >"$LOG" 2>&1 &
 echo $! > /tmp/cursor-patrol-emulator.pid
 
-adb wait-for-device
-
-for _ in $(seq 1 90); do
-  booted="$(adb shell getprop sys.boot_completed 2>/dev/null | tr -d '\r' || true)"
-  if [[ "$booted" == "1" ]]; then
-    echo "Emulator booted."
-    adb devices
-    exit 0
-  fi
-  sleep 2
-done
-
-echo "Emulator did not boot in time. Last log lines:" >&2
-tail -n 50 "$LOG" >&2 || true
-exit 1
+wait_for_boot

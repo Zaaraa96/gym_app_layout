@@ -4,6 +4,14 @@
 # $ANDROID_SDK_ROOT/avd so it is not tied to the installing user's home.
 set -euo pipefail
 
+# shellcheck source=android-env.sh
+if [[ -f /etc/profile.d/gym-dev.sh ]]; then
+  # shellcheck disable=SC1091
+  source /etc/profile.d/gym-dev.sh
+else
+  source "$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)/android-env.sh"
+fi
+
 ANDROID_SDK_ROOT="${ANDROID_SDK_ROOT:-/opt/android-sdk}"
 export ANDROID_SDK_ROOT
 export ANDROID_HOME="$ANDROID_SDK_ROOT"
@@ -29,13 +37,17 @@ fi
 
 yes | sdkmanager --licenses >/dev/null || true
 
+# Flutter 3.44.x doctor wants platform 36 and still checks for Build-Tools 28.0.3.
 sdkmanager --install \
   "platform-tools" \
   "emulator" \
   "platforms;android-34" \
   "platforms;android-35" \
+  "platforms;android-36" \
+  "build-tools;28.0.3" \
   "build-tools;34.0.0" \
   "build-tools;35.0.0" \
+  "build-tools;36.0.0" \
   "$SYSIMAGE"
 
 if ! avdmanager list avd 2>/dev/null | grep -q "Name: ${AVD_NAME}"; then
