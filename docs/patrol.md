@@ -31,9 +31,10 @@ starts (`-accel off`) and `start` waits up to 15 minutes for
 # -d is required if Flutter still lists Chrome as a device.
 patrol test -d emulator-5554 -t integration_test/flows/smoke_patrol_ready_test.dart
 
-# Later flow files (same language as the device plan)
-# Flow 1 + 2a
-# patrol test -t integration_test/flows/flow_1_2a_welcome_and_beginner.dart
+# Later flow files — see docs/patrol-flows.md
+# patrol test -t integration_test/flows/flow_1_2a_welcome_and_beginner_test.dart
+# ./tool/push-patrol-import-files.sh
+# patrol test -t integration_test/flows/flow_2c_import_json_test.dart
 ```
 
 Existing `integration_test/*.dart` wrappers are host/device runners for widget
