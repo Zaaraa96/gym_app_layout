@@ -247,11 +247,11 @@ Home shell
   │     ├─ Continue banner → Live workout (resume)
   │     ├─ Today card → Start → (sheet if commons) → Live workout
   │     ├─ Plan preview (photo day cards)
-  │     │     ├─ Rename plan (no delete-plan overflow yet)
+  │     │     ├─ Rename / delete plan (overflow; sessions stay)
   │     │     ├─ Add / delete day
   │     │     ├─ Common-section chips → section editor
   │     │     └─ Day preview → Start → (sheet if commons) → Live workout
-  │     └─ Import / New  (bottom row, not a FAB)
+  │     └─ Import / New / Beginner  (bottom row, not a FAB; Beginner only when the list is not empty)
   └─ Month tab
         ├─ Calendar
         ├─ Day tap → session log (read-only; several sessions list in startedAt order)
@@ -279,9 +279,9 @@ Starting while another session is `inProgress`:
 | --- | --- | --- |
 | Welcome | First-run fork: beginner template, import, or create | `welcome_page.dart` |
 | Starter plans | Pick a bundled beginner program | `starter_plans_page.dart` |
-| Plans home | List plans; continue session; Today card; Import / New; Month tab | `plans_home_page.dart` |
+| Plans home | List plans; continue session; Today card; Import / New / Beginner; Month tab | `plans_home_page.dart` |
 | Import preview | Show parsed days/blocks; confirm save | `import_preview_page.dart` |
-| Plan preview | Photo day cards; rename; add/delete days; common-section chips. **No delete-plan overflow yet** | `plan_page.dart` |
+| Plan preview | Photo day cards; rename; add/delete days; delete-plan overflow (sessions stay); common-section chips | `plan_page.dart` |
 | Day preview | Block list + Start | `day_preview_page.dart` |
 | Day editor | One day’s title, summary, blocks; optional SVG/gallery media | `day_editor_page.dart` + block dialog |
 | Common-section editor | One named section’s blocks; same block dialog as the day editor | `day_editor_page.dart` with `sectionId` |
@@ -300,11 +300,11 @@ There is **no** all-in-one “plan editor” screen. Plan-level actions live on 
 
 **Welcome.** Centered Lottie, title, subtitle, three full-width actions: Start with a beginner plan | Import a plan | Create a plan. Returning users never see this once any plan exists.
 
-**Plans home.** App bar “Plans” (or “Month” on that tab). Continue banner above the body when `inProgress` exists. **Today** card with the next plan day and a Start CTA. List of plan titles + day count. Bottom row: Import | New. Bottom nav: Plans, Month.
+**Plans home.** App bar “Plans” (or “Month” on that tab). Continue banner above the body when `inProgress` exists. **Today** card with the next plan day and a Start CTA. List of plan titles + day count. Bottom row: Import | New, plus **Beginner** when at least one plan exists. Empty list: **Start with a beginner plan** instead of that third button. Bottom nav: Plans, Month.
 
 **Import preview.** File name, plan title, expandable days (block summaries: `3×12 kang squat + leg extension`). Common sections listed as chips. Primary: Save plan. Secondary: Cancel.
 
-**Plan preview.** Photo cards (keep `assets/image/0–2.png`). App bar: title, edit icon **renames** the plan, add-day icon. **Delete plan is not in the app yet** (sessions would stay, per Step 2, when it lands). Add day from the app bar / FAB. Card tap opens Day preview. **Common sections** is always shown: **Add section**, then chips (tap to edit, delete on the chip) or empty copy. Day cards can delete that day.
+**Plan preview.** Photo cards (keep `assets/image/0–2.png`). App bar: title, edit icon **renames** the plan, add-day icon, overflow **Delete plan** (confirm: “Workouts already logged stay on Month.”; sessions stay, per Step 2). Add day from the app bar / FAB. Card tap opens Day preview. **Common sections** is always shown: **Add section**, then chips (tap to edit, delete on the chip) or empty copy. Day cards can delete that day.
 
 **Day preview.** Keep alternating summary rows (SVG, names × reps or duration, set/round badge). **Edit day** opens the day editor. Bottom: Start workout.
 
@@ -350,7 +350,7 @@ Persist every logged set immediately. App-bar back and system back leave the ses
 
 ### Out of v1 UI
 
-Auto-start rest, target weight field, required photos, accounts, suggested next load, reordering days, duplicating days, prefill weight from last session, delete-plan overflow.
+Auto-start rest, target weight field, required photos, accounts, suggested next load, reordering days, duplicating days, prefill weight from last session.
 
 ---
 
@@ -451,7 +451,6 @@ Routes: `/`, `/home`, `/starters`, `/import`, `/new-plan`, `/plan`, `/day`, `/ed
 
 Slices **1–9 are in the running app** (Welcome, import/create, plan/day editors, start/commons/conflict, live logger + 1–5, Month). Slice **10** (harden) is largely in: resume after back, one in-progress session, invalid JSON error, analyze/CI, widget tests. Remaining product gaps:
 
-- **Delete plan** overflow (sessions should stay)
 - Auto-start rest, target weight, accounts, suggested next load, reorder/duplicate days
 - HTTP sync only when `API_BASE_URL` is set
 
@@ -461,7 +460,7 @@ Historical build order (already shipped):
 2. **Empty home + welcome fork**
 3. **JSON import**
 4. **Plan preview + day preview from Isar**
-5. **Create / edit plan** (rename, add/delete day, common-section editor). Delete-plan overflow still missing.
+5. **Create / edit plan** (rename, add/delete day, delete-plan overflow, common-section editor).
 6. **Start session**
 7. **Live logger**
 8. **Per-exercise 1–5** (End also offers Keep going)
@@ -472,6 +471,6 @@ Historical build order (already shipped):
 
 The first useful session should not require JSON or a blank plan editor.
 
-- **Beginner defaults.** Bundled programs in `assets/json/beginner-full-body.json` (3 days + abs/mobility) and `beginner-two-day.json` (A/B, no commons). Welcome’s primary button opens `/starters`. One tap writes a real `WorkoutPlan` (`PlanSource.imported`) and lands on home. Installing the same title twice reuses the stored plan.
+- **Beginner defaults.** Bundled programs in `assets/json/beginner-full-body.json` (3 days + abs/mobility) and `beginner-two-day.json` (A/B, no commons). Welcome’s primary button opens `/starters`. Plans home also opens `/starters` via **Beginner** when the list is not empty (empty home uses **Start with a beginner plan**). One tap writes a real `WorkoutPlan` (`PlanSource.imported`) and lands on home. Installing the same title twice reuses the stored plan.
 - **Today card.** Home recommends the next day on the newest startable plan. No history → day 1. After a completed session → the next startable day, wrapping around. If they already completed a session **today**, the card is “Next up” for the following day instead of repeating the same one. The prompt names the first exercise and asks them to log what they did.
 - **Start from Today.** Same start flow as day preview (commons sheet, in-progress conflict, live logger). No need to open the plan first.

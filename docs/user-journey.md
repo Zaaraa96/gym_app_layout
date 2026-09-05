@@ -24,14 +24,14 @@ Three full-width actions, no bottom nav:
 
 ### 2a. Beginner template (typical first run)
 
-1. Tap **Start with a beginner plan**.
+1. Tap **Start with a beginner plan** (Welcome, or empty Plans) or **Beginner** (Plans, when at least one plan already exists).
 2. On **Beginner plans** (“Start with a plan you can do this week. You can edit every exercise later.”), pick:
    - **Beginner full body** (badge **Recommended**) — three days plus abs/mobility commons
    - **Beginner 2-day** — A/B, no commons
 3. Tap **Use this plan**.
 4. The plan is saved locally. The app jumps to **Plans** (Today card + Your plans). It does **not** open the plan preview.
 
-Tapping the same starter twice does not duplicate it (same title is reused).
+Tapping the same starter twice does not duplicate it (same title is reused). After the first save, **Beginner** on Plans reopens the same picker so a second template can still be added.
 
 ### 2b. Create from scratch
 
@@ -59,20 +59,20 @@ Returning users land here. Bottom nav (**Plans** | **Month**) is on this shell o
   - No completed session yet: headline **Today: {day}**, prompt **Start with {first exercise}, then log what you did.**, button **Start today's workout**.
   - Already completed a session today: headline **Next up: {day}**, prompt **You already trained today…**, button **Start next day**.
 - **Your plans** list (title + “1 day” / “N days”). Newest first. Tap a row to open the plan.
-- Bottom buttons: **Import** and **New**.
+- Bottom buttons when plans exist: **Import**, **New**, and **Beginner** (reopens starter templates). **Beginner** is not on the empty-home row; that state uses a single **Start with a beginner plan** action instead.
 
-If the list is empty (plans were deleted elsewhere), home can show **No plans yet…** and **Start with a beginner plan**. There is still no in-app **Delete plan**.
+Deleting the last plan (overflow on plan preview) lands on empty home: **No plans yet. Start with a beginner template, import one, or create your first.** plus **Start with a beginner plan**. Logged sessions still show on **Month**, and an in-progress session still shows **Continue workout**.
 
 ## 4. Open a plan and a day
 
 1. Tap a plan.
 2. Plan preview (no bottom nav):
    - Photo day cards (`assets/image/0–2.png`).
-   - App bar: back, title, **Rename plan** (pencil), **Add day**.
+   - App bar: back, title, **Rename plan** (pencil), **Add day**, overflow **More** → **Delete plan**.
+   - Confirm: **Delete this plan?** / **Workouts already logged stay on Month.** **Cancel** or **Delete**. Delete returns to Plans.
    - **Common sections** heading, **Add section**, then chips (tap to edit, delete on the chip) or empty copy: **Optional extras like abs. Include them when you start a day.**
    - Each day card: title, optional summary, first-block summary, exercise count, **Delete day**.
    - FAB **Add day** when at least one day exists.
-   - There is **no** overflow to delete the whole plan.
 3. Tap a day card → **read-only day preview** (SVG, names × reps or duration, set badge; supersets on one row). Copy **Common sections can be included when you start.** when the plan has sections.
 4. **Edit day** opens the editor (day title/summary, add/edit/delete blocks, pick bundled SVG or gallery media). Back without saving destructive edits is safe.
 5. **Start workout** on the preview starts or resumes that day. Disabled when the day has no blocks and the plan has no common sections.

@@ -74,7 +74,7 @@ Import JSON: `assets/json/plan.json` is valid. Trailing-comma files throw `PlanI
 
 | Gap | Slice |
 | --- | --- |
-| Delete plan overflow (sessions stay) | 5 |
+| Delete plan overflow (sessions stay) | 5 (shipped later; overflow **Delete plan**, confirm keeps Month logs) |
 | Common-section chips / Add section / section editor | 5 |
 | Continue workout banner | 6 |
 | Start sheet (commons default off) | 6 |

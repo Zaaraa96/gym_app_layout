@@ -10,10 +10,10 @@ Application ID: `com.zahra.gym_app`
 | Capability | Status |
 |---|---|
 | Welcome when no plans exist | Working. Later launches go to Plans |
-| Beginner templates | Working (`Beginner full body`, `Beginner 2-day`) |
+| Beginner templates | Working. Welcome, empty home, or **Beginner** on populated Plans (`Beginner full body`, `Beginner 2-day`) |
 | Import JSON (`name` / `basic-plan` / `common-plan`) | Working. Invalid JSON shows a readable error |
 | Create a plan | Working. Empty Day 1; Start stays disabled until a block or common section exists |
-| Plan / day preview and editors | Working. Rename, add/delete days, common sections. No delete-plan overflow yet |
+| Plan / day preview and editors | Working. Rename, add/delete days, delete-plan overflow (logged sessions stay on Month), common sections |
 | Start / resume a day | Working. Commons default off. In-progress conflict: Resume / Abandon and start / Cancel |
 | Live logger | Working. Snapshot session, alternating supersets, rest stopwatch, duration timer, inline 1–5 |
 | Finish / Discard | Working. Partial finish is `completed`. Discard is hidden on Month |
@@ -33,7 +33,7 @@ Welcome (/)  →  Beginner plans / Import preview / New plan
 ```
 
 1. **Welcome** — Lottie gym animation, three actions: Start with a beginner plan, Import a plan, Create a plan. Skipped once any plan exists.
-2. **Plans** — Continue banner if a session is live, Today card (next startable day on the newest startable plan), plan list, Import | New.
+2. **Plans** — Continue banner if a session is live, Today card (next startable day on the newest startable plan), plan list, Import | New | Beginner (Beginner only when a plan exists).
 3. **Plan / day** — Photo day cards, common-section chips, read-only day preview, editor, Start workout.
 4. **Live** — Log weight/reps or duration, rest, rate 1–5, End → Finish, Discard, or Keep going.
 5. **Month** — Calendar dots, empty-month / empty-day copy, expandable trends.
@@ -115,5 +115,4 @@ dart run build_runner build --delete-conflicting-outputs
 
 ## Known gaps
 
-- No overflow to delete a whole plan (sessions should remain if that lands).
 - Auto-start rest, target weight, accounts, suggested next load, reorder/duplicate days are out of v1.
