@@ -33,7 +33,7 @@ void main() {
 
       await gym.tapText('Edit day');
       await gym.tapText('Add exercise');
-      await $(TextFormField).first.enterText('Bodyweight squat');
+      await gym.enterAddExerciseTitle('Bodyweight squat');
       await gym.tapText('Save exercise');
       await gym.tapText('Save');
       await gym.tapText('Start workout');

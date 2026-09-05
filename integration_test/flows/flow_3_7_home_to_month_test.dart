@@ -5,7 +5,7 @@ import 'support/gym_app.dart';
 
 void main() {
   gymPatrolTest(
-    '3–7: home, day, live (6c/6d), snapshot edit, then Month',
+    '3-7: home, day, live (6c and 6d), snapshot edit, then Month',
     ($, gym) async {
       await gym.installFullBodyFromWelcome();
       expect($(const Key('continue-banner')), findsNothing);
@@ -43,7 +43,7 @@ void main() {
       await gym.openDayByTitle(GymApp.day1Title);
       await gym.tapText('Edit day');
       await gym.tapKey('add-exercise');
-      await $(TextFormField).first.enterText('Ghost raise');
+      await gym.enterAddExerciseTitle('Ghost raise');
       await gym.tapText('Save exercise');
       await gym.tapText('Save');
       await gym.back();

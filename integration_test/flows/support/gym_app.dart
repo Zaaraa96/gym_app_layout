@@ -3,6 +3,7 @@
 // Welcome's Lottie never settles — avoid pumpAndSettle.
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:gym_app/app/app_bootstrap.dart';
 import 'package:patrol/patrol.dart';
 
 export 'package:patrol/patrol.dart';
@@ -45,6 +46,10 @@ class GymApp {
   static const dayATitle = 'Day A — Squat and push';
 
   Future<void> waitUntilAppReady() async {
+    // Patrol's tester tree is empty until the test pumps the app. Do not
+    // pumpAndSettle: Welcome's Lottie never stops.
+    await $.pumpWidget(const AppBootstrap());
+    await $.pump(const Duration(milliseconds: 100));
     final deadline = DateTime.now().add(const Duration(seconds: 40));
     while (DateTime.now().isBefore(deadline)) {
       await $.pump(const Duration(milliseconds: 200));
@@ -100,8 +105,46 @@ class GymApp {
       $.pump(d);
 
   Future<void> back() async {
-    await $.tester.pageBack();
+    final arrow = find.byIcon(Icons.arrow_back);
+    if ($(arrow).visible) {
+      await _tap(arrow, settle: SettlePolicy.trySettle);
+      return;
+    }
+    try {
+      await $.platform.android.pressBack();
+    } catch (_) {
+      await $.tester.pageBack();
+    }
     await $.pump(const Duration(milliseconds: 400));
+  }
+
+  Future<void> returnToPlansHome() async {
+    final deadline = DateTime.now().add(const Duration(seconds: 20));
+    while (DateTime.now().isBefore(deadline)) {
+      await $.pump(const Duration(milliseconds: 200));
+      if ($(const Key('today-card')).exists || $('Your plans').exists) {
+        return;
+      }
+      if ($('No plans yet. Start with a beginner template, import one, or create your first.')
+          .exists) {
+        return;
+      }
+      await back();
+    }
+    fail('Did not return to Plans home');
+  }
+
+  Future<void> enterAddExerciseTitle(String name) async {
+    final field = find.descendant(
+      of: find.byType(AlertDialog),
+      matching: find.byType(TextFormField),
+    );
+    final deadline = DateTime.now().add(const Duration(seconds: 10));
+    while (DateTime.now().isBefore(deadline) && field.evaluate().isEmpty) {
+      await $.pump(const Duration(milliseconds: 200));
+    }
+    await $.tester.enterText(field.first, name);
+    await $.pump(const Duration(milliseconds: 200));
   }
 
   Future<void> waitForWelcome() async {
@@ -217,7 +260,10 @@ class GymApp {
     fail('Live workout did not reach Workout complete');
   }
 
-  Future<void> tapDone() async => tapText('Done');
+  Future<void> tapDone() async {
+    await tapText('Done');
+    await returnToPlansHome();
+  }
 
   Future<void> openMonthTab() async {
     await _tap(find.byIcon(Icons.calendar_month_outlined), settle: SettlePolicy.trySettle);
@@ -324,18 +370,17 @@ class GymApp {
     }
   }
 
-  /// DocumentsUI on the API 34 emulator: Downloads → filename.
+  /// DocumentsUI on the API 34 emulator: tap the clickable `item_root` row,
+  /// not the filename TextView (that view is not clickable).
   Future<void> pickJsonFromDownloads(String fileName) async {
     await dismissPermissionIfAny();
     await nativeTapText('Allow');
-    if (!await nativeTapText(fileName, timeout: const Duration(seconds: 4))) {
+    if (!await _tapDocumentsUiRow(fileName)) {
       await nativeTapText('Show roots');
-      final inDownloads = await nativeTapText('Downloads') ||
-          await nativeTapText('Download');
-      if (!inDownloads) {
-        fail('Native picker had no Downloads folder');
+      if (!await nativeTapText('Downloads')) {
+        await nativeTapText('Download');
       }
-      final picked = await nativeTapText(fileName);
+      final picked = await _tapDocumentsUiRow(fileName);
       if (!picked) {
         fail('Native picker did not show $fileName in Downloads');
       }
@@ -344,5 +389,45 @@ class GymApp {
     await nativeTapText('Select');
     await nativeTapText('Open');
     await pumpQuiet(const Duration(milliseconds: 800));
+  }
+
+  bool _nativeTreeContains(AndroidNativeView view, String needle) {
+    final blob = '${view.text ?? ''} ${view.contentDescription ?? ''}';
+    if (blob.contains(needle)) return true;
+    return view.children.any((child) => _nativeTreeContains(child, needle));
+  }
+
+  Future<bool> _tapDocumentsUiRow(String fileName) async {
+    try {
+      final tree = await $.platform.android.getNativeViews(null);
+      var index = 0;
+      var found = -1;
+      void walk(AndroidNativeView view) {
+        final isRow = view.resourceName?.endsWith('id/item_root') ?? false;
+        if (isRow) {
+          if (_nativeTreeContains(view, fileName)) found = index;
+          index++;
+        }
+        for (final child in view.children) {
+          walk(child);
+        }
+      }
+
+      for (final root in tree.roots) {
+        walk(root);
+      }
+      if (found < 0) return nativeTapText(fileName);
+
+      await $.platform.android.tap(
+        AndroidSelector(
+          resourceName: 'com.android.documentsui:id/item_root',
+          instance: found,
+        ),
+        timeout: const Duration(seconds: 5),
+      );
+      return true;
+    } catch (_) {
+      return nativeTapText(fileName);
+    }
   }
 }
