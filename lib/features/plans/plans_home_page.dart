@@ -133,18 +133,20 @@ class _PlansHomePageState extends State<PlansHomePage> {
     return Column(
       children: [
         Expanded(
-          child: _items.isEmpty
+          child: _items.isEmpty && _live == null
               ? _empty()
               : ListView(
                   children: [
                     if (_live != null) _continueBanner(_live!),
                     if (_today != null) _todayCard(_today!),
-                    const SizedBox(height: 8),
-                    const AppText('Your plans', style: dataTextStyle),
-                    const SizedBox(height: 8),
-                    for (var index = 0; index < _items.length; index++) ...[
-                      if (index > 0) const Divider(height: 1),
-                      _planTile(_items[index]),
+                    if (_items.isNotEmpty) ...[
+                      const SizedBox(height: 8),
+                      const AppText('Your plans', style: dataTextStyle),
+                      const SizedBox(height: 8),
+                      for (var index = 0; index < _items.length; index++) ...[
+                        if (index > 0) const Divider(height: 1),
+                        _planTile(_items[index]),
+                      ],
                     ],
                   ],
                 ),
@@ -171,6 +173,15 @@ class _PlansHomePageState extends State<PlansHomePage> {
                   onPressed: () => Get.toNamed(AppRoutes.newPlan),
                 ),
               ),
+              const SizedBox(width: 12),
+              Expanded(
+                child: AppElevatedButton(
+                  key: const Key('open-starters'),
+                  outlined: true,
+                  data: 'Beginner',
+                  onPressed: () => Get.toNamed(AppRoutes.starters),
+                ),
+              ),
             ],
           ),
         ),
@@ -190,6 +201,7 @@ class _PlansHomePageState extends State<PlansHomePage> {
           ),
           const SizedBox(height: 16),
           AppElevatedButton(
+            key: const Key('open-starters'),
             data: 'Start with a beginner plan',
             onPressed: () => Get.toNamed(AppRoutes.starters),
           ),

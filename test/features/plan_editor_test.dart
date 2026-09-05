@@ -8,6 +8,8 @@ import 'package:gym_app/data/app_ports.dart';
 import 'package:gym_app/data/isar_service.dart';
 import 'package:gym_app/domain/models/models.dart';
 import 'package:gym_app/domain/plan_repository.dart';
+import 'package:gym_app/domain/session_lifecycle.dart';
+import 'package:gym_app/domain/session_repository.dart';
 import 'package:gym_app/features/plans/day_editor_page.dart';
 import 'package:gym_app/features/plans/exercise_media_picker.dart';
 import 'package:gym_app/features/plans/plan_page.dart';
@@ -87,6 +89,48 @@ void main() {
         ),
       ],
     );
+  }
+
+  WorkoutPlan loggedPlan() {
+    final now = DateTime.utc(2026, 8, 24, 12);
+    return WorkoutPlan.create(
+      title: 'Push week',
+      source: PlanSource.created,
+      createdAt: now,
+      updatedAt: now,
+      days: [
+        PlanDay.create(
+          dayId: 'day-1',
+          title: 'Day 1',
+          summary: 'chest',
+          blocks: [
+            ExerciseBlock.create(
+              blockId: 'block-1',
+              kind: BlockKind.single,
+              exercises: [
+                ExercisePrescription.create(
+                  prescriptionId: 'p-1',
+                  title: 'kang squat',
+                  prescribedSets: 3,
+                  prescribedReps: 12,
+                ),
+              ],
+            ),
+          ],
+        ),
+      ],
+    );
+  }
+
+  Future<void> confirmDeletePlan(WidgetTester tester) async {
+    await tester.tap(find.byIcon(Icons.more_vert));
+    await tester.pump();
+    await tester.pump(const Duration(milliseconds: 300));
+    await tester.tap(find.byKey(const Key('delete-plan')));
+    await tester.pump();
+    await tester.tap(find.byKey(const Key('confirm-delete-plan')));
+    await tester.pump();
+    await settle(tester);
   }
 
   testWidgets('tapping a plan opens it and a day can be added', (tester) async {
@@ -1270,6 +1314,164 @@ void main() {
     expect(block.exercises.single.prescriptionId, 'p-keep');
     expect(block.exercises.single.prescribedDurationSeconds, 45);
     expect(block.exercises.single.prescribedReps, isNull);
+  });
+
+  testWidgets('deleting a plan removes it from home and drops the count',
+      (tester) async {
+    final plans = await bootstrap(tester);
+    await db(tester, () => plans.save(samplePlan()));
+    await launch(tester, AppRoutes.home);
+
+    await tester.tap(find.text('Push week'));
+    await tester.pump();
+    await settle(tester);
+
+    expect(Get.currentRoute, AppRoutes.plan);
+    await confirmDeletePlan(tester);
+
+    expect(Get.currentRoute, AppRoutes.home);
+    expect(find.text('Push week'), findsNothing);
+    expect(
+      find.text(
+        'No plans yet. Start with a beginner template, import one, or create your first.',
+      ),
+      findsOneWidget,
+    );
+    expect(await db(tester, plans.count), 0);
+  });
+
+  testWidgets('canceling delete plan leaves the stored plan in place',
+      (tester) async {
+    final plans = await bootstrap(tester);
+    await db(tester, () => plans.save(samplePlan()));
+    await launch(tester, AppRoutes.home);
+
+    await tester.tap(find.text('Push week'));
+    await tester.pump();
+    await settle(tester);
+
+    await tester.tap(find.byIcon(Icons.more_vert));
+    await tester.pump();
+    await tester.pump(const Duration(milliseconds: 300));
+    await tester.tap(find.byKey(const Key('delete-plan')));
+    await tester.pump();
+    await tester.tap(find.widgetWithText(TextButton, 'Cancel'));
+    await tester.pump();
+    await settle(tester);
+
+    expect(Get.currentRoute, AppRoutes.plan);
+    expect(find.text('Push week'), findsWidgets);
+    expect(find.text('Day 1'), findsOneWidget);
+    expect(await db(tester, plans.count), 1);
+    final stored = await db(tester, plans.all);
+    expect(stored.single.title, 'Push week');
+    expect(stored.single.days.single.dayId, 'day-1');
+  });
+
+  testWidgets(
+      'deleting a plan keeps completed sessions on Month with the title snapshot',
+      (tester) async {
+    final plans = await bootstrap(tester);
+    final sessions = Get.find<SessionRepository>();
+    final plan = loggedPlan();
+    await db(tester, () => plans.save(plan));
+    final startedAt = DateTime.now().toUtc();
+    await db(
+      tester,
+      () async {
+        final session = await SessionLifecycle(sessions).start(
+          plan: plan,
+          planDayId: 'day-1',
+          startedAt: startedAt,
+        );
+        final log = session.exerciseLogs.first;
+        log.sets = [
+          SetLog.create(
+            setIndex: 1,
+            completedAt: startedAt,
+            reps: 12,
+            weightKg: 40,
+          ),
+        ];
+        log.difficulty = 3;
+        log.completedAt = startedAt;
+        session.exerciseLogs = [log];
+        session.status = SessionStatus.completed;
+        session.endedAt = startedAt;
+        await sessions.save(session);
+      },
+    );
+
+    await launch(tester, AppRoutes.home);
+    await tester.tap(find.text('Push week'));
+    await tester.pump();
+    await settle(tester);
+    await confirmDeletePlan(tester);
+
+    expect(Get.currentRoute, AppRoutes.home);
+    expect(find.text('Push week'), findsNothing);
+    expect(await db(tester, plans.count), 0);
+
+    final remaining = await db(tester, () => sessions.completedNewestFirst());
+    expect(remaining, hasLength(1));
+    expect(remaining.single.planTitleSnapshot, 'Push week');
+    expect(remaining.single.status, SessionStatus.completed);
+
+    await tester.tap(find.byIcon(Icons.calendar_month_outlined));
+    await tester.pump(const Duration(milliseconds: 500));
+    await settle(tester);
+
+    final day = startedAt.day;
+    expect(find.byKey(Key('month-dot-$day')), findsOneWidget);
+
+    await tester.tap(find.byKey(Key('month-day-$day')));
+    await tester.pump();
+    await settle(tester);
+
+    expect(find.text('Push week'), findsWidgets);
+    expect(find.text('Completed'), findsOneWidget);
+  });
+
+  testWidgets(
+      'deleting a plan leaves an in-progress session on the Continue banner',
+      (tester) async {
+    final plans = await bootstrap(tester);
+    final sessions = Get.find<SessionRepository>();
+    final plan = loggedPlan();
+    await db(tester, () => plans.save(plan));
+    await db(
+      tester,
+      () => SessionLifecycle(sessions).start(
+        plan: plan,
+        planDayId: 'day-1',
+        startedAt: DateTime.now().toUtc(),
+      ),
+    );
+
+    await launch(tester, AppRoutes.home);
+    expect(find.byKey(const Key('continue-banner')), findsOneWidget);
+
+    await tester.tap(find.text('Push week'));
+    await tester.pump();
+    await settle(tester);
+    await confirmDeletePlan(tester);
+
+    expect(Get.currentRoute, AppRoutes.home);
+    expect(find.text('Push week'), findsNothing);
+    expect(await db(tester, plans.count), 0);
+    expect(await db(tester, () => sessions.inProgress()), isNotNull);
+    expect(find.byKey(const Key('continue-banner')), findsOneWidget);
+
+    await tester.tap(find.text('Continue workout'));
+    await tester.pump();
+    await settle(tester);
+
+    expect(find.text('kang squat  ·  set 1 of 3'), findsOneWidget);
+    expect(find.text('Log set'), findsOneWidget);
+    expect(
+      (await db(tester, () => sessions.inProgress()))!.status,
+      SessionStatus.inProgress,
+    );
   });
 
   testWidgets('a section saved without a title gets Section 1', (tester) async {

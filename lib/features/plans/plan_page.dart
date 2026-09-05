@@ -272,6 +272,32 @@ class _PlanPageState extends State<PlanPage> {
     await _save(plan);
   }
 
+  Future<void> _deletePlan() async {
+    final plan = _plan;
+    if (plan == null) return;
+    final confirmed = await showDialog<bool>(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: const Text('Delete this plan?'),
+        content: const Text('Workouts already logged stay on Month.'),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context, false),
+            child: const Text('Cancel'),
+          ),
+          FilledButton(
+            key: const Key('confirm-delete-plan'),
+            onPressed: () => Navigator.pop(context, true),
+            child: const Text('Delete'),
+          ),
+        ],
+      ),
+    );
+    if (confirmed != true) return;
+    await _plans.delete(plan.id);
+    Get.offAllNamed(AppRoutes.home);
+  }
+
   Future<void> _openDay(PlanDay day) async {
     await Get.to(
       () => DayPreviewPage(
@@ -333,6 +359,21 @@ class _PlanPageState extends State<PlanPage> {
             tooltip: 'Add day',
             onPressed: plan == null ? null : _addDay,
             icon: const Icon(Icons.add),
+          ),
+          PopupMenuButton<String>(
+            icon: const Icon(Icons.more_vert),
+            tooltip: 'More',
+            enabled: plan != null,
+            onSelected: (value) {
+              if (value == 'delete') _deletePlan();
+            },
+            itemBuilder: (context) => const [
+              PopupMenuItem(
+                key: Key('delete-plan'),
+                value: 'delete',
+                child: Text('Delete plan'),
+              ),
+            ],
           ),
         ],
       ),

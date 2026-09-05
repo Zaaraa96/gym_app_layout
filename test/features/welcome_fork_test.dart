@@ -145,6 +145,8 @@ void main() {
     );
     expect(find.text('Import'), findsOneWidget);
     expect(find.text('New'), findsOneWidget);
+    expect(find.text('Beginner'), findsOneWidget);
+    expect(find.byKey(const Key('open-starters')), findsOneWidget);
     expect(find.text('Import a plan'), findsNothing);
   });
 
@@ -177,6 +179,7 @@ void main() {
       findsOneWidget,
     );
     expect(find.text('Start with a beginner plan'), findsOneWidget);
+    expect(find.byKey(const Key('open-starters')), findsOneWidget);
     expect(find.text('Import'), findsOneWidget);
 
     await tester.tap(find.text('New'));
@@ -200,6 +203,80 @@ void main() {
     );
     expect(find.byKey(const Key('month-calendar')), findsOneWidget);
     expect(find.text('No workouts this month.'), findsOneWidget);
+  });
+
+  testWidgets('home with a stored plan still shows the starters entry',
+      (tester) async {
+    final plans = await bootstrap(tester);
+    await db(tester, () => plans.save(_plan('plan 1', dayCount: 3)));
+    await launch(tester, AppRoutes.home);
+
+    expect(find.byKey(const Key('open-starters')), findsOneWidget);
+    expect(find.text('Beginner'), findsOneWidget);
+    expect(find.text('Start with a beginner plan'), findsNothing);
+
+    await tester.tap(find.byKey(const Key('open-starters')));
+    await tester.pump();
+    await settle(tester);
+
+    expect(Get.currentRoute, AppRoutes.starters);
+    expect(find.text('Beginner full body'), findsOneWidget);
+    expect(find.text('Beginner 2-day'), findsOneWidget);
+  });
+
+  testWidgets('using beginner full body twice reuses the same stored plan',
+      (tester) async {
+    final plans = await bootstrap(tester);
+    await launch(tester, AppRoutes.welcome);
+
+    await tester.tap(find.text('Start with a beginner plan'));
+    await tester.pump();
+    await settle(tester);
+    await tester.tap(find.byKey(const Key('use-starter-beginner-full-body')));
+    await tester.pump();
+    await settle(tester);
+
+    expect(Get.currentRoute, AppRoutes.home);
+    expect(await db(tester, plans.count), 1);
+    final first = (await db(tester, plans.all)).single;
+
+    await tester.tap(find.byKey(const Key('open-starters')));
+    await tester.pump();
+    await settle(tester);
+    await tester.tap(find.byKey(const Key('use-starter-beginner-full-body')));
+    await tester.pump();
+    await settle(tester);
+
+    expect(Get.currentRoute, AppRoutes.home);
+    expect(await db(tester, plans.count), 1);
+    final second = (await db(tester, plans.all)).single;
+    expect(second.id, first.id);
+    expect(second.uuid, first.uuid);
+    expect(second.title, 'Beginner full body');
+  });
+
+  testWidgets('a different beginner starter adds a second plan', (tester) async {
+    final plans = await bootstrap(tester);
+    await launch(tester, AppRoutes.welcome);
+
+    await tester.tap(find.text('Start with a beginner plan'));
+    await tester.pump();
+    await settle(tester);
+    await tester.tap(find.byKey(const Key('use-starter-beginner-full-body')));
+    await tester.pump();
+    await settle(tester);
+
+    await tester.tap(find.byKey(const Key('open-starters')));
+    await tester.pump();
+    await settle(tester);
+    await tester.tap(find.byKey(const Key('use-starter-beginner-two-day')));
+    await tester.pump();
+    await settle(tester);
+
+    expect(Get.currentRoute, AppRoutes.home);
+    expect(await db(tester, plans.count), 2);
+    final titles = (await db(tester, plans.all)).map((p) => p.title).toSet();
+    expect(titles, {'Beginner full body', 'Beginner 2-day'});
   });
 }
 
