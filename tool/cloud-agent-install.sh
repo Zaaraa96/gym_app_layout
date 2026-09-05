@@ -14,6 +14,8 @@ done
 
 flutter config --no-analytics
 flutter config --enable-linux-desktop
+# Patrol otherwise lists Chrome and prompts for a device in unattended runs.
+flutter config --no-enable-web
 if [[ -d "$ANDROID_HOME" ]]; then
   flutter config --android-sdk "$ANDROID_HOME"
 fi

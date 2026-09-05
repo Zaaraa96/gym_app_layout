@@ -27,8 +27,9 @@ starts (`-accel off`) and `start` waits up to 15 minutes for
 ## Run
 
 ```bash
-# Smoke: Patrol + AVD only (no gym screens)
-patrol test -t integration_test/flows/smoke_patrol_ready_test.dart
+# Smoke: Patrol + AVD only (no gym screens).
+# -d is required if Flutter still lists Chrome as a device.
+patrol test -d emulator-5554 -t integration_test/flows/smoke_patrol_ready_test.dart
 
 # Later flow files (same language as the device plan)
 # Flow 1 + 2a

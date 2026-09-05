@@ -95,6 +95,7 @@ RUN printf '%s\n' '[ -f /etc/profile.d/gym-dev.sh ] && . /etc/profile.d/gym-dev.
 RUN git config --global --add safe.directory /opt/flutter \
     && flutter config --no-analytics \
     && flutter config --enable-linux-desktop \
+    && flutter config --no-enable-web \
     && flutter config --android-sdk /opt/android-sdk \
     && flutter precache --linux \
     && flutter precache --android \
