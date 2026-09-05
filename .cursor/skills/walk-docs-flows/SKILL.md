@@ -15,7 +15,7 @@ Read these before launching, in this order:
 2. `docs/product-plan.md` — expected product, UX, and start/live/month rules
 3. This skill’s [report-template.md](report-template.md) — required output shape
 
-`README.md` is stale. Do not treat it as current behavior.
+`README.md` tracks the running app at a high level. For screen copy and the step list, still prefer `docs/user-journey.md` and `docs/product-plan.md`.
 
 `docs/steps-1-4-review.md` is a historical review. Do not skip a journey step because that file says a later slice is unfinished. Judge the running app against the journey and the product plan.
 

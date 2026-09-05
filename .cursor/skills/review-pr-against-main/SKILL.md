@@ -39,7 +39,7 @@ If the PR’s GitHub `baseRefName` is not `main`, still compare to `origin/main`
 - `docs/user-journey.md` (what the screens must still do)
 - Touched tests and `test/helpers/isar_core.dart` when widget tests change
 
-`README.md` is often stale. Do not fail a PR for README drift unless the change made it newly wrong.
+`README.md` is a high-level map of the running app. Do not fail a PR for README drift unless the change made it newly wrong.
 
 ## Product and architecture
 
