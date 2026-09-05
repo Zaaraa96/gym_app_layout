@@ -1,6 +1,8 @@
 # Gym app product plan
 
-Planning only. This document is the source of truth for Steps 1–5. Do not treat the current hardcoded demo in `lib/main.dart` as the product.
+Locked product, data, UX, and architecture for v1. The running app implements slices 1–9 (Welcome through Month). Walk screens against [user-journey.md](user-journey.md).
+
+`lib/main.dart` only binds Flutter and `runApp`. Composition lives in `lib/app/app_bootstrap.dart`.
 
 ## Step 1 — Product (confirmed)
 
@@ -8,9 +10,9 @@ Locked decisions:
 
 - Get a plan in by **JSON import** and by **create/edit in the app**.
 - Rate difficulty **1–5 per exercise** (not once for the whole day).
-- Single local user. **Offline is the normal mode.** No account, no network.
+- Single local user. **Offline is the normal mode.** No account. HTTP sync is opt-in at compile time (`--dart-define=API_BASE_URL=…`) and is off in the normal binary.
 - A **plan** is the prescription. A **session** is what happened on a date.
-- Image-per-exercise is out of v1.
+- Full photo-per-exercise product is out of v1. The day editor can attach a bundled SVG or a gallery pick to a block; that is optional chrome, not a required field.
 
 `common-plan` (abs, corrective, and similar) is **not** a second plan. It is extra named sections on the imported/created program. When the user starts a day they choose which common sections to include. Those blocks are copied into that session only.
 
@@ -26,15 +28,19 @@ Progress queries load sessions in a date range and fold in Dart. Volume is small
 
 ### Identity
 
-- Collection ids: Isar `Id` auto-increment.
+- Product identity: string `uuid` on plans and sessions (routes and `WorkoutSession.planId` use this).
+- Local adapter key: integer `id` (`0` until persisted). Isar collections still use auto-increment `Id` for the row; domain models do not import Isar.
 - Nested ids: string UUIDs so a session can point at a day/block/exercise after copy.
+- `dirty`: local write not yet acknowledged by optional sync.
 - Progress grouping key: `exerciseTitleKey = title.trim().toLowerCase()`. Same name across days and plans rolls up.
 
 ### `WorkoutPlan` (collection)
 
 | Field | Type | Notes |
 | --- | --- | --- |
-| `id` | `Id` | Auto-increment |
+| `id` | `Id` / `int` | Local row key. Auto-increment in Isar |
+| `uuid` | `String` | Indexed. Product identity |
+| `dirty` | `bool` | Sync bookkeeping |
 | `title` | `String` | |
 | `source` | `PlanSource` | `imported` or `created` |
 | `createdAt` | `DateTime` | |
@@ -85,14 +91,17 @@ Invariant: **exactly one** of `prescribedReps` or `prescribedDurationSeconds` is
 
 | Field | Type | Notes |
 | --- | --- | --- |
-| `id` | `Id` | Auto-increment |
-| `planId` | `int` | Indexed. Plan may later be deleted; snapshots still stand |
+| `id` | `Id` / `int` | Local row key |
+| `uuid` | `String` | Product identity |
+| `dirty` | `bool` | Sync bookkeeping |
+| `planId` | `String` | Indexed. `[WorkoutPlan.uuid]`. Plan may later be deleted; snapshots still stand |
 | `planDayId` | `String` | |
 | `planTitleSnapshot` | `String` | |
 | `dayTitleSnapshot` | `String` | |
 | `includedCommonSectionIds` | `List<String>` | Chosen at start |
 | `startedAt` | `DateTime` | Indexed |
 | `endedAt` | `DateTime?` | |
+| `updatedAt` | `DateTime` | Last-write-wins for optional sync |
 | `status` | `SessionStatus` | `inProgress`, `completed`, `abandoned` |
 | `exerciseLogs` | `List<ExerciseLog>` | Day blocks, then included common blocks, in order |
 
@@ -133,7 +142,7 @@ Rest is **not** stored. The rest stopwatch is UI-only in v1.
 
 ### Import JSON (v1)
 
-Evolve `assets/json/plan.json`. The checked-in file has a trailing comma and is not valid JSON; the importer must reject invalid JSON with a readable error. Canonical shape:
+`assets/json/plan.json` is valid. Trailing-comma files throw `PlanImportException` with a readable message. Canonical shape:
 
 ```json
 {
@@ -238,11 +247,11 @@ Home shell
   │     ├─ Continue banner → Live workout (resume)
   │     ├─ Today card → Start → (sheet if commons) → Live workout
   │     ├─ Plan preview (photo day cards)
-  │     │     ├─ Rename / delete plan
+  │     │     ├─ Rename / delete plan (overflow; sessions stay)
   │     │     ├─ Add / delete day
   │     │     ├─ Common-section chips → section editor
   │     │     └─ Day preview → Start → (sheet if commons) → Live workout
-  │     └─ Import / New  (bottom row, not a FAB)
+  │     └─ Import / New / Beginner  (bottom row, not a FAB; Beginner only when the list is not empty)
   └─ Month tab
         ├─ Calendar
         ├─ Day tap → session log (read-only; several sessions list in startedAt order)
@@ -254,7 +263,7 @@ Live workout
   │     ├─ Rest stopwatch (manual start/reset)
   │     └─ Rate 1–5 after the block’s prescribed sets (inline, extras until rated)
   ├─ Back / system back → leave `inProgress`
-  └─ End → Finish (`completed`) or Discard (`abandoned`)
+  └─ End → Finish (`completed`) / Discard (`abandoned`) / Keep going
 ```
 
 Resume: if `inProgress` exists, the **home shell** (both tabs) shows **Continue workout**. Tapping it opens that session’s live screen. Common-section choices are not asked again.
@@ -262,7 +271,7 @@ Resume: if `inProgress` exists, the **home shell** (both tabs) shows **Continue 
 Starting while another session is `inProgress`:
 
 - Same plan + same day → resume (no new sheet).
-- Anything else → dialog: **Resume existing** | **Abandon existing and start this day**.
+- Anything else → dialog: **Resume existing** | **Abandon and start this day** | **Cancel**.
 
 ### Screen inventory
 
@@ -270,20 +279,20 @@ Starting while another session is `inProgress`:
 | --- | --- | --- |
 | Welcome | First-run fork: beginner template, import, or create | `welcome_page.dart` |
 | Starter plans | Pick a bundled beginner program | `starter_plans_page.dart` |
-| Plans home | List plans; continue session; Import / New; Month tab placeholder until slice 9 | `plans_home_page.dart` |
+| Plans home | List plans; continue session; Today card; Import / New / Beginner; Month tab | `plans_home_page.dart` |
 | Import preview | Show parsed days/blocks; confirm save | `import_preview_page.dart` |
-| Plan preview | Photo day cards; rename; add/delete days; common-section chips | `plan_page.dart` (photo cards; collapsing sliver is optional) |
+| Plan preview | Photo day cards; rename; add/delete days; delete-plan overflow (sessions stay); common-section chips | `plan_page.dart` |
 | Day preview | Block list + Start | `day_preview_page.dart` |
-| Day editor | One day’s title, summary, blocks | `day_editor_page.dart` + block dialog |
-| Common-section editor | One named section’s blocks; same block dialog as the day editor | New, reuse day-editor widgets |
+| Day editor | One day’s title, summary, blocks; optional SVG/gallery media | `day_editor_page.dart` + block dialog |
+| Common-section editor | One named section’s blocks; same block dialog as the day editor | `day_editor_page.dart` with `sectionId` |
 | Create-plan title | Title (+ optional Day 1 summary) then Plan preview | `add_plan_page.dart` |
-| Common-section sheet | Toggles before start; skip when the plan has none | New |
-| In-progress conflict | Resume vs abandon-and-start | New dialog |
-| Live workout | Current block, set logger, rest | Replaces `single_exercise_page.dart` |
-| Rate exercise | Inline 1–5 on the exercise row after prescribed sets; not a blocking dialog | New |
-| End-workout sheet | Finish (`completed`) or Discard (`abandoned`) | New |
-| Month | Calendar + trends | New (home Month tab) |
-| Session log | Read-only history for one calendar day | New |
+| Common-section sheet | Toggles before start; skip when the plan has none | Dialog in `start_workout.dart` |
+| In-progress conflict | Resume vs abandon-and-start | Dialog in `start_workout.dart` |
+| Live workout | Current block, set logger, rest | `live_workout_page.dart` |
+| Rate exercise | Inline 1–5 on the exercise row after prescribed sets; not a blocking dialog | On `live_workout_page.dart` |
+| End-workout sheet | Finish (`completed`), Discard (`abandoned`), or Keep going | Sheet on `live_workout_page.dart` |
+| Month | Calendar + trends | `month_tab.dart` |
+| Session log | Read-only history for one session, or a day list when several | `session_log_page.dart` |
 
 There is **no** all-in-one “plan editor” screen. Plan-level actions live on Plan preview; exercise editing is per day (and per common section).
 
@@ -291,11 +300,11 @@ There is **no** all-in-one “plan editor” screen. Plan-level actions live on 
 
 **Welcome.** Centered Lottie, title, subtitle, three full-width actions: Start with a beginner plan | Import a plan | Create a plan. Returning users never see this once any plan exists.
 
-**Plans home.** App bar “Plans” (or “Month” on that tab). Continue banner above the body when `inProgress` exists. **Today** card with the next plan day and a Start CTA. List of plan titles + day count. Bottom row: Import | New. Bottom nav: Plans, Month.
+**Plans home.** App bar “Plans” (or “Month” on that tab). Continue banner above the body when `inProgress` exists. **Today** card with the next plan day and a Start CTA. List of plan titles + day count. Bottom row: Import | New, plus **Beginner** when at least one plan exists. Empty list: **Start with a beginner plan** instead of that third button. Bottom nav: Plans, Month.
 
 **Import preview.** File name, plan title, expandable days (block summaries: `3×12 kang squat + leg extension`). Common sections listed as chips. Primary: Save plan. Secondary: Cancel.
 
-**Plan preview.** Photo cards (keep `assets/image/0–2.png`). App bar: title, edit icon **renames** the plan, overflow **deletes** the plan (confirm; sessions stay, per Step 2). Add day from the app bar / FAB already on this screen. Card tap opens Day preview. If `commonSections` is not empty, chips under the list; tap a chip to edit that section. Empty chips row: **Add section**.
+**Plan preview.** Photo cards (keep `assets/image/0–2.png`). App bar: title, edit icon **renames** the plan, add-day icon, overflow **Delete plan** (confirm: “Workouts already logged stay on Month.”; sessions stay, per Step 2). Add day from the app bar / FAB. Card tap opens Day preview. **Common sections** is always shown: **Add section**, then chips (tap to edit, delete on the chip) or empty copy. Day cards can delete that day.
 
 **Day preview.** Keep alternating summary rows (SVG, names × reps or duration, set/round badge). **Edit day** opens the day editor. Bottom: Start workout.
 
@@ -333,15 +342,15 @@ Header must name the **active exercise** and that exercise’s set index, not on
 
 Persist every logged set immediately. App-bar back and system back leave the session `inProgress` with no extra prompt.
 
-**End.** A live-workout action (not back) opens Finish | Discard. Finish → `completed` (partial logs stay; unrated `difficulty` stays null). Discard → `abandoned` (month view ignores it, per Step 2).
+**End.** A live-workout action (not back) opens Finish | Discard | Keep going. Finish → `completed` (partial logs stay; unrated `difficulty` stays null). Discard → `abandoned` (month view ignores it, per Step 2). Keep going dismisses the sheet.
 
 **Rate.** Required to mark the movement complete. Five equal tappable digits. Confirm writes `difficulty` and `completedAt`.
 
-**Month.** Month title with prev/next. Empty month: calendar with no dots and “No workouts this month.” Dots on days with a non-abandoned session. Below: list of `exerciseTitleKey`s this month with primary metric, delta vs first session in the month, and optional “felt easier”. Tap a calendar day → session log. Several sessions that day: list them, oldest first. Tap an exercise row → the same numbers; no extra screen in v1 if the list is enough.
+**Month.** Month title with prev/next. Empty month: calendar with no dots and “No workouts this month.” Dots on days with a non-abandoned session. Below: list of `exerciseTitleKey`s this month with primary metric, delta vs first session in the month, and optional “felt easier”. Tap a dotted day → session log (one session) or a day list (several, oldest first). Tap a day with no session → “No workouts this day.” Trend rows expand in place.
 
 ### Out of v1 UI
 
-Auto-start rest, target weight field, photos, accounts, suggested next load, reordering days, duplicating days, prefill weight from last session.
+Auto-start rest, target weight field, required photos, accounts, suggested next load, reordering days, duplicating days, prefill weight from last session.
 
 ---
 
@@ -350,47 +359,57 @@ Auto-start rest, target weight field, photos, accounts, suggested next load, reo
 ### Keep
 
 - Flutter Material 3 theme (`lib/common/app_theme.dart`)
-- GetX `GetMaterialApp` named routes
+- GetX `GetMaterialApp` named routes (`lib/app/app_routes.dart`)
 - Isar **3.1.x** + `isar_flutter_libs` + `isar_generator` (no Isar 4)
 - Shared widgets: `AppScaffold`, `AppText`, `AppElevatedButton`, `AppTextField`
 - Lottie welcome, SVG icons, day photo assets
 - `path_provider` for the Isar directory
+- Domain types and repository **interfaces** stay Isar-free. Pages do not import `isar_*_repository.dart`. `kIsWeb` belongs at composition (`bootApp` / adapters), not in pages.
 
-### Drop or replace
+### Dropped (done)
 
 - Hardcoded `SinglePlanModel` in `main.dart`
 - Opening Isar inside the add-plan button
-- Unused `view.dart` / empty `SinglePlanLogic` (replace with real controllers)
-- `image_picker` flow on the exercise screen (leave the dependency until a later slice if unused)
-- Default counter `widget_test.dart` (replace with a smoke test of `MyApp` once routing is stable)
+- Unused `view.dart` / `SinglePlanLogic`
+- Default counter `widget_test.dart`
 
-### New pieces
+`image_picker` is used by the day-editor media sheet.
+
+### Pieces
 
 | Piece | Role |
 | --- | --- |
-| `lib/data/isar_service.dart` | Open Isar once in `main()`, register schemas, expose as GetxService |
-| `lib/data/plan_repository.dart` | CRUD plans |
-| `lib/data/session_repository.dart` | CRUD sessions; query by month; find in-progress |
-| `lib/data/json_plan_importer.dart` | Parse and map JSON → `WorkoutPlan` |
+| `lib/app/app_bootstrap.dart` | `bootApp`: open storage, register ports, pick welcome vs home |
+| `lib/data/isar_service.dart` | Open Isar once, register schemas |
+| `lib/domain/plan_repository.dart` | Plan CRUD interface (Isar-free) |
+| `lib/domain/session_repository.dart` | Session CRUD interface; month; in-progress |
+| `lib/data/isar_plan_repository.dart` | Isar adapter |
+| `lib/data/isar_session_repository.dart` | Isar adapter |
+| `lib/data/memory_*_repository.dart` | Web / test stand-ins |
+| `lib/data/json_plan_importer.dart` | Parse and map JSON → domain `WorkoutPlan` |
 | `lib/features/workout/workout_controller.dart` | Live session state; log set; rest clock; rate |
-| `lib/features/progress/progress_service.dart` | Pure Dart month fold of the rules in Step 2 |
+| `lib/domain/progress_service.dart` | Pure Dart month fold of the rules in Step 2 |
+| `lib/data/sync/sync_service.dart` | Optional HTTP last-write-wins when `API_BASE_URL` is set |
 | `file_picker` | Pick `.json` from the device |
 
 ### App start
 
 ```
 WidgetsFlutterBinding.ensureInitialized()
-open Isar (path_provider documents dir)
-Get.put(IsarService)
-runApp
+runApp(AppBootstrap)          # first frame is a loader, not a black view
+bootApp:
+  native → IsarService + Isar*Repository
+  web    → Memory*Repository  (Isar 3 will not open)
+  put SessionLifecycle, PlanImportPicker, AppPorts
+  optional SyncService if API_BASE_URL is non-empty
 initialRoute: plans exist ? /home : /
 ```
 
 ### Live workout state
 
-`WorkoutController` is a GetX controller created with the session id. It:
+`WorkoutController` is a GetX controller created with the session uuid. It:
 
-- Loads the session from Isar
+- Loads the session from the session repository
 - Tracks which `ExerciseLog` is **active**. On a single, that log stays active through extras until it is rated. On a superset, after each logged set in the prescribed phase the active log becomes the next partner in the same `blockId` with `sets.length < prescribedSets`. After every log in the block has its prescribed sets, extras and inline 1–5 are available on each unrated log in that block; rating one does not hide the partner
 - Holds rest elapsed seconds with `Stopwatch` + `Timer.periodic` (1s). Rest is not written to Isar
 - Duration work: countdown `int` remaining, paused until Start; Log time stores `prescribed - remaining` if the timer ran, or the prescribed value if they log without starting; persist `durationSeconds`
@@ -400,75 +419,58 @@ No extra timer package.
 
 ### Offline
 
-No HTTP. Import is a local file. Export (later) would be a local file. Target **Android and iOS** for v1. Web may compile but Isar 3 web is not a v1 goal.
+Offline is normal. Import is a local file. HTTP is not the UI source of truth. Compile with `--dart-define=API_BASE_URL=https://host` to enable optional sync. Target **Android and iOS** for v1; Linux desktop is the Cloud Agent run target. Web may compile (memory repositories) but Isar 3 web is not a v1 goal.
 
 ### Permissions
 
-`file_picker` needs the usual Android/iOS document access. No camera permission until photos return.
+`file_picker` needs the usual Android/iOS document access. Gallery picks in the day editor need `image_picker` platform permissions if you ship that path.
 
-### File layout (target)
+### File layout
 
 ```
 lib/
-  main.dart
-  data/
-    isar_service.dart
-    plan_repository.dart
-    session_repository.dart
-    json_plan_importer.dart
-    models/          # WorkoutPlan, WorkoutSession, enums, embeds
-  common/            # theme, widgets (keep)
+  main.dart                 # binding + runApp
+  app/
+    app_bootstrap.dart      # bootApp, AppBootstrap, MyApp
+    app_routes.dart         # GetPage table
+  domain/                   # Isar-free models, repository interfaces, start/progress rules
+  data/                     # Isar adapters, importer, memory/web, optional HTTP remotes
+  common/                   # theme, widgets, route name constants
   features/
     welcome/
-    plans/           # home, preview, editor, import
-    workout/         # day start, live, rate
-    progress/        # month, session log
+    plans/                  # home, preview, editor, import, starters
+    workout/                # start, live logger
+    progress/               # month tab, session log
 ```
 
-Routes (names can shift slightly at implementation): `/`, `/home`, `/starters`, `/import`, `/new-plan`, `/plan`, `/day`, `/edit-day`, `/session`. Month is a tab on `/home`, not its own route. Live workout is `/session`.
+Routes: `/`, `/home`, `/starters`, `/import`, `/new-plan`, `/plan`, `/day`, `/edit-day`, `/edit-section`, `/session`, `/day-log`, `/session-log`. Month is a tab on `/home`. Live workout is `/session`. Plan and session arguments are **uuids**, not Isar row ids.
 
 ---
 
 ## Step 5 — Implementation slices
 
-Build in this order. Each slice should be runnable. Do not start a later slice until the earlier one stores and shows real data.
+Slices **1–9 are in the running app** (Welcome, import/create, plan/day editors, start/commons/conflict, live logger + 1–5, Month). Slice **10** (harden) is largely in: resume after back, one in-progress session, invalid JSON error, analyze/CI, widget tests. Remaining product gaps:
 
-1. **Isar bootstrap + new models**  
-   Schemas, `IsarService` in `main`, codegen. No UI change except the app still launches.
+- Auto-start rest, target weight, accounts, suggested next load, reorder/duplicate days
+- HTTP sync only when `API_BASE_URL` is set
 
-2. **Empty home + welcome fork**  
-   If no plans → Welcome with **Start with a beginner plan** / Import / Create. If plans exist → Plans home list (empty actions still visible). Remove hardcoded `/plan` demo as the launch route.
+Historical build order (already shipped):
 
-3. **JSON import**  
-   File picker, parse, preview, save `WorkoutPlan`. Ship a valid sample (fix `assets/json/plan.json`). Open Plan preview from the saved plan.
-
-4. **Plan preview + day preview from Isar**  
-   Wire existing day cards and block list to `WorkoutPlan` / `PlanDay` (map duration vs reps in the summary row).
-
-5. **Create / edit plan**  
-   Title form creates the plan and opens Plan preview (`add_plan_page.dart`). Add/delete days and rename/delete the plan on Plan preview. Day editor + block dialog already exist; add a common-section editor that reuses them. Save updates `updatedAt`.
-
-6. **Start session**  
-   Skip the sheet when there are no common sections; otherwise switches default **off**. Copy `ExerciseLog`s (day blocks, then enabled commons). Create `inProgress`. Continue banner on the home shell. Same-day resume vs abandon-and-start dialog.
-
-7. **Live logger**  
-   Active exercise, log set (weight+reps or duration timer), rest stopwatch, persist each set. Superset **alternates** sets (A1, B1, A2, …) with both lines visible. Copy: “Log what you did on this set.” Reps are prefilled from the prescription; weight may be empty (bodyweight).
-
-8. **Per-exercise 1–5**  
-   After the block’s prescribed sets, show inline 1–5 on each unrated log. Extra sets allowed until that log is rated. All logs rated → `completed`. End → Finish (`completed`, partial OK) or Discard (`abandoned`).
-
-9. **Month overview**  
-   Calendar + day session log + per-exercise primary metric and delta using `progress_service.dart`.
-
-10. **Harden**  
-    Resume after kill, one in-progress session rule, invalid JSON error, analyze/lints, replace counter test with a shallow widget test that does not need a device file picker.
+1. **Isar bootstrap + new models**
+2. **Empty home + welcome fork**
+3. **JSON import**
+4. **Plan preview + day preview from Isar**
+5. **Create / edit plan** (rename, add/delete day, delete-plan overflow, common-section editor).
+6. **Start session**
+7. **Live logger**
+8. **Per-exercise 1–5** (End also offers Keep going)
+9. **Month overview**
+10. **Harden**
 
 ### Workout-first additions (locked with slices 6–8)
 
 The first useful session should not require JSON or a blank plan editor.
 
-- **Beginner defaults.** Bundled programs in `assets/json/beginner-full-body.json` (3 days + abs/mobility) and `beginner-two-day.json` (A/B, no commons). Welcome’s primary button opens `/starters`. One tap writes a real `WorkoutPlan` (`PlanSource.imported`) and lands on home. Installing the same title twice reuses the stored plan.
+- **Beginner defaults.** Bundled programs in `assets/json/beginner-full-body.json` (3 days + abs/mobility) and `beginner-two-day.json` (A/B, no commons). Welcome’s primary button opens `/starters`. Plans home also opens `/starters` via **Beginner** when the list is not empty (empty home uses **Start with a beginner plan**). One tap writes a real `WorkoutPlan` (`PlanSource.imported`) and lands on home. Installing the same title twice reuses the stored plan.
 - **Today card.** Home recommends the next day on the newest startable plan. No history → day 1. After a completed session → the next startable day, wrapping around. If they already completed a session **today**, the card is “Next up” for the following day instead of repeating the same one. The prompt names the first exercise and asks them to log what they did.
 - **Start from Today.** Same start flow as day preview (commons sheet, in-progress conflict, live logger). No need to open the plan first.
-
-Still later: slice 9 month overview, slice 10 harden. Photos, cloud, auto rest, and target weight stay later.
