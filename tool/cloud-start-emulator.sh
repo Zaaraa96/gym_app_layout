@@ -34,6 +34,7 @@ wait_for_boot() {
     if [[ "$booted" == "1" ]]; then
       echo "Emulator booted."
       adb devices
+      prepare_avd_for_patrol
       return 0
     fi
     sleep 2
@@ -41,6 +42,17 @@ wait_for_boot() {
   echo "Emulator did not reach boot_completed in ${BOOT_TIMEOUT_SEC}s. Last log lines:" >&2
   tail -n 50 "$LOG" >&2 || true
   return 1
+}
+
+prepare_avd_for_patrol() {
+  adb shell locksettings set-disabled true >/dev/null 2>&1 || true
+  adb shell settings put system screen_off_timeout 2147483647 >/dev/null 2>&1 || true
+  adb shell svc power stayon true >/dev/null 2>&1 || true
+  adb shell settings put global window_animation_scale 0 >/dev/null 2>&1 || true
+  adb shell settings put global transition_animation_scale 0 >/dev/null 2>&1 || true
+  adb shell settings put global animator_duration_scale 0 >/dev/null 2>&1 || true
+  adb shell wm dismiss-keyguard >/dev/null 2>&1 || true
+  adb shell input keyevent KEYCODE_WAKEUP >/dev/null 2>&1 || true
 }
 
 if adb devices | awk 'NR>1 && $2=="device" { found=1 } END { exit found ? 0 : 1 }'; then
