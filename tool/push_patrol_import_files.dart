@@ -12,7 +12,7 @@ import 'dart:io';
 Future<void> main(List<String> args) async {
   if (args.contains('-h') || args.contains('--help')) {
     stdout.writeln(
-      'Push plan.json and invalid-plan.json to the device Downloads folder.\n'
+      'Push valid-plan.json and broken.json to the device Downloads folder.\n'
       '\n'
       'Usage (repo root):\n'
       '  dart run tool/push_patrol_import_files.dart\n'
@@ -68,15 +68,26 @@ Future<void> main(List<String> args) async {
     '/data/local/tmp',
   ], silent: true);
 
+  // Drop the old overlapping names (`plan.json` is a suffix of
+  // `invalid-plan.json`, which DocumentsUI can wrap onto its own line).
+  for (final stale in ['plan.json', 'invalid-plan.json']) {
+    await adb(
+      adbPath,
+      ['shell', 'rm', '-f', '/sdcard/Download/$stale', '/storage/emulated/0/Download/$stale', '/data/local/tmp/$stale'],
+      ignoreFailure: true,
+      silent: true,
+    );
+  }
+
   await copyFixture(
     adbPath,
     File('${root.path}/assets/json/plan.json'),
-    'plan.json',
+    'valid-plan.json',
   );
   await copyFixture(
     adbPath,
     File('${root.path}/tool/fixtures/invalid-plan.json'),
-    'invalid-plan.json',
+    'broken.json',
   );
 
   // API 29+ ignores MEDIA_SCANNER_SCAN_FILE for many providers. Mount scan
@@ -96,15 +107,15 @@ Future<void> main(List<String> args) async {
     silent: true,
   );
 
-  stdout.writeln('Pushed plan.json and invalid-plan.json to device Downloads');
+  stdout.writeln('Pushed valid-plan.json and broken.json to device Downloads');
   await adb(adbPath, [
     'shell',
     'ls',
     '-l',
     '/sdcard/Download',
     '/storage/emulated/0/Download',
-    '/data/local/tmp/plan.json',
-    '/data/local/tmp/invalid-plan.json',
+    '/data/local/tmp/valid-plan.json',
+    '/data/local/tmp/broken.json',
   ], ignoreFailure: true);
 }
 

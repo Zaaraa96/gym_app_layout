@@ -12,11 +12,11 @@ void main() {
         'Import a plan',
         settle: SettlePolicy.noSettle,
       );
-      await gym.pickJsonFromDownloads('invalid-plan.json');
+      await gym.pickJsonFromDownloads('broken.json');
       await gym.expectVisible(RegExp('not valid JSON'));
 
       await gym.tapText('Import a plan', settle: SettlePolicy.noSettle);
-      await gym.pickJsonFromDownloads('plan.json');
+      await gym.pickJsonFromDownloads('valid-plan.json');
       await gym.expectVisible('Import preview');
       expect($('plan 1'), findsOneWidget);
       await gym.tapText('Save plan');

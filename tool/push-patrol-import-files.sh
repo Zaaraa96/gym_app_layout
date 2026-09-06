@@ -51,8 +51,8 @@ copy_fixture() {
     -d "file:///sdcard/Download/$name" >/dev/null || true
 }
 
-copy_fixture "$ROOT/assets/json/plan.json" plan.json
-copy_fixture "$ROOT/tool/fixtures/invalid-plan.json" invalid-plan.json
+copy_fixture "$ROOT/assets/json/plan.json" valid-plan.json
+copy_fixture "$ROOT/tool/fixtures/invalid-plan.json" broken.json
 
-echo "Pushed plan.json and invalid-plan.json to device Downloads"
+echo "Pushed valid-plan.json and broken.json to device Downloads"
 adb shell ls -l /sdcard/Download /storage/emulated/0/Download /data/local/tmp/*.json 2>/dev/null || true

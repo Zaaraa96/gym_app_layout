@@ -17,4 +17,10 @@ void main() {
     expect(nativeFileLabelMatches('plan.json\nJSON', 'plan.json'), isTrue);
     expect(nativeFileLabelMatches('plan.json.bak', 'plan.json'), isFalse);
   });
+
+  test('exact match ignores a wrapped suffix line', () {
+    expect(nativeFileLabelIsExact('plan.json', 'plan.json'), isTrue);
+    expect(nativeFileLabelIsExact('invalid-plan.json', 'plan.json'), isFalse);
+    expect(nativeFileLabelIsExact('plan.json 1 KB', 'plan.json'), isFalse);
+  });
 }

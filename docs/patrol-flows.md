@@ -24,7 +24,7 @@ shared Isar state.
 | `smoke_patrol_ready_test.dart` | Patrol + AVD only (no gym screens) |
 | `flow_1_2a_welcome_and_beginner_test.dart` | §1 Welcome, §2a beginner full body, same-title reuse, delete plan |
 | `flow_2b_create_from_scratch_test.dart` | §2b create; §5d empty start snackbar; discard |
-| `flow_2c_import_json_test.dart` | §2c native picker (invalid then `plan.json`) |
+| `flow_2c_import_json_test.dart` | §2c native picker (`broken.json` then `valid-plan.json`) |
 | `flow_3_7_home_to_month_test.dart` | §3–7 on full body: home, day, commons, live, 6c/6d, snapshot edit before finish, Month |
 | `flow_8_first_week_loop_test.dart` | §8 happy path, own reset |
 | `flow_9_6_beginner_two_day_test.dart` | §2a other starter (Beginner 2-day) |

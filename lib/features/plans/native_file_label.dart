@@ -12,3 +12,7 @@ bool nativeFileLabelMatches(String? label, String fileName) {
   final next = String.fromCharCode(text.codeUnitAt(fileName.length));
   return !RegExp(r'[\w.-]').hasMatch(next);
 }
+
+/// True only when the accessibility text is exactly [fileName].
+bool nativeFileLabelIsExact(String? label, String fileName) =>
+    label != null && label.trim() == fileName;
