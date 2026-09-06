@@ -40,6 +40,10 @@ class GymApp {
 
   final PatrolIntegrationTester $;
 
+  /// Import preview renders the picked file name, so the app's own semantics
+  /// tree matches the picker's row label. Package-scope every native lookup.
+  static const _appPackage = 'com.zahra.gym_app';
+
   static const fullBodyTitle = 'Beginner full body';
   static const twoDayTitle = 'Beginner 2-day';
   static const day1Title = 'Day 1 — Squat and push';
@@ -513,15 +517,17 @@ class GymApp {
   }
 
   bool _treeHasFileIn(List<AndroidNativeView> roots, String fileName) {
-    bool walk(AndroidNativeView view) {
+    bool walk(AndroidNativeView view, String? owner) {
+      final package = view.applicationPackage ?? owner;
+      if (package == _appPackage) return false;
       if (nativeFileLabelMatches(view.text, fileName) ||
           nativeFileLabelMatches(view.contentDescription, fileName)) {
         return true;
       }
-      return view.children.any(walk);
+      return view.children.any((child) => walk(child, package));
     }
 
-    return roots.any(walk);
+    return roots.any((root) => walk(root, null));
   }
 
   List<AndroidNativeView> _exactLabels(
@@ -529,18 +535,20 @@ class GymApp {
     String fileName,
   ) {
     final labels = <AndroidNativeView>[];
-    void collect(AndroidNativeView view) {
+    void collect(AndroidNativeView view, String? owner) {
+      final package = view.applicationPackage ?? owner;
+      if (package == _appPackage) return;
       if (nativeFileLabelIsExact(view.text, fileName) ||
           nativeFileLabelIsExact(view.contentDescription, fileName)) {
         labels.add(view);
       }
       for (final child in view.children) {
-        collect(child);
+        collect(child, package);
       }
     }
 
     for (final root in tree.roots) {
-      collect(root);
+      collect(root, null);
     }
     labels.sort((a, b) => a.visibleCenter.y.compareTo(b.visibleCenter.y));
     return labels;
