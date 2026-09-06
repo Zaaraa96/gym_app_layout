@@ -15,7 +15,7 @@ Read these before launching, in this order:
 2. `docs/product-plan.md` — expected product, UX, and start/live/month rules
 3. This skill’s [report-template.md](report-template.md) — required output shape
 
-`README.md` is stale. Do not treat it as current behavior.
+`README.md` tracks the running app at a high level. For screen copy and the step list, still prefer `docs/user-journey.md` and `docs/product-plan.md`.
 
 `docs/steps-1-4-review.md` is a historical review. Do not skip a journey step because that file says a later slice is unfinished. Judge the running app against the journey and the product plan.
 
@@ -62,8 +62,8 @@ Do not batch unrelated journeys into one video. §8 (full first-week loop) is th
 | Video | Data setup |
 | --- | --- |
 | 1 Welcome | `reset-isar.sh`, cold launch |
-| 2a Beginner template | still first-run; tap **Start with a beginner plan** |
-| 3–7 Home, plan/day, start, live, month | keep the beginner plan; do not reset |
+| 2a Beginner template | still first-run; tap **Start with a beginner plan**. Later, from populated Plans tap **Beginner** |
+| 3–7 Home, plan/day, start, live, month | keep the beginner plan; do not reset. On plan preview, hit overflow **Delete plan** once (confirm keeps Month logs) |
 | 8 First-week loop | can be the same install; one continuous recording |
 | 2b Create from scratch | reset, then Welcome **Create a plan** (also hit **New** on Plans in a later pass if 2b already used Welcome) |
 | 2c Import JSON | from Plans **Import**, or reset and Welcome **Import a plan** |
@@ -75,10 +75,11 @@ Hunt regressions on every screen that shares state with the step you just ran (P
 Match `docs/user-journey.md` plus the locked UX in `docs/product-plan.md` Step 3. Misses that are easy to skip:
 
 - Welcome only when plan count is 0; three actions; later launches go to Plans
-- Same beginner title twice reuses the stored plan
+- Same beginner title twice reuses the stored plan; populated Plans shows **Beginner** (empty home shows **Start with a beginner plan**)
 - Blank created plan: empty Day 1; Start disabled until a block exists **or** a common section exists
 - Invalid JSON: readable error; valid `assets/json/plan.json` preview then save
 - Bottom nav on the home shell only
+- Plan overflow **Delete plan**; confirm copy says logged workouts stay on Month; sessions remain
 - Commons sheet default **off**; in-progress conflict: Resume / Abandon and start / Cancel
 - Live: session is a snapshot; supersets alternate; rest is manual and not saved; rate 1–5 after prescribed sets; all rated → complete; Finish vs Discard
 - Month: dots ignore abandoned; trends per `exerciseTitleKey`

@@ -1,8 +1,6 @@
 # Gym App
 
-Flutter app for browsing a gym workout plan: days, exercise groups (supersets), reps, and rounds. It is a UI-first prototype with a hardcoded demo plan, GetX navigation, and an unfinished Isar persistence path for creating plans.
-
-**Intended product** (not built yet): import or create a plan, log a live workout offline, rate each exercise 1–5, and see a monthly progress view. The locked plan is [docs/product-plan.md](docs/product-plan.md).
+Offline workout app: get a plan in (beginner template, JSON import, or create), log a live session, rate each exercise 1–5, and see a month calendar with per-exercise trends. One local user. Data lives in Isar. The locked product is [docs/product-plan.md](docs/product-plan.md). What a person actually taps is [docs/user-journey.md](docs/user-journey.md).
 
 Package name: `gym_app`  
 Application ID: `com.zahra.gym_app`
@@ -11,84 +9,64 @@ Application ID: `com.zahra.gym_app`
 
 | Capability | Status |
 |---|---|
-| Welcome screen with Lottie animation | Working (route exists; app currently starts on the plan) |
-| View a 4-day demo plan with photo cards | Working (hardcoded in `main.dart`) |
-| Open a day and see exercise groups | Working |
-| Open one exercise group (rounds + reps) | Working |
-| Pick a photo/video for an exercise and preview it | Working locally; not saved on the plan |
-| Create a new plan (title/summary form) | Form UI only; save writes a hardcoded `"test"` plan to Isar |
-| Load plans from JSON (`assets/json/plan.json`) | Data file exists; not wired into the UI |
-| Persist the full nested plan graph | Model is Isar-ready; no single shared database instance |
-
-The launch route is `/plan`, so you land on the demo plan immediately. Use `/` for the welcome screen.
+| Welcome when no plans exist | Working. Later launches go to Plans |
+| Beginner templates | Working. Welcome, empty home, or **Beginner** on populated Plans (`Beginner full body`, `Beginner 2-day`) |
+| Import JSON (`name` / `basic-plan` / `common-plan`) | Working. Invalid JSON shows a readable error |
+| Create a plan | Working. Empty Day 1; Start stays disabled until a block or common section exists |
+| Plan / day preview and editors | Working. Rename, add/delete days, delete-plan overflow (logged sessions stay on Month), common sections |
+| Start / resume a day | Working. Commons default off. In-progress conflict: Resume / Abandon and start / Cancel |
+| Live logger | Working. Snapshot session, alternating supersets, rest stopwatch, duration timer, inline 1–5 |
+| Finish / Discard | Working. Partial finish is `completed`. Discard is hidden on Month |
+| Month tab | Working. Dots, session log, per-exercise trends |
+| HTTP as the UI source of truth | No. Optional sync only if compiled with `API_BASE_URL` |
 
 ## User flow
 
 ```
-Welcome (/)  →  Plan (/plan)  →  Day (/day)  →  Exercise (/exercise)
-                     ↑
-              New plan (/new-plan)  [not linked from the current screens]
+Welcome (/)  →  Beginner plans / Import preview / New plan
+                     ↓
+              Plans home (/home)  —  Plans | Month
+                     ↓
+              Plan → Day preview → Live workout (/session)
+                     ↓
+              Month calendar → session log
 ```
 
-1. **Welcome** — Lottie gym animation, short copy, “Let’s get started!” → `/plan`.
-2. **Plan** — Collapsing app bar + a card per day. Backgrounds cycle `assets/image/0.png`–`2.png`. Arrow opens that day.
-3. **Day** — List of `SingleExerciseWithRound` rows (SVG, exercise names × reps, round badge). Tap a row → `/exercise`.
-4. **Exercise** — Same summary row plus an image picker (`ImagePicker.pickMedia`). Chosen media is copied into the app documents directory and shown as a 100×100 preview. It is not attached to the model.
-5. **New plan** — Background `assets/image/new.png`, title/summary fields, Save. Save opens Isar, inserts `SinglePlanModel(title: 'test', dayPlans: [])`, and prints the stored title. Field values are ignored.
-
-## Data model
-
-Defined in `lib/features/single_plan/single_plan_model.dart` (Isar collection + embedded types; generated code in `single_plan_model.g.dart`).
-
-```
-SinglePlanModel          // @collection, auto-increment id
-  title
-  dayPlans[]
-    SingleDayPlanModel   // @embedded
-      title, summary
-      exercises[]
-        SingleExerciseWithRound   // @embedded  (a round/superset block)
-          roundNum
-          svgPath                 // e.g. assets/image/upper-body.svg
-          exerciseWithRepetitionModels[]
-            ExerciseWithRepetitionModel   // @embedded
-              title, repetition
-```
-
-`assets/json/plan.json` is a richer draft schema (supersets vs singles, `sets`/`times`/`duration`, “basic-plan” vs “common-plan” such as abs and corrective work). That shape is **not** mapped to the Dart model yet.
+1. **Welcome** — Lottie gym animation, three actions: Start with a beginner plan, Import a plan, Create a plan. Skipped once any plan exists.
+2. **Plans** — Continue banner if a session is live, Today card (next startable day on the newest startable plan), plan list, Import | New | Beginner (Beginner only when a plan exists).
+3. **Plan / day** — Photo day cards, common-section chips, read-only day preview, editor, Start workout.
+4. **Live** — Log weight/reps or duration, rest, rate 1–5, End → Finish, Discard, or Keep going.
+5. **Month** — Calendar dots, empty-month / empty-day copy, expandable trends.
 
 ## Architecture
 
 - **UI:** Flutter Material 3, seed color `Colors.deepPurple`.
-- **Navigation:** GetX `GetMaterialApp` named routes. Day and exercise screens receive models via `Get.arguments`.
-- **State:** GetX stubs exist (`SinglePlanLogic` / `SinglePlanState` / unused `view.dart`) but the live plan page is a `StatelessWidget` that takes the plan as a constructor argument.
-- **Local DB:** Isar 3. Opened ad hoc on the add-plan screen; not initialized in `main()`.
-- **Shared widgets:** `AppScaffold` (horizontal padding), `AppText` + shared text styles, `AppElevatedButton`, `AppTextField`.
+- **Navigation:** GetX named routes. Plan and session ids on routes are **uuids**.
+- **Domain:** `lib/domain` — models, repository interfaces, start/progress rules. No Isar imports.
+- **Data:** Isar 3 adapters, JSON importer, in-memory stand-ins for web/tests, optional HTTP remotes.
+- **Composition:** `lib/app/app_bootstrap.dart` opens storage and picks Welcome vs Plans. `kIsWeb` stays here, not in pages.
 
 ```
 lib/
-  main.dart                          # routes + hardcoded demo plan
-  common/
-    app_theme.dart
-    list_of_plan.dart                # unused (commented)
-    widgets/
+  main.dart
+  app/           # boot + GetX page table
+  domain/        # Isar-free
+  data/          # Isar, importer, memory, optional sync
+  common/        # theme, widgets, route names
   features/
-    welcome_page.dart
-    add_plan_page.dart
-    single_day_plan_page.dart
-    single_exercise_page.dart
-    single_exercise_summery_item.dart
-    single_plan/
-      single_plan_page.dart          # used
-      single_plan_model.dart
-      view.dart / logic.dart / state.dart   # GetX stubs, unused
+    welcome/
+    plans/
+    workout/
+    progress/
 ```
 
 ## Platforms
 
-Configured as a Flutter app with **Android**, **iOS**, **web**, and **Linux desktop**. Camera/gallery usage on the exercise screen needs the usual `image_picker` platform permissions if you ship it (not yet declared in `AndroidManifest.xml` / iOS `Info.plist`).
+Configured for **Android**, **iOS**, **web**, and **Linux desktop**.
 
-> **Web is not a runnable target.** The app opens Isar 3 at startup, and Isar 3 relies on `dart:ffi` plus 64-bit integer literals that `dart2js` cannot compile. Use a native target (Android, iOS, or Linux desktop) to run the app.
+> **Web is not a v1 Isar target.** Native builds open Isar 3 (`dart:ffi`). Web uses in-memory repositories so the UI can still compile. Use Android, iOS, or Linux desktop for real persistence.
+
+Linux import uses `file_picker`, which expects `zenity`, `qarma`, or `kdialog`.
 
 ## Run
 
@@ -101,20 +79,19 @@ flutter run
 
 ### Linux desktop / headless environments
 
-On a headless Linux machine (e.g. the Cursor Cloud Agent dev environment), run the
-native Linux desktop target:
-
 ```bash
 flutter run -d linux
 ```
 
-Linux desktop needs the GTK toolchain (`clang`, `cmake`, `ninja-build`, `pkg-config`,
-`libgtk-3-dev`, `liblzma-dev`, a matching `libstdc++-*-dev`) and `xdg-user-dirs` so
-`path_provider` can resolve the documents directory at runtime. The reproducible setup
-for those dependencies and the pinned Flutter SDK lives in [`.cursor/Dockerfile`](.cursor/Dockerfile)
-and [`.cursor/environment.json`](.cursor/environment.json).
+Linux desktop needs the GTK toolchain (`clang`, `cmake`, `ninja-build`, `pkg-config`, `libgtk-3-dev`, `liblzma-dev`, a matching `libstdc++-*-dev`) and `xdg-user-dirs` so `path_provider` can resolve the documents directory. The reproducible setup lives in [`.cursor/Dockerfile`](.cursor/Dockerfile) and [`.cursor/environment.json`](.cursor/environment.json).
 
-Regenerate Isar code after changing the model:
+First-run Welcome needs an empty local DB. Stop the app (by PID), then:
+
+```bash
+.cursor/skills/walk-docs-flows/scripts/reset-isar.sh
+```
+
+Regenerate Isar code after changing `lib/data/isar` models:
 
 ```bash
 dart run build_runner build --delete-conflicting-outputs
@@ -124,21 +101,18 @@ dart run build_runner build --delete-conflicting-outputs
 
 | Package | Role |
 |---|---|
-| `get` | Routing and (planned) controllers |
-| `isar` / `isar_flutter_libs` | Local persistence |
+| `get` | Routing and live-workout controller |
+| `isar` / `isar_flutter_libs` | Local persistence (native) |
 | `isar_generator` + `build_runner` | Isar codegen |
 | `lottie` | Welcome animation (`assets/json/gym.json`) |
 | `flutter_svg` | Exercise-group icons |
-| `image_picker` | Media on the exercise screen |
+| `file_picker` | JSON import |
+| `image_picker` | Optional gallery media in the day editor |
 | `path_provider` | App documents directory |
+| `http` | Optional remotes when `API_BASE_URL` is set |
 
-**Isar is kept on 3.1.x.** The official 3.x line is the last stable API this model uses. Jumping to Isar 4 (or a community fork) would need a migration, not a version bump.
+**Isar is kept on 3.1.x.** Jumping to Isar 4 would need a migration, not a version bump.
 
 ## Known gaps
 
-- Demo plan is constructed in `MyApp`, not loaded from storage or JSON.
-- Add-plan form does not bind text fields or navigate after save.
-- Duplicate `SinglePlanPage` class in unused `view.dart`.
-- Default counter widget test in `test/widget_test.dart` does not match the app.
-- Typo in day summaries: `ٖcorrective`.
-- TODO in `main.dart`: “add getX for storage”.
+- Auto-start rest, target weight, accounts, suggested next load, reorder/duplicate days are out of v1.

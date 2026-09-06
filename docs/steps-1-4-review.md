@@ -1,6 +1,8 @@
 # Review: product-plan Steps 1–4
 
-Reviewed against `docs/product-plan.md` (source of truth for Steps 1–5) and the current `main` implementation. Tests were run with Flutter 3.44.9 / Dart 3.12.2. Failures in `plan_editor_test.dart` were fixed; Start-workout enablement on day preview was aligned with Step 3.
+**Historical.** Written when slices 5–9 were still later work. The running app now includes create/edit, start/commons/conflict, live logger, 1–5, and Month. For current screens, use [user-journey.md](user-journey.md) and [product-plan.md](product-plan.md). Do not skip a journey step because this file says a later slice is unfinished.
+
+Reviewed against `docs/product-plan.md` (source of truth for Steps 1–5) and the `main` implementation at the time. Tests were run with Flutter 3.44.9 / Dart 3.12.2. Failures in `plan_editor_test.dart` were fixed; Start-workout enablement on day preview was aligned with Step 3.
 
 Slice numbers below are from Step 5. Steps 1–4 are product, data, UX, and architecture. Slices 1–4 are the first build slices that should already be runnable.
 
@@ -14,7 +16,7 @@ Slice numbers below are from Step 5. Steps 1–4 are product, data, UX, and arch
 | Step 4 — Architecture | Matches. Layout, bootstrap, repositories, importer, live controller, progress service, `file_picker`. Live route is named but not registered yet (slice 7). |
 | Tests after this review | **47 passed** (`flutter test`, Flutter 3.44.9). |
 
-`README.md` still describes the old hardcoded demo (`SinglePlanModel`, launch at `/plan`, counter `widget_test.dart`). That file is stale; the product plan and `lib/` are the real picture.
+At review time, `README.md` still described the old hardcoded demo (`SinglePlanModel`, launch at `/plan`, counter `widget_test.dart`). That README has since been rewritten; this file has not.
 
 ---
 
@@ -72,7 +74,7 @@ Import JSON: `assets/json/plan.json` is valid. Trailing-comma files throw `PlanI
 
 | Gap | Slice |
 | --- | --- |
-| Delete plan overflow (sessions stay) | 5 |
+| Delete plan overflow (sessions stay) | 5 (shipped later; overflow **Delete plan**, confirm keeps Month logs) |
 | Common-section chips / Add section / section editor | 5 |
 | Continue workout banner | 6 |
 | Start sheet (commons default off) | 6 |
