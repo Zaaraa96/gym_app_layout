@@ -1,5 +1,10 @@
 #!/usr/bin/env bash
 # Copy import fixtures onto the connected Android device for flow 2c.
+#
+# Windows PowerShell/CMD cannot run this file — Windows treats .sh as a
+# document and asks which app should open it. From the repo root use:
+#   dart run tool/push_patrol_import_files.dart
+#   .\tool\push-patrol-import-files.ps1
 set -euo pipefail
 
 # shellcheck source=android-env.sh
@@ -9,7 +14,21 @@ if [[ -f "$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)/android-env.sh" ]]; then
 fi
 
 ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
+cd "$ROOT"
+
+if command -v dart >/dev/null 2>&1; then
+  exec dart run tool/push_patrol_import_files.dart "$@"
+fi
+
+echo "dart not found; using adb directly. Prefer: dart run tool/push_patrol_import_files.dart" >&2
+
 adb start-server >/dev/null
+if ! adb devices | awk 'NR>1 && $2=="device" {found=1} END {exit !found}'; then
+  echo "No Android device or emulator is attached." >&2
+  echo "Start the AVD first, then run this again." >&2
+  echo "Check with: adb devices -l" >&2
+  exit 1
+fi
 adb wait-for-device
 
 adb root >/dev/null 2>&1 || true

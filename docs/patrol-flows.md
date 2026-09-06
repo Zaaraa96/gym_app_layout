@@ -33,6 +33,10 @@ Shared robot: `support/gym_app.dart`.
 
 ## Run
 
+Pushing import fixtures from Windows PowerShell must use `dart run` (or the
+`.ps1` wrapper). `./tool/push-patrol-import-files.sh` is a Unix script;
+PowerShell treats `.sh` as a document and asks which app should open it.
+
 ```bash
 # Smoke (no gym UI)
 patrol test -t integration_test/flows/smoke_patrol_ready_test.dart
@@ -44,7 +48,8 @@ patrol test -t integration_test/flows/flow_1_2a_welcome_and_beginner_test.dart
 patrol test -t integration_test/flows/flow_2b_create_from_scratch_test.dart
 
 # Import (push fixtures first)
-./tool/push-patrol-import-files.sh
+# Windows PowerShell cannot run .sh files (it asks which app should open them).
+dart run tool/push_patrol_import_files.dart
 patrol test -t integration_test/flows/flow_2c_import_json_test.dart
 
 # Home → live → month (includes superset + timed plank on Day 1)

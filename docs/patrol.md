@@ -33,7 +33,7 @@ patrol test -d emulator-5554 -t integration_test/flows/smoke_patrol_ready_test.d
 
 # Later flow files — see docs/patrol-flows.md
 # patrol test -t integration_test/flows/flow_1_2a_welcome_and_beginner_test.dart
-# ./tool/push-patrol-import-files.sh
+# dart run tool/push_patrol_import_files.dart
 # patrol test -t integration_test/flows/flow_2c_import_json_test.dart
 ```
 
@@ -45,11 +45,16 @@ Never `pumpAndSettle` on Welcome: the Lottie animation does not stop.
 
 ## Device data
 
-Import tests need JSON on the emulator:
+Import tests need JSON on the emulator. From the repo root:
 
 ```bash
-adb push assets/json/plan.json /sdcard/Download/plan.json
+dart run tool/push_patrol_import_files.dart
 ```
+
+Windows PowerShell cannot run `./tool/push-patrol-import-files.sh` — it treats
+`.sh` as a document and asks which app should open it. Use the `dart run`
+command above, or `.\tool\push-patrol-import-files.ps1`. Git Bash and macOS /
+Linux can also run `bash tool/push-patrol-import-files.sh`.
 
 Force-stop (process death):
 
