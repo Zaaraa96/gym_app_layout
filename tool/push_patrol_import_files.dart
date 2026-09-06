@@ -79,6 +79,23 @@ Future<void> main(List<String> args) async {
     'invalid-plan.json',
   );
 
+  // API 29+ ignores MEDIA_SCANNER_SCAN_FILE for many providers. Mount scan
+  // makes Downloads list the files in DocumentsUI on the AVD.
+  await adb(
+    adbPath,
+    [
+      'shell',
+      'am',
+      'broadcast',
+      '-a',
+      'android.intent.action.MEDIA_MOUNTED',
+      '-d',
+      'file:///sdcard',
+    ],
+    ignoreFailure: true,
+    silent: true,
+  );
+
   stdout.writeln('Pushed plan.json and invalid-plan.json to device Downloads');
   await adb(adbPath, [
     'shell',
