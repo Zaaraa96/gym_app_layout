@@ -371,35 +371,43 @@ class GymApp {
     }
   }
 
-  /// DocumentsUI / SAF: wait for the exact filename, tap that row, then wait
-  /// until the picker closes. Do not use a substring check — `plan.json` is
-  /// contained in `invalid-plan.json`.
+  /// DocumentsUI / SAF: the filename TextView is visible and "tappable" but
+  /// not the click target. ACTION_OPEN_DOCUMENT only finishes when the list
+  /// row (or the icon to the left of the title) is clicked. Success is the
+  /// picker closing, not UiAutomator reporting a tap.
   Future<void> pickJsonFromDownloads(String fileName) async {
     await dismissPermissionIfAny();
-    await nativeTapText('Allow');
-    await Future<void>.delayed(const Duration(milliseconds: 800));
-    if (!await _waitForNativeFile(fileName)) {
-      await nativeTapText('Show roots');
-      if (!await nativeTapText('Downloads')) {
-        await nativeTapText('Download');
+    await nativeTapText('Allow', timeout: const Duration(milliseconds: 800));
+    await Future<void>.delayed(const Duration(milliseconds: 500));
+    var found = await _waitForNativeFile(fileName);
+    if (!found) {
+      await nativeTapText(
+        'Show roots',
+        timeout: const Duration(milliseconds: 800),
+      );
+      if (!await nativeTapText(
+        'Downloads',
+        timeout: const Duration(milliseconds: 800),
+      )) {
+        await nativeTapText(
+          'Download',
+          timeout: const Duration(milliseconds: 800),
+        );
       }
+      found = await _waitForNativeFile(fileName);
     }
-    if (!await _waitForNativeFile(fileName)) {
+    if (!found) {
       fail(
         'Native picker did not show $fileName in Downloads.\n'
         '${await _dumpNativeUi()}',
       );
     }
-    if (!await _tapDocumentsUiFile(fileName)) {
+    if (!await _selectDocumentsUiFile(fileName)) {
       fail(
-        'Could not tap $fileName in the native picker.\n'
-        '${await _dumpNativeUi()}',
+        'Native picker stayed open after tapping $fileName. SAF did not '
+        'return a file.\n${await _dumpNativeUi()}',
       );
     }
-    await nativeTapText('SELECT');
-    await nativeTapText('Select');
-    await nativeTapText('Open');
-    await _waitForNativeFileGone(fileName);
     await pumpQuiet(const Duration(milliseconds: 800));
   }
 
@@ -407,34 +415,87 @@ class GymApp {
     try {
       await $.platform.android.waitUntilVisible(
         AndroidSelector(text: fileName),
-        timeout: const Duration(seconds: 6),
+        timeout: const Duration(seconds: 8),
       );
       return true;
     } catch (_) {}
     final deadline = DateTime.now().add(const Duration(seconds: 5));
     while (DateTime.now().isBefore(deadline)) {
-      try {
-        final tree = await $.platform.android.getNativeViews(null);
-        if (_treeHasFile(tree.roots, fileName)) return true;
-      } catch (_) {}
+      if (await _treeHasFile(fileName)) return true;
       await Future<void>.delayed(const Duration(milliseconds: 300));
     }
-    return false;
+    return await _treeHasFile(fileName);
   }
 
-  Future<void> _waitForNativeFileGone(String fileName) async {
-    final deadline = DateTime.now().add(const Duration(seconds: 12));
-    while (DateTime.now().isBefore(deadline)) {
-      await pumpQuiet(const Duration(milliseconds: 250));
+  Future<bool> _selectDocumentsUiFile(String fileName) async {
+    final attempts = <Future<void> Function()>[
+      () async {
+        final tree = await $.platform.android.getNativeViews(null);
+        final row = _documentsUiRow(tree, fileName);
+        if (row != null) await _tapAtScreen(row, tree);
+      },
+      () async {
+        final tree = await $.platform.android.getNativeViews(null);
+        final label = _documentsUiLabel(tree, fileName);
+        if (label == null) return;
+        final size = _screenSize(tree);
+        // Icon / thumbnail sits to the left of the title in DocumentsUI.
+        await _tapAtScreenPoint(
+          x: (label.visibleBounds.minX - 48) / size.width,
+          y: label.visibleCenter.y / size.height,
+        );
+      },
+      () async {
+        await $.platform.android.tap(
+          AndroidSelector(text: fileName),
+          timeout: const Duration(seconds: 2),
+        );
+      },
+      () async {
+        await $.platform.android.doubleTap(
+          AndroidSelector(text: fileName),
+          timeout: const Duration(seconds: 2),
+        );
+      },
+      () async {
+        await nativeTapText(
+          'SELECT',
+          timeout: const Duration(milliseconds: 600),
+        );
+        await nativeTapText(
+          'Select',
+          timeout: const Duration(milliseconds: 600),
+        );
+        await nativeTapText(
+          'Open',
+          timeout: const Duration(milliseconds: 600),
+        );
+      },
+    ];
+
+    for (var i = 0; i < attempts.length; i++) {
+      if (i > 0 && !await _pickerShows(fileName)) return true;
+      try {
+        await attempts[i]();
+      } catch (_) {}
+      await pumpQuiet(const Duration(milliseconds: 500));
+      if (!await _pickerShows(fileName)) return true;
+    }
+    return !await _pickerShows(fileName);
+  }
+
+  Future<bool> _pickerShows(String fileName) => _treeHasFile(fileName);
+
+  Future<bool> _treeHasFile(String fileName) async {
+    try {
       final tree = await $.platform.android.getNativeViews(null);
-      if (!_treeHasFile(tree.roots, fileName)) return;
-      await nativeTapText('SELECT');
-      await nativeTapText('Select');
-      await nativeTapText('Open');
+      return _treeHasFileIn(tree.roots, fileName);
+    } catch (_) {
+      return false;
     }
   }
 
-  bool _treeHasFile(List<AndroidNativeView> roots, String fileName) {
+  bool _treeHasFileIn(List<AndroidNativeView> roots, String fileName) {
     bool walk(AndroidNativeView view) {
       if (nativeFileLabelMatches(view.text, fileName) ||
           nativeFileLabelMatches(view.contentDescription, fileName)) {
@@ -446,6 +507,115 @@ class GymApp {
     return roots.any(walk);
   }
 
+  AndroidNativeView? _documentsUiLabel(
+    AndroidGetNativeViewsResponse tree,
+    String fileName,
+  ) {
+    final labels = <AndroidNativeView>[];
+    void collect(AndroidNativeView view) {
+      if (nativeFileLabelMatches(view.text, fileName) ||
+          nativeFileLabelMatches(view.contentDescription, fileName)) {
+        labels.add(view);
+      }
+      for (final child in view.children) {
+        collect(child);
+      }
+    }
+
+    for (final root in tree.roots) {
+      collect(root);
+    }
+    if (labels.isEmpty) return null;
+    labels.sort(_byArea);
+    return labels.first;
+  }
+
+  AndroidNativeView? _documentsUiRow(
+    AndroidGetNativeViewsResponse tree,
+    String fileName,
+  ) {
+    final rows = <AndroidNativeView>[];
+    void collect(AndroidNativeView view) {
+      final isRowId = view.resourceName?.endsWith('id/item_root') ?? false;
+      final looksLikeRow = _isListRowSize(view);
+      if ((isRowId || (view.isClickable && looksLikeRow)) &&
+          _subtreeHasExactFile(view, fileName)) {
+        rows.add(view);
+      }
+      for (final child in view.children) {
+        collect(child);
+      }
+    }
+
+    for (final root in tree.roots) {
+      collect(root);
+    }
+    if (rows.isEmpty) return _documentsUiLabel(tree, fileName);
+    final sized = rows.where(_isListRowSize).toList();
+    final pool = sized.isNotEmpty ? sized : rows;
+    pool.sort(_byArea);
+    return pool.first;
+  }
+
+  bool _isListRowSize(AndroidNativeView view) {
+    final width = view.visibleBounds.maxX - view.visibleBounds.minX;
+    final height = view.visibleBounds.maxY - view.visibleBounds.minY;
+    return width >= 200 && height >= 40 && height <= 220;
+  }
+
+  int _byArea(AndroidNativeView a, AndroidNativeView b) {
+    double area(AndroidNativeView view) {
+      final bounds = view.visibleBounds;
+      return (bounds.maxX - bounds.minX) * (bounds.maxY - bounds.minY);
+    }
+
+    return area(a).compareTo(area(b));
+  }
+
+  bool _subtreeHasExactFile(AndroidNativeView view, String fileName) {
+    if (nativeFileLabelMatches(view.text, fileName) ||
+        nativeFileLabelMatches(view.contentDescription, fileName)) {
+      return true;
+    }
+    return view.children.any((child) => _subtreeHasExactFile(child, fileName));
+  }
+
+  ({double width, double height}) _screenSize(
+    AndroidGetNativeViewsResponse tree,
+  ) {
+    var maxX = 0.0;
+    var maxY = 0.0;
+    void walk(AndroidNativeView view) {
+      if (view.visibleBounds.maxX > maxX) maxX = view.visibleBounds.maxX;
+      if (view.visibleBounds.maxY > maxY) maxY = view.visibleBounds.maxY;
+      for (final child in view.children) {
+        walk(child);
+      }
+    }
+
+    for (final root in tree.roots) {
+      walk(root);
+    }
+    return (width: maxX <= 0 ? 1 : maxX, height: maxY <= 0 ? 1 : maxY);
+  }
+
+  Future<void> _tapAtScreen(
+    AndroidNativeView target,
+    AndroidGetNativeViewsResponse tree,
+  ) {
+    final size = _screenSize(tree);
+    return _tapAtScreenPoint(
+      x: target.visibleCenter.x / size.width,
+      y: target.visibleCenter.y / size.height,
+    );
+  }
+
+  Future<void> _tapAtScreenPoint({required double x, required double y}) {
+    return $.platform.android.tapAt(
+      Offset(x.clamp(0.01, 0.99), y.clamp(0.01, 0.99)),
+    );
+  }
+
   Future<String> _dumpNativeUi() async {
     try {
       final tree = await $.platform.android.getNativeViews(null);
@@ -455,7 +625,9 @@ class GymApp {
           '${'  ' * depth}${view.className ?? '?'} '
           'text=${view.text} desc=${view.contentDescription} '
           'res=${view.resourceName} click=${view.isClickable} '
-          'center=${view.visibleCenter.x},${view.visibleCenter.y}',
+          'center=${view.visibleCenter.x},${view.visibleCenter.y} '
+          'bounds=${view.visibleBounds.minX},${view.visibleBounds.minY}-'
+          '${view.visibleBounds.maxX},${view.visibleBounds.maxY}',
         );
         for (final child in view.children) {
           walk(child, depth + 1);
@@ -469,100 +641,5 @@ class GymApp {
     } catch (error) {
       return 'native dump failed: $error';
     }
-  }
-
-  Future<bool> _tapDocumentsUiFile(String fileName) async {
-    try {
-      await $.platform.android.tap(
-        AndroidSelector(text: fileName),
-        timeout: const Duration(seconds: 3),
-      );
-      return true;
-    } catch (_) {}
-
-    try {
-      final tree = await $.platform.android.getNativeViews(null);
-      final labels = <AndroidNativeView>[];
-      final clickable = <AndroidNativeView>[];
-      void collect(AndroidNativeView view) {
-        if (nativeFileLabelMatches(view.text, fileName) ||
-            nativeFileLabelMatches(view.contentDescription, fileName)) {
-          labels.add(view);
-        }
-        if (view.isClickable && _subtreeHasExactFile(view, fileName)) {
-          clickable.add(view);
-        }
-        for (final child in view.children) {
-          collect(child);
-        }
-      }
-
-      for (final root in tree.roots) {
-        collect(root);
-      }
-      final target = _bestTapTarget(labels, clickable);
-      if (target == null) return false;
-      return _tapAtScreen(target, tree);
-    } catch (_) {
-      return false;
-    }
-  }
-
-  bool _subtreeHasExactFile(AndroidNativeView view, String fileName) {
-    if (nativeFileLabelMatches(view.text, fileName) ||
-        nativeFileLabelMatches(view.contentDescription, fileName)) {
-      return true;
-    }
-    return view.children.any((child) => _subtreeHasExactFile(child, fileName));
-  }
-
-  AndroidNativeView? _bestTapTarget(
-    List<AndroidNativeView> labels,
-    List<AndroidNativeView> clickable,
-  ) {
-    double area(AndroidNativeView view) {
-      final bounds = view.visibleBounds;
-      return (bounds.maxX - bounds.minX) * (bounds.maxY - bounds.minY);
-    }
-
-    if (clickable.isNotEmpty) {
-      final rows = clickable.where((view) {
-        final height = view.visibleBounds.maxY - view.visibleBounds.minY;
-        return height >= 24 && height <= 280;
-      }).toList();
-      final pool = rows.isNotEmpty ? rows : clickable;
-      pool.sort((a, b) => area(a).compareTo(area(b)));
-      return pool.first;
-    }
-    if (labels.isEmpty) return null;
-    labels.sort((a, b) => area(a).compareTo(area(b)));
-    return labels.first;
-  }
-
-  Future<bool> _tapAtScreen(
-    AndroidNativeView target,
-    AndroidGetNativeViewsResponse tree,
-  ) async {
-    var maxX = 0.0;
-    var maxY = 0.0;
-    void bounds(AndroidNativeView view) {
-      if (view.visibleBounds.maxX > maxX) maxX = view.visibleBounds.maxX;
-      if (view.visibleBounds.maxY > maxY) maxY = view.visibleBounds.maxY;
-      for (final child in view.children) {
-        bounds(child);
-      }
-    }
-
-    for (final root in tree.roots) {
-      bounds(root);
-    }
-    if (maxX <= 0 || maxY <= 0) return false;
-    await $.platform.android.tapAt(
-      Offset(
-        (target.visibleCenter.x / maxX).clamp(0.01, 0.99),
-        (target.visibleCenter.y / maxY).clamp(0.01, 0.99),
-      ),
-    );
-    return true;
   }
 }
