@@ -214,9 +214,9 @@ class _PlanBuilderPageState extends State<PlanBuilderPage>
     int? index,
   }) async {
     final dayIndex = controller.plan.days.indexWhere((item) => item.dayId == day.dayId);
-    final dayLabel = dayIndex < 0
-        ? day.title
-        : 'Day ${dayIndex + 1} · ${day.title}';
+    final n = dayIndex + 1;
+    final title = day.title.trim();
+    final dayLabel = title.isEmpty || title == 'Day $n' ? 'Day $n' : 'Day $n · $title';
     await showExerciseEditor(
       context,
       existing: existing,
@@ -678,30 +678,39 @@ class _DayStep extends StatelessWidget {
             ),
           )
         else
-          ReorderableListView.builder(
-            shrinkWrap: true,
-            physics: const NeverScrollableScrollPhysics(),
-            itemCount: day.blocks.length,
-            onReorderItem: (oldIndex, newIndex) =>
-                controller.reorderBlocks(day.dayId, oldIndex, newIndex),
-            itemBuilder: (context, index) {
-              final block = day.blocks[index];
-              return _BuilderBlockCard(
-                key: Key('builder-block-${block.blockId}'),
-                block: block,
-                onEdit: () => onAddBlock(
-                  controller,
-                  day,
-                  existing: block,
-                  index: index,
+          Column(
+            children: [
+              for (var index = 0; index < day.blocks.length; index++)
+                _BuilderBlockCard(
+                  key: Key('builder-block-${day.blocks[index].blockId}'),
+                  block: day.blocks[index],
+                  onEdit: () => onAddBlock(
+                    controller,
+                    day,
+                    existing: day.blocks[index],
+                    index: index,
+                  ),
+                  onDelete: () {
+                    final blocks = List<ExerciseBlock>.from(day.blocks)
+                      ..removeAt(index);
+                    controller.setDayBlocks(day.dayId, blocks);
+                  },
+                  onMoveUp: index == 0
+                      ? null
+                      : () => controller.reorderBlocks(
+                            day.dayId,
+                            index,
+                            index - 1,
+                          ),
+                  onMoveDown: index == day.blocks.length - 1
+                      ? null
+                      : () => controller.reorderBlocks(
+                            day.dayId,
+                            index,
+                            index + 1,
+                          ),
                 ),
-                onDelete: () {
-                  final blocks = List<ExerciseBlock>.from(day.blocks)
-                    ..removeAt(index);
-                  controller.setDayBlocks(day.dayId, blocks);
-                },
-              );
-            },
+            ],
           ),
         const SizedBox(height: 8),
         OutlinedButton.icon(
@@ -743,11 +752,15 @@ class _BuilderBlockCard extends StatelessWidget {
     required this.block,
     required this.onEdit,
     required this.onDelete,
+    this.onMoveUp,
+    this.onMoveDown,
   });
 
   final ExerciseBlock block;
   final VoidCallback onEdit;
   final VoidCallback onDelete;
+  final VoidCallback? onMoveUp;
+  final VoidCallback? onMoveDown;
 
   @override
   Widget build(BuildContext context) {
@@ -803,7 +816,16 @@ class _BuilderBlockCard extends StatelessWidget {
                       onPressed: onDelete,
                       icon: const Icon(Icons.delete_outline),
                     ),
-                    const Icon(Icons.drag_handle),
+                    IconButton(
+                      tooltip: 'Move up',
+                      onPressed: onMoveUp,
+                      icon: const Icon(Icons.arrow_upward),
+                    ),
+                    IconButton(
+                      tooltip: 'Move down',
+                      onPressed: onMoveDown,
+                      icon: const Icon(Icons.arrow_downward),
+                    ),
                   ],
                 ),
                 onTap: onEdit,
