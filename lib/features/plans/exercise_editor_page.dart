@@ -407,7 +407,9 @@ class _ExerciseEditorPageState extends State<ExerciseEditorPage> {
     if (issues.isNotEmpty) {
       setState(() {
         _showErrors = true;
-        _banner = issues.first.message;
+        _banner = issues.first.movementIndex == null
+            ? issues.first.message
+            : null;
       });
       SemanticsService.sendAnnouncement(
         View.of(context),
@@ -554,9 +556,11 @@ class _ExerciseEditorPageState extends State<ExerciseEditorPage> {
             ],
           ),
         ),
-        body: ListView(
+        body: SingleChildScrollView(
           padding: const EdgeInsets.fromLTRB(16, 8, 16, 24),
-          children: [
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: [
             if (_banner != null)
               Padding(
                 padding: const EdgeInsets.only(bottom: 12),
@@ -647,7 +651,8 @@ class _ExerciseEditorPageState extends State<ExerciseEditorPage> {
                 child: Text(_draft.deleteActionLabel),
               ),
             ],
-          ],
+            ],
+          ),
         ),
         bottomNavigationBar: SafeArea(
           child: Padding(
@@ -673,10 +678,6 @@ class _ExerciseEditorPageState extends State<ExerciseEditorPage> {
     final movement = _draft.movements[index];
     final fields = _fields[index];
     final query = fields.title.text;
-    final results = searchExerciseCatalog(
-      query: query,
-      goalIds: widget.goalIds,
-    );
     final selected = () {
       if (movement.catalogExerciseId != null) {
         for (final entry in bundledExerciseAssets) {
@@ -685,6 +686,13 @@ class _ExerciseEditorPageState extends State<ExerciseEditorPage> {
       }
       return matchExerciseAsset(movement.title);
     }();
+    final results = selected != null
+        ? const <ExerciseAssetEntry>[]
+        : searchExerciseCatalog(
+            query: query,
+            goalIds: widget.goalIds,
+            limit: 5,
+          );
     final fieldError = issues
         .where((issue) => issue.movementIndex == index)
         .map((issue) => issue.message)
