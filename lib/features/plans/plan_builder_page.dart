@@ -774,14 +774,42 @@ class _BuilderBlockCard extends StatelessWidget {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
-            if (isSuperset)
-              Text(
-                'SUPERSET',
-                style: theme.textTheme.labelMedium?.copyWith(
-                  color: theme.colorScheme.primary,
-                  fontWeight: FontWeight.w700,
+            Row(
+              children: [
+                if (isSuperset)
+                  Expanded(
+                    child: Text(
+                      'SUPERSET',
+                      style: theme.textTheme.labelMedium?.copyWith(
+                        color: theme.colorScheme.primary,
+                        fontWeight: FontWeight.w700,
+                      ),
+                    ),
+                  )
+                else
+                  const Spacer(),
+                IconButton(
+                  tooltip: isSuperset ? 'Edit superset' : 'Edit exercise',
+                  onPressed: onEdit,
+                  icon: const Icon(Icons.edit_outlined),
                 ),
-              ),
+                IconButton(
+                  tooltip: isSuperset ? 'Delete superset' : 'Delete exercise',
+                  onPressed: onDelete,
+                  icon: const Icon(Icons.delete_outline),
+                ),
+                IconButton(
+                  tooltip: 'Move up',
+                  onPressed: onMoveUp,
+                  icon: const Icon(Icons.arrow_upward),
+                ),
+                IconButton(
+                  tooltip: 'Move down',
+                  onPressed: onMoveDown,
+                  icon: const Icon(Icons.arrow_downward),
+                ),
+              ],
+            ),
             for (var i = 0; i < block.exercises.length; i++) ...[
               ListTile(
                 contentPadding: EdgeInsets.zero,
@@ -803,31 +831,6 @@ class _BuilderBlockCard extends StatelessWidget {
                 ),
                 title: Text(block.exercises[i].title),
                 subtitle: Text(formatLoad(block.exercises[i])),
-                trailing: Row(
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    IconButton(
-                      tooltip: 'Edit ${block.exercises[i].title}',
-                      onPressed: onEdit,
-                      icon: const Icon(Icons.edit_outlined),
-                    ),
-                    IconButton(
-                      tooltip: 'Delete block',
-                      onPressed: onDelete,
-                      icon: const Icon(Icons.delete_outline),
-                    ),
-                    IconButton(
-                      tooltip: 'Move up',
-                      onPressed: onMoveUp,
-                      icon: const Icon(Icons.arrow_upward),
-                    ),
-                    IconButton(
-                      tooltip: 'Move down',
-                      onPressed: onMoveDown,
-                      icon: const Icon(Icons.arrow_downward),
-                    ),
-                  ],
-                ),
                 onTap: onEdit,
               ),
               TargetAreaChips(

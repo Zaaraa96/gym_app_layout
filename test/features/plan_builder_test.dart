@@ -190,6 +190,73 @@ void main() {
     expect(find.text('Add exercise'), findsOneWidget);
   });
 
+  testWidgets('expanded day with a saved block keeps its card laid out',
+      (tester) async {
+    tester.view.physicalSize = const Size(800, 1400);
+    tester.view.devicePixelRatio = 1;
+    addTearDown(tester.view.resetPhysicalSize);
+
+    final plans = MemoryPlanRepository();
+    final now = DateTime.utc(2026, 9, 7);
+    final plan = WorkoutPlan.create(
+      title: 'Editor demo',
+      source: PlanSource.created,
+      status: PlanStatus.draft,
+      createdAt: now,
+      updatedAt: now,
+      days: [
+        PlanDay.create(
+          dayId: 'day-1',
+          title: 'Day 1',
+          blocks: [
+            ExerciseBlock.create(
+              blockId: 'b1',
+              kind: BlockKind.superset,
+              exercises: [
+                ExercisePrescription.create(
+                  prescriptionId: 'p1',
+                  title: 'bench press',
+                  prescribedSets: 3,
+                  prescribedReps: 8,
+                  targetAreaIds: const ['chest'],
+                ),
+                ExercisePrescription.create(
+                  prescriptionId: 'p2',
+                  title: 'rdl',
+                  prescribedSets: 3,
+                  prescribedReps: 10,
+                  targetAreaIds: const ['glutes', 'hamstrings'],
+                ),
+              ],
+            ),
+          ],
+        ),
+      ],
+    );
+    await plans.save(plan);
+    await tester.pumpWidget(
+      MaterialApp(
+        home: PlanBuilderPage(
+          ports: testPorts(plans: plans),
+          planId: plan.uuid,
+        ),
+      ),
+    );
+    await tester.pump();
+    await tester.pump(const Duration(milliseconds: 50));
+
+    await tester.tap(find.byKey(const Key('step-day-1')));
+    await tester.pump();
+
+    expect(tester.takeException(), isNull);
+    expect(find.text('SUPERSET'), findsOneWidget);
+    expect(find.text('bench press'), findsOneWidget);
+    expect(find.text('rdl'), findsOneWidget);
+    expect(find.byKey(const Key('add-exercise-day-1')), findsOneWidget);
+    expect(find.byTooltip('Edit superset'), findsOneWidget);
+    expect(find.byTooltip('Move up'), findsOneWidget);
+  });
+
   testWidgets('Plans lists drafts with Resume and Delete', (tester) async {
     final plans = MemoryPlanRepository();
     final sessions = MemorySessionRepository();
