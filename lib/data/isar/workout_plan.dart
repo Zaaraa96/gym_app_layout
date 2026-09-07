@@ -20,8 +20,15 @@ class WorkoutPlan {
 
   late String title;
 
+  String description = '';
+
+  List<String> goalIds = [];
+
   @enumerated
   late PlanSource source;
+
+  @enumerated
+  PlanStatus status = PlanStatus.active;
 
   late DateTime createdAt;
 
@@ -31,7 +38,7 @@ class WorkoutPlan {
   /// `basic-plan` days, in display order.
   List<PlanDay> days = [];
 
-  /// Named extra sections (`common-plan`) chosen per session, not a second plan.
+  /// Legacy `common-plan` rows. Read and converted to [days]; new writes are empty.
   List<CommonSection> commonSections = [];
 
   WorkoutPlan();
@@ -40,12 +47,16 @@ class WorkoutPlan {
     String? uuid,
     this.dirty = true,
     required this.title,
+    this.description = '',
+    List<String>? goalIds,
     required this.source,
+    this.status = PlanStatus.active,
     required this.createdAt,
     required this.updatedAt,
     List<PlanDay>? days,
     List<CommonSection>? commonSections,
   })  : uuid = uuid ?? newUuid(),
+        goalIds = goalIds ?? [],
         days = days ?? [],
         commonSections = commonSections ?? [];
 }
@@ -134,6 +145,8 @@ class ExercisePrescription {
   /// Unused in v1 UI; store null.
   double? targetWeightKg;
 
+  List<String> targetAreaIds = [];
+
   ExercisePrescription();
 
   ExercisePrescription.create({
@@ -143,5 +156,6 @@ class ExercisePrescription {
     this.prescribedReps,
     this.prescribedDurationSeconds,
     this.targetWeightKg,
-  });
+    List<String>? targetAreaIds,
+  }) : targetAreaIds = targetAreaIds ?? [];
 }

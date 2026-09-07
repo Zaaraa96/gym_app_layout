@@ -55,13 +55,17 @@ List<GetPage<dynamic>> appPages() => [
           return ImportPreviewPage(
             fileName: args.fileName,
             plan: args.plan,
+            convertedCommonSectionTitles: args.convertedCommonSectionTitles,
             ports: resolveAppPorts(),
           );
         },
       ),
       GetPage(
         name: AppRoutes.newPlan,
-        page: () => AddNewPlanPage(ports: resolveAppPorts()),
+        page: () => AddNewPlanPage(
+          ports: resolveAppPorts(),
+          planId: Get.arguments is String ? Get.arguments as String : null,
+        ),
       ),
       GetPage(
         name: AppRoutes.plan,
@@ -88,17 +92,6 @@ List<GetPage<dynamic>> appPages() => [
           return DayEditorPage(
             planId: args.planId,
             dayId: args.dayId,
-            ports: resolveAppPorts(),
-          );
-        },
-      ),
-      GetPage(
-        name: AppRoutes.editSection,
-        page: () {
-          final args = Get.arguments as DayEditorArgs;
-          return DayEditorPage(
-            planId: args.planId,
-            sectionId: args.sectionId,
             ports: resolveAppPorts(),
           );
         },

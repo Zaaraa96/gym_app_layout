@@ -10,9 +10,8 @@ class SessionLifecycle {
 
   final SessionRepository _sessions;
 
-  /// Snapshot the day's blocks, then each included common section, into logs.
-  ///
-  /// Fails when another session is already [SessionStatus.inProgress].
+  /// Snapshot the day's blocks into logs. Fails when another session is already
+  /// [SessionStatus.inProgress] or the plan is still a draft.
   Future<WorkoutSession> start({
     required WorkoutPlan plan,
     required String planDayId,
@@ -22,6 +21,10 @@ class SessionLifecycle {
     final existing = await _sessions.inProgress();
     if (existing != null) {
       throw StateError('A workout is already in progress');
+    }
+
+    if (plan.status != PlanStatus.active) {
+      throw StateError('Drafts cannot start a workout');
     }
 
     PlanDay? day;
@@ -46,11 +49,7 @@ class SessionLifecycle {
       updatedAt: now,
       status: SessionStatus.inProgress,
       includedCommonSectionIds: includedCommonSectionIds,
-      exerciseLogs: exerciseLogsForStart(
-        day: day,
-        commonSections: plan.commonSections,
-        includedCommonSectionIds: includedCommonSectionIds,
-      ),
+      exerciseLogs: exerciseLogsForStart(day: day),
     );
     session.id = await _sessions.save(session);
     return session;
@@ -68,29 +67,13 @@ class SessionLifecycle {
   Future<WorkoutSession?> resume() => _sessions.inProgress();
 }
 
-/// Day blocks first, then each enabled common section, in order.
+/// Day blocks in order.
 List<ExerciseLog> exerciseLogsForStart({
   required PlanDay day,
-  required List<CommonSection> commonSections,
-  required List<String> includedCommonSectionIds,
 }) {
   final logs = <ExerciseLog>[];
   for (final block in day.blocks) {
     logs.addAll(_logsForBlock(block, fromCommonSection: false));
-  }
-  for (final sectionId in includedCommonSectionIds) {
-    CommonSection? section;
-    for (final item in commonSections) {
-      if (item.sectionId == sectionId) {
-        section = item;
-        break;
-      }
-    }
-    if (section == null) continue;
-    logs.addAll([
-      for (final block in section.blocks)
-        ..._logsForBlock(block, fromCommonSection: true),
-    ]);
   }
   return logs;
 }

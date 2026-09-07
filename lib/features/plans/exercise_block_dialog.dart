@@ -3,25 +3,36 @@ import 'package:flutter/material.dart';
 import '../../common/widgets/app_text_field.dart';
 import '../../domain/models/models.dart';
 import '../../domain/new_id.dart';
+import '../../domain/plan_catalog.dart';
 import 'exercise_asset_catalog.dart';
 import 'exercise_media_picker.dart';
 import 'exercise_media_picker_sheet.dart';
 import 'exercise_media_thumbnail.dart';
+import 'target_area_chips.dart';
 
 Future<ExerciseBlock?> showExerciseBlockDialog(
   BuildContext context, {
   ExerciseBlock? existing,
+  List<String> goalIds = const [],
 }) {
   return showDialog<ExerciseBlock>(
     context: context,
-    builder: (context) => ExerciseBlockDialog(existing: existing),
+    builder: (context) => ExerciseBlockDialog(
+      existing: existing,
+      goalIds: goalIds,
+    ),
   );
 }
 
 class ExerciseBlockDialog extends StatefulWidget {
-  const ExerciseBlockDialog({super.key, this.existing});
+  const ExerciseBlockDialog({
+    super.key,
+    this.existing,
+    this.goalIds = const [],
+  });
 
   final ExerciseBlock? existing;
+  final List<String> goalIds;
 
   @override
   State<ExerciseBlockDialog> createState() => _ExerciseBlockDialogState();
@@ -33,17 +44,27 @@ class _MovementDraft {
     required this.reps,
     required this.duration,
     required this.useDuration,
+    required this.targetAreaIds,
+    required this.manualTargets,
     this.previous,
   });
 
   factory _MovementDraft.from(ExercisePrescription? previous) {
+    final title = previous?.title ?? '';
+    final stored = previous?.targetAreaIds ?? const <String>[];
+    final catalog = catalogTargetAreaIdsForTitle(title);
+    final hasStored = stored.isNotEmpty;
     return _MovementDraft(
-      title: TextEditingController(text: previous?.title ?? ''),
+      title: TextEditingController(text: title),
       reps: TextEditingController(text: '${previous?.prescribedReps ?? 12}'),
       duration: TextEditingController(
         text: '${previous?.prescribedDurationSeconds ?? 30}',
       ),
       useDuration: previous?.prescribedDurationSeconds != null,
+      targetAreaIds: List<String>.from(
+        hasStored ? canonicalizeTargetAreaIds(stored) : catalog,
+      ),
+      manualTargets: hasStored && !targetAreasMatchCatalog(title, stored),
       previous: previous,
     );
   }
@@ -54,6 +75,8 @@ class _MovementDraft {
   final TextEditingController reps;
   final TextEditingController duration;
   bool useDuration;
+  List<String> targetAreaIds;
+  bool manualTargets;
   final ExercisePrescription? previous;
 
   void dispose() {
@@ -97,7 +120,71 @@ class _ExerciseBlockDialogState extends State<ExerciseBlockDialog> {
     }
   }
 
-  void _onTitleChanged() => setState(() {});
+  void _onTitleChanged() {
+    for (final movement in _movements) {
+      if (movement.manualTargets) continue;
+      final next = catalogTargetAreaIdsForTitle(movement.title.text);
+      if (!sameIdList(next, movement.targetAreaIds)) {
+        movement.targetAreaIds = List<String>.from(next);
+      }
+    }
+    setState(() {});
+  }
+
+  void _setTargets(_MovementDraft draft, List<String> ids) {
+    setState(() {
+      draft.targetAreaIds = canonicalizeTargetAreaIds(ids);
+      draft.manualTargets = true;
+    });
+  }
+
+  Future<void> _applySuggestion(ExerciseAssetEntry entry) async {
+    final draft = _movements.first;
+    draft.title.text = entry.label;
+    await _maybeApplyCatalogTargets(
+      draft,
+      canonicalizeTargetAreaIds(entry.targetAreaIds),
+    );
+    if (!mounted) return;
+    setState(() {});
+  }
+
+  Future<void> _maybeApplyCatalogTargets(
+    _MovementDraft draft,
+    List<String> catalogIds,
+  ) async {
+    if (catalogIds.isEmpty) return;
+    if (sameIdList(catalogIds, draft.targetAreaIds)) return;
+    if (!draft.manualTargets) {
+      draft.targetAreaIds = List<String>.from(catalogIds);
+      return;
+    }
+    final replace = await showDialog<bool>(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: const Text('Replace target areas?'),
+        content: const Text(
+          'This name matches a catalog exercise. Replace your target '
+          'areas with the catalog defaults?',
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context, false),
+            child: const Text('Keep mine'),
+          ),
+          FilledButton(
+            key: const Key('replace-target-areas'),
+            onPressed: () => Navigator.pop(context, true),
+            child: const Text('Use catalog'),
+          ),
+        ],
+      ),
+    );
+    if (replace == true) {
+      draft.targetAreaIds = List<String>.from(catalogIds);
+      draft.manualTargets = false;
+    }
+  }
 
   @override
   void dispose() {
@@ -135,6 +222,7 @@ class _ExerciseBlockDialogState extends State<ExerciseBlockDialog> {
       prescribedDurationSeconds: draft.useDuration
           ? _parsePositive(draft.duration.text, 30)
           : null,
+      targetAreaIds: canonicalizeTargetAreaIds(draft.targetAreaIds),
     );
   }
 
@@ -209,7 +297,7 @@ class _ExerciseBlockDialogState extends State<ExerciseBlockDialog> {
     return block;
   }
 
-  void _submit() {
+  Future<void> _submit() async {
     final firstTitle = _movements.first.title.text.trim();
     if (firstTitle.isEmpty) {
       setState(() => _error = 'Add an exercise name');
@@ -222,6 +310,14 @@ class _ExerciseBlockDialogState extends State<ExerciseBlockDialog> {
           return;
         }
       }
+    }
+    final drafts = _superset ? _movements : _movements.take(1);
+    for (final draft in drafts) {
+      await _maybeApplyCatalogTargets(
+        draft,
+        catalogTargetAreaIdsForTitle(draft.title.text),
+      );
+      if (!mounted) return;
     }
     final sets = _parsePositive(_sets.text, 3);
     Navigator.pop(context, _buildBlock(sets));
@@ -319,12 +415,19 @@ class _ExerciseBlockDialogState extends State<ExerciseBlockDialog> {
                 onTap: _pickMedia,
               ),
               AppTextField(
+                key: const Key('exercise-name-0'),
                 label: _titleLabel(0),
                 controller: _movements.first.title,
                 autofocus: true,
               ),
+              _suggestions(),
               _formDemo(_movements.first.title.text),
+              TargetAreaChips(
+                selectedIds: _movements.first.targetAreaIds,
+                onChanged: (ids) => _setTargets(_movements.first, ids),
+              ),
               AppTextField(
+                key: const Key('exercise-sets'),
                 label: 'sets',
                 controller: _sets,
                 keyboardType: TextInputType.number,
@@ -366,6 +469,28 @@ class _ExerciseBlockDialogState extends State<ExerciseBlockDialog> {
     );
   }
 
+  Widget _suggestions() {
+    if (_movements.first.title.text.trim().isNotEmpty) {
+      return const SizedBox.shrink();
+    }
+    final suggestions = suggestedExercisesForGoals(widget.goalIds).take(8);
+    return Padding(
+      padding: const EdgeInsets.only(bottom: 8),
+      child: Wrap(
+        spacing: 8,
+        runSpacing: 8,
+        children: [
+          for (final entry in suggestions)
+            ActionChip(
+              key: Key('suggest-${entry.id}'),
+              label: Text(entry.label),
+              onPressed: () => _applySuggestion(entry),
+            ),
+        ],
+      ),
+    );
+  }
+
   Widget _formDemo(String title) {
     final match = matchExerciseAsset(title);
     if (match == null) return const SizedBox.shrink();
@@ -380,6 +505,10 @@ class _ExerciseBlockDialogState extends State<ExerciseBlockDialog> {
             height: 120,
             gaplessPlayback: true,
             filterQuality: FilterQuality.medium,
+            errorBuilder: (_, __, ___) => const SizedBox(
+              width: 120,
+              height: 120,
+            ),
           ),
           Text(
             'How to: ${match.label}',
@@ -401,6 +530,7 @@ class _ExerciseBlockDialogState extends State<ExerciseBlockDialog> {
             children: [
               Expanded(
                 child: AppTextField(
+                  key: Key('exercise-name-$index'),
                   label: _titleLabel(index),
                   controller: draft.title,
                 ),
@@ -414,6 +544,10 @@ class _ExerciseBlockDialogState extends State<ExerciseBlockDialog> {
             ],
           ),
           _loadPicker(draft),
+          TargetAreaChips(
+            selectedIds: draft.targetAreaIds,
+            onChanged: (ids) => _setTargets(draft, ids),
+          ),
         ],
       ),
     );

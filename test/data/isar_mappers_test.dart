@@ -1,5 +1,6 @@
 import 'package:flutter_test/flutter_test.dart';
 import 'package:gym_app/data/isar/mappers.dart';
+import 'package:gym_app/data/isar/workout_plan.dart' as isar_plan;
 import 'package:gym_app/domain/models/models.dart';
 import 'package:isar/isar.dart';
 
@@ -38,10 +39,8 @@ void main() {
             ),
           ],
         ),
-      ],
-      commonSections: [
-        CommonSection.create(
-          sectionId: 'sec-abs',
+        PlanDay.create(
+          dayId: 'sec-abs',
           title: 'abs',
           blocks: [
             ExerciseBlock.create(
@@ -64,18 +63,19 @@ void main() {
     final row = planToIsar(plan);
     expect(row.id, 7);
     expect(row.uuid, 'plan-uuid');
-    expect(row.days.single.blocks.single.mediaKind, ExerciseMediaKind.image);
+    expect(row.days.first.blocks.single.mediaKind, ExerciseMediaKind.image);
 
     final restored = planFromIsar(row);
     expect(restored.id, 7);
     expect(restored.uuid, 'plan-uuid');
     expect(restored.title, 'plan 1');
     expect(restored.source, PlanSource.imported);
-    expect(restored.days.single.summary, 'upper');
-    expect(restored.days.single.blocks.single.exercises.single.targetWeightKg, 40);
-    expect(restored.commonSections.single.sectionId, 'sec-abs');
+    expect(restored.days.first.summary, 'upper');
+    expect(restored.days.first.blocks.single.exercises.single.targetWeightKg, 40);
+    expect(restored.days, hasLength(2));
+    expect(restored.days.last.dayId, 'sec-abs');
     expect(
-      restored.commonSections.single.blocks.single.exercises.single
+      restored.days.last.blocks.single.exercises.single
           .prescribedDurationSeconds,
       30,
     );
@@ -135,5 +135,92 @@ void main() {
     expect(restored.includedCommonSectionIds, ['sec-abs']);
     expect(restored.exerciseLogs.single.sets.single.weightKg, 40);
     expect(restored.exerciseLogs.single.isComplete, isFalse);
+  });
+
+  test('round-trips status, description, goals, and target areas', () {
+    final now = DateTime.utc(2026, 9, 7);
+    final plan = WorkoutPlan.create(
+      uuid: 'draft-uuid',
+      title: 'Push',
+      description: 'Upper body',
+      goalIds: const ['build-strength', 'build-muscle'],
+      source: PlanSource.created,
+      status: PlanStatus.draft,
+      createdAt: now,
+      updatedAt: now,
+      days: [
+        PlanDay.create(
+          dayId: 'day-1',
+          title: 'Day 1',
+          blocks: [
+            ExerciseBlock.create(
+              blockId: 'b1',
+              kind: BlockKind.single,
+              exercises: [
+                ExercisePrescription.create(
+                  prescriptionId: 'p1',
+                  title: 'bench press',
+                  prescribedSets: 4,
+                  prescribedReps: 6,
+                  targetAreaIds: const ['chest', 'triceps', 'front-shoulders'],
+                ),
+              ],
+            ),
+          ],
+        ),
+      ],
+    )..id = 3;
+
+    final restored = planFromIsar(planToIsar(plan));
+    expect(restored.status, PlanStatus.draft);
+    expect(restored.description, 'Upper body');
+    expect(restored.goalIds, ['build-strength', 'build-muscle']);
+    expect(
+      restored.days.single.blocks.single.exercises.single.targetAreaIds,
+      ['chest', 'triceps', 'front-shoulders'],
+    );
+  });
+
+  test('planFromIsar converts leftover common sections into days', () {
+    final now = DateTime.utc(2026, 9, 7);
+    final row = isar_plan.WorkoutPlan()
+      ..id = 4
+      ..uuid = 'legacy'
+      ..dirty = false
+      ..title = 'Legacy'
+      ..description = ''
+      ..goalIds = []
+      ..source = PlanSource.created
+      ..status = PlanStatus.active
+      ..createdAt = now
+      ..updatedAt = now
+      ..days = [
+        isar_plan.PlanDay()
+          ..dayId = 'day-1'
+          ..title = 'abs'
+          ..summary = ''
+          ..blocks = [],
+      ]
+      ..commonSections = [
+        isar_plan.CommonSection()
+          ..sectionId = 'sec-abs'
+          ..title = 'abs'
+          ..blocks = [
+            isar_plan.ExerciseBlock()
+              ..blockId = 'b-abs'
+              ..kind = BlockKind.single
+              ..exercises = [
+                isar_plan.ExercisePrescription()
+                  ..prescriptionId = 'p-abs'
+                  ..title = 'plank'
+                  ..prescribedSets = 1
+                  ..prescribedDurationSeconds = 30,
+              ],
+          ],
+      ];
+
+    final restored = planFromIsar(row);
+    expect(restored.days.map((day) => day.title), ['abs', 'abs (extras)']);
+    expect(restored.days.last.blocks.single.exercises.single.title, 'plank');
   });
 }

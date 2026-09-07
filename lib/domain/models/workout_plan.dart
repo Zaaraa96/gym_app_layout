@@ -5,6 +5,9 @@ import 'enums.dart';
 /// Product identity is [WorkoutPlan.uuid], not this field.
 const int unassignedLocalId = 0;
 
+/// Fallback list title while the builder name field is still empty.
+const untitledPlanTitle = 'Untitled plan';
+
 /// Prescribed program. Edits here must not rewrite past sessions.
 class WorkoutPlan {
   /// Local row key assigned by a repository. Not the identity sent to a remote API.
@@ -18,7 +21,16 @@ class WorkoutPlan {
 
   late String title;
 
+  /// Optional plan copy. Never required for activation.
+  String description = '';
+
+  /// Stable [planGoals] ids. Advisory for suggestions and Review guidance.
+  List<String> goalIds = [];
+
   late PlanSource source;
+
+  /// Drafts stay in the builder; only [PlanStatus.active] can start a workout.
+  PlanStatus status = PlanStatus.active;
 
   late DateTime createdAt;
 
@@ -27,23 +39,30 @@ class WorkoutPlan {
   /// `basic-plan` days, in display order.
   List<PlanDay> days = [];
 
-  /// Named extra sections (`common-plan`) chosen per session, not a second plan.
-  List<CommonSection> commonSections = [];
-
   WorkoutPlan();
 
   WorkoutPlan.create({
     String? uuid,
     this.dirty = true,
     required this.title,
+    this.description = '',
+    List<String>? goalIds,
     required this.source,
+    this.status = PlanStatus.active,
     required this.createdAt,
     required this.updatedAt,
     List<PlanDay>? days,
-    List<CommonSection>? commonSections,
   })  : uuid = uuid ?? newUuid(),
-        days = days ?? [],
-        commonSections = commonSections ?? [];
+        goalIds = goalIds ?? [],
+        days = days ?? [];
+
+  /// List and app-bar title. Empty names stay invalid in the builder.
+  String get displayTitle {
+    final trimmed = title.trim();
+    return trimmed.isEmpty ? untitledPlanTitle : trimmed;
+  }
+
+  bool get isDraft => status == PlanStatus.draft;
 }
 
 class PlanDay {
@@ -62,6 +81,8 @@ class PlanDay {
   }) : blocks = blocks ?? [];
 }
 
+/// Legacy extra section from v1 `common-plan`. Converted to a [PlanDay] on
+/// read/import. Not stored on [WorkoutPlan].
 class CommonSection {
   late String sectionId;
   late String title;
@@ -123,6 +144,9 @@ class ExercisePrescription {
   /// Unused in v1 UI; store null.
   double? targetWeightKg;
 
+  /// Stable target-area ids. Optional; never blocks plan creation.
+  List<String> targetAreaIds = [];
+
   ExercisePrescription();
 
   ExercisePrescription.create({
@@ -132,5 +156,6 @@ class ExercisePrescription {
     this.prescribedReps,
     this.prescribedDurationSeconds,
     this.targetWeightKg,
-  });
+    List<String>? targetAreaIds,
+  }) : targetAreaIds = targetAreaIds ?? [];
 }

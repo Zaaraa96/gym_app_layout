@@ -144,7 +144,6 @@ class _DayPreviewPageState extends State<DayPreviewPage> {
 
   Widget _body(BuildContext context, PlanDay day) {
     final theme = Theme.of(context);
-    final plan = _plan;
     return Padding(
       padding: const EdgeInsets.symmetric(horizontal: 20),
       child: Column(
@@ -164,17 +163,6 @@ class _DayPreviewPageState extends State<DayPreviewPage> {
               child: Align(
                 alignment: Alignment.centerLeft,
                 child: AppText(day.summary, style: subtitleTextStyle),
-              ),
-            ),
-          if (plan != null && plan.commonSections.isNotEmpty)
-            Padding(
-              padding: const EdgeInsets.only(bottom: 8),
-              child: Align(
-                alignment: Alignment.centerLeft,
-                child: AppText(
-                  'Common sections can be included when you start.',
-                  style: subtitleTextStyle,
-                ),
               ),
             ),
           Expanded(

@@ -36,12 +36,11 @@ void main() {
         File('assets/json/beginner-full-body.json').readAsStringSync();
     final plan = const JsonPlanImporter().import(source);
     expect(plan.title, starterFullBody.title);
-    expect(plan.days, hasLength(3));
+    expect(plan.days, hasLength(5));
     expect(
-      plan.days.first.blocks.first.exercises.first.title,
-      'Bodyweight squat',
+      plan.days.map((day) => day.title),
+      ['Day 1 — Squat and push', 'Day 2 — Hinge and pull', 'Day 3 — Lunge and core', 'abs', 'mobility'],
     );
-    expect(plan.commonSections.map((s) => s.title), ['abs', 'mobility']);
   });
 
   test('bundled beginner 2-day is a valid import with no commons', () {
@@ -49,7 +48,6 @@ void main() {
     final plan = const JsonPlanImporter().import(source);
     expect(plan.title, starterTwoDay.title);
     expect(plan.days, hasLength(2));
-    expect(plan.commonSections, isEmpty);
   });
 
   test('installStarterPlan saves once and reuses the same title', () async {

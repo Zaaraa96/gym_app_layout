@@ -631,25 +631,5 @@ WorkoutPlan _plan() {
         ],
       ),
     ],
-    commonSections: [
-      CommonSection.create(
-        sectionId: 'sec-abs',
-        title: 'abs',
-        blocks: [
-          ExerciseBlock.create(
-            blockId: 'block-abs',
-            kind: BlockKind.single,
-            exercises: [
-              ExercisePrescription.create(
-                prescriptionId: 'p-shoot',
-                title: 'shoot out',
-                prescribedSets: 1,
-                prescribedDurationSeconds: 30,
-              ),
-            ],
-          ),
-        ],
-      ),
-    ],
-  );
+      );
 }

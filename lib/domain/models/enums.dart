@@ -1,6 +1,12 @@
 /// How a [WorkoutPlan] entered the local database.
 enum PlanSource { imported, created }
 
+/// Whether a [WorkoutPlan] is still being built or is ready to train.
+///
+/// Separate from [PlanSource]: a created plan can be a draft, and an imported
+/// plan is active.
+enum PlanStatus { draft, active }
+
 /// A block is either one movement or a grouped superset.
 enum BlockKind { single, superset }
 

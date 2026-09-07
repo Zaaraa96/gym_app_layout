@@ -103,41 +103,18 @@ void main() {
     expect(suggestToday(plans: [plan]), isNull);
   });
 
-  test('an empty day with common sections is still startable', () {
+  test('an empty day is not startable even if the plan has other days', () {
     final plan = WorkoutPlan.create(
-      title: 'commons',
+      title: 'empty',
       source: PlanSource.created,
       createdAt: DateTime.utc(2026, 8, 1),
       updatedAt: DateTime.utc(2026, 8, 1),
       days: [PlanDay.create(dayId: 'day-1', title: 'Rest-ish')],
-      commonSections: [
-        CommonSection.create(
-          sectionId: 'sec-abs',
-          title: 'abs',
-          blocks: [
-            ExerciseBlock.create(
-              blockId: 'block-abs',
-              kind: BlockKind.single,
-              exercises: [
-                ExercisePrescription.create(
-                  prescriptionId: 'p-plank',
-                  title: 'plank',
-                  prescribedSets: 1,
-                  prescribedDurationSeconds: 30,
-                ),
-              ],
-            ),
-          ],
-        ),
-      ],
     )
       ..id = 1
       ..uuid = '1';
 
-    final suggestion = suggestToday(plans: [plan]);
-    expect(suggestion, isNotNull);
-    expect(suggestion!.day.title, 'Rest-ish');
-    expect(suggestion.prompt, 'Start with plank, then log what you did.');
+    expect(suggestToday(plans: [plan]), isNull);
   });
 
   test('rotation skips days that cannot start', () {
@@ -210,19 +187,16 @@ void main() {
     expect(suggestion.alreadyTrainedToday, isFalse);
   });
 
-  test('firstExerciseTitle falls back when the day and commons are empty', () {
+  test('firstExerciseTitle falls back when the day is empty', () {
     final plan = WorkoutPlan.create(
       title: 'empty',
       source: PlanSource.created,
       createdAt: DateTime.utc(2026, 8, 1),
       updatedAt: DateTime.utc(2026, 8, 1),
       days: [PlanDay.create(dayId: 'day-1', title: 'Empty')],
-      commonSections: [
-        CommonSection.create(sectionId: 'sec-abs', title: 'abs'),
-      ],
     );
     expect(firstExerciseTitle(plan.days.single, plan), 'your first exercise');
-    expect(dayCanStart(plan, plan.days.single), isTrue);
+    expect(dayCanStart(plan, plan.days.single), isFalse);
   });
 
   test('sameUtcDay is true across clock times on that UTC date', () {
@@ -290,6 +264,48 @@ void main() {
     );
     expect(overview.live?.uuid, live.uuid);
     expect(overview.today!.day.title, 'Day 1');
+  });
+
+  test('loadHomeOverview ignores drafts when suggesting today', () async {
+    final plans = MemoryPlanRepository();
+    final sessions = MemorySessionRepository();
+    final now = DateTime.utc(2026, 8, 28);
+    final draft = WorkoutPlan.create(
+      title: 'Draft only',
+      source: PlanSource.created,
+      status: PlanStatus.draft,
+      createdAt: now,
+      updatedAt: now,
+      days: [
+        PlanDay.create(
+          dayId: 'day-1',
+          title: 'Day 1',
+          blocks: [
+            ExerciseBlock.create(
+              blockId: 'b',
+              kind: BlockKind.single,
+              exercises: [
+                ExercisePrescription.create(
+                  prescriptionId: 'p',
+                  title: 'squat',
+                  prescribedSets: 3,
+                  prescribedReps: 10,
+                ),
+              ],
+            ),
+          ],
+        ),
+      ],
+    );
+    await plans.save(draft);
+
+    final overview = await loadHomeOverview(
+      plans: plans,
+      sessions: sessions,
+      now: now,
+    );
+    expect(overview.plans, hasLength(1));
+    expect(overview.today, isNull);
   });
 }
 

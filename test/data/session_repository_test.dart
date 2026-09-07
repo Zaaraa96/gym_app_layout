@@ -493,29 +493,12 @@ void main() {
     expect(await db.sessions.inProgress(), isNull);
   });
 
-  test('exerciseLogsForStart copies day blocks then included commons', () {
+  test('exerciseLogsForStart copies day blocks only', () {
     final plan = _plan();
-    final empty = exerciseLogsForStart(
-      day: plan.days.single,
-      commonSections: plan.commonSections,
-      includedCommonSectionIds: const [],
-    );
+    final logs = exerciseLogsForStart(day: plan.days.single);
     expect(
-        empty.map((log) => log.exerciseTitle), ['kang squat', 'leg extension']);
-    expect(empty.every((log) => log.fromCommonSection == false), isTrue);
-
-    final withAbs = exerciseLogsForStart(
-      day: plan.days.single,
-      commonSections: plan.commonSections,
-      includedCommonSectionIds: const ['sec-missing', 'sec-abs'],
-    );
-    expect(
-      withAbs.map((log) => log.exerciseTitle),
-      ['kang squat', 'leg extension', 'shoot out'],
-    );
-    expect(withAbs.last.fromCommonSection, isTrue);
-    expect(withAbs.last.prescribedDurationSeconds, 30);
-    expect(withAbs.last.exerciseTitleKey, 'shoot out');
+        logs.map((log) => log.exerciseTitle), ['kang squat', 'leg extension']);
+    expect(logs.every((log) => log.fromCommonSection == false), isTrue);
   });
 
   test('save marks dirty and bumps updatedAt; putSynced clears dirty',
@@ -613,26 +596,6 @@ WorkoutPlan _plan() {
                 title: 'leg extension',
                 prescribedSets: 3,
                 prescribedReps: 12,
-              ),
-            ],
-          ),
-        ],
-      ),
-    ],
-    commonSections: [
-      CommonSection.create(
-        sectionId: 'sec-abs',
-        title: 'abs',
-        blocks: [
-          ExerciseBlock.create(
-            blockId: 'block-abs',
-            kind: BlockKind.single,
-            exercises: [
-              ExercisePrescription.create(
-                prescriptionId: 'p-shoot',
-                title: 'shoot out',
-                prescribedSets: 1,
-                prescribedDurationSeconds: 30,
               ),
             ],
           ),

@@ -1,6 +1,8 @@
 import 'package:isar/isar.dart';
 
+import '../../domain/common_section_migration.dart';
 import '../../domain/models/models.dart' as domain;
+import '../../domain/plan_catalog.dart';
 import 'workout_plan.dart';
 import 'workout_session.dart';
 
@@ -11,28 +13,33 @@ WorkoutPlan planToIsar(domain.WorkoutPlan plan) {
     ..uuid = plan.uuid
     ..dirty = plan.dirty
     ..title = plan.title
+    ..description = plan.description
+    ..goalIds = canonicalizeGoalIds(plan.goalIds)
     ..source = plan.source
+    ..status = plan.status
     ..createdAt = plan.createdAt
     ..updatedAt = plan.updatedAt
     ..days = [for (final day in plan.days) _dayToIsar(day)]
-    ..commonSections = [
-      for (final section in plan.commonSections) _sectionToIsar(section),
-    ];
+    ..commonSections = [];
   return row;
 }
 
 domain.WorkoutPlan planFromIsar(WorkoutPlan row) {
+  final days = [for (final day in row.days) _dayFromIsar(day)];
+  final sections = [
+    for (final section in row.commonSections) _sectionFromIsar(section),
+  ];
   return domain.WorkoutPlan.create(
     uuid: row.uuid,
     dirty: row.dirty,
     title: row.title,
+    description: row.description,
+    goalIds: canonicalizeGoalIds(row.goalIds),
     source: row.source,
+    status: row.status,
     createdAt: row.createdAt,
     updatedAt: row.updatedAt,
-    days: [for (final day in row.days) _dayFromIsar(day)],
-    commonSections: [
-      for (final section in row.commonSections) _sectionFromIsar(section),
-    ],
+    days: migrateCommonSectionsToDays(days: days, sections: sections),
   )..id = row.id;
 }
 
@@ -51,13 +58,6 @@ domain.PlanDay _dayFromIsar(PlanDay day) {
     summary: day.summary,
     blocks: [for (final block in day.blocks) _blockFromIsar(block)],
   );
-}
-
-CommonSection _sectionToIsar(domain.CommonSection section) {
-  return CommonSection()
-    ..sectionId = section.sectionId
-    ..title = section.title
-    ..blocks = [for (final block in section.blocks) _blockToIsar(block)];
 }
 
 domain.CommonSection _sectionFromIsar(CommonSection section) {
@@ -102,7 +102,8 @@ ExercisePrescription _prescriptionToIsar(domain.ExercisePrescription exercise) {
     ..prescribedSets = exercise.prescribedSets
     ..prescribedReps = exercise.prescribedReps
     ..prescribedDurationSeconds = exercise.prescribedDurationSeconds
-    ..targetWeightKg = exercise.targetWeightKg;
+    ..targetWeightKg = exercise.targetWeightKg
+    ..targetAreaIds = canonicalizeTargetAreaIds(exercise.targetAreaIds);
 }
 
 domain.ExercisePrescription _prescriptionFromIsar(ExercisePrescription exercise) {
@@ -113,6 +114,7 @@ domain.ExercisePrescription _prescriptionFromIsar(ExercisePrescription exercise)
     prescribedReps: exercise.prescribedReps,
     prescribedDurationSeconds: exercise.prescribedDurationSeconds,
     targetWeightKg: exercise.targetWeightKg,
+    targetAreaIds: canonicalizeTargetAreaIds(exercise.targetAreaIds),
   );
 }
 

@@ -111,6 +111,11 @@ void main() {
     expect(find.text('3 × 12 reverse lunges+ Press'), findsOneWidget);
     expect(find.text('abs'), findsOneWidget);
     expect(find.text('corrective'), findsOneWidget);
+    expect(find.text('Former common sections'), findsOneWidget);
+    expect(
+      find.textContaining('They are now regular days'),
+      findsOneWidget,
+    );
 
     await tester.tap(find.text('Save plan'));
     await tester.pump();
@@ -125,23 +130,23 @@ void main() {
     final plan = stored.single;
     expect(plan.source, PlanSource.imported);
     expect(plan.title, 'plan 1');
-    expect(plan.days, hasLength(1));
-    expect(plan.days.single.blocks, hasLength(2));
-    expect(plan.days.single.blocks[0].kind, BlockKind.superset);
+    expect(plan.days, hasLength(3));
+    expect(plan.days.first.blocks, hasLength(2));
+    expect(plan.days.first.blocks[0].kind, BlockKind.superset);
     expect(
-      plan.days.single.blocks[0].exercises.map((e) => e.title),
+      plan.days.first.blocks[0].exercises.map((e) => e.title),
       ['kang squat', 'leg extension'],
     );
-    expect(plan.commonSections.map((s) => s.title), ['abs', 'corrective']);
+    expect(plan.days.map((day) => day.title), containsAll(['abs', 'corrective']));
     expect(
-      plan.commonSections.first.blocks.single.exercises.single
+      plan.days.firstWhere((day) => day.title == 'abs').blocks.single.exercises.single
           .prescribedDurationSeconds,
       30,
     );
-    expect(plan.days.single.dayId, isNotEmpty);
-    expect(plan.days.single.blocks.first.blockId, isNotEmpty);
+    expect(plan.days.first.dayId, isNotEmpty);
+    expect(plan.days.first.blocks.first.blockId, isNotEmpty);
     expect(
-      plan.days.single.blocks.first.exercises.first.prescriptionId,
+      plan.days.first.blocks.first.exercises.first.prescriptionId,
       isNotEmpty,
     );
   });

@@ -203,7 +203,7 @@ class GymApp {
 
   Future<void> openPlan(String title) async {
     await tapText(title);
-    await expectVisible('Common sections');
+    await expectVisible('Add day');
   }
 
   Future<void> openDayByTitle(String title) async {
@@ -216,9 +216,6 @@ class GymApp {
   }
 
   Future<void> confirmCommonsOff() async {
-    await $('Include today').waitUntilVisible();
-    expect($('These extras are off unless you turn them on.'), findsOneWidget);
-    await tapKey('confirm-include');
     await $('Log what you did on this set.').waitUntilVisible();
   }
 
@@ -302,14 +299,14 @@ class GymApp {
       settle: SettlePolicy.noSettle,
     );
     await pumpQuiet(const Duration(milliseconds: 600));
-    await expectVisible('New Plan');
+    await expectVisible('Create plan');
     if (title.isNotEmpty) {
-      await $(TextFormField).at(0).enterText(title);
+      await $(const Key('plan-name-field')).enterText(title);
     }
     if (summary.isNotEmpty) {
-      await $(TextFormField).at(1).enterText(summary);
+      await $(const Key('plan-description-field')).enterText(summary);
     }
-    await tapText('save');
+    await tapKey('continue-plan-details');
   }
 
   Future<void> addNamedExercise(String name) async {

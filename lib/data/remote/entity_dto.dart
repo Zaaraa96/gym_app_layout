@@ -1,4 +1,6 @@
+import '../../domain/common_section_migration.dart';
 import '../../domain/models/models.dart';
+import '../../domain/plan_catalog.dart';
 
 DateTime? _date(Object? raw) {
   if (raw is! String || raw.isEmpty) return null;
@@ -21,18 +23,25 @@ class PlanDto {
   PlanDto.fromEntity(WorkoutPlan plan)
       : id = plan.uuid,
         title = plan.title,
+        description = plan.description,
+        goalIds = List<String>.from(plan.goalIds),
         source = plan.source.name,
+        status = plan.status.name,
         createdAt = _iso(plan.createdAt),
         updatedAt = _iso(plan.updatedAt),
         days = [for (final day in plan.days) _dayToJson(day)],
-        commonSections = [
-          for (final section in plan.commonSections) _sectionToJson(section),
-        ];
+        commonSections = const [];
 
   PlanDto.fromJson(Map<String, dynamic> json)
       : id = json['id'] as String,
         title = json['title'] as String,
+        description = json['description'] as String? ?? '',
+        goalIds = [
+          for (final id in json['goalIds'] as List? ?? const [])
+            if (id is String) id,
+        ],
         source = json['source'] as String,
+        status = json['status'] as String? ?? PlanStatus.active.name,
         createdAt = json['createdAt'] as String,
         updatedAt = json['updatedAt'] as String,
         days = _asMaps(json['days']),
@@ -40,7 +49,10 @@ class PlanDto {
 
   final String id;
   final String title;
+  final String description;
+  final List<String> goalIds;
   final String source;
+  final String status;
   final String createdAt;
   final String updatedAt;
   final List<Map<String, dynamic>> days;
@@ -49,7 +61,10 @@ class PlanDto {
   Map<String, dynamic> toJson() => {
         'id': id,
         'title': title,
+        'description': description,
+        'goalIds': goalIds,
         'source': source,
+        'status': status,
         'createdAt': createdAt,
         'updatedAt': updatedAt,
         'days': days,
@@ -57,17 +72,21 @@ class PlanDto {
       };
 
   WorkoutPlan toEntity() {
+    final parsedDays = [for (final day in days) _dayFromJson(day)];
+    final sections = [
+      for (final section in commonSections) _sectionFromJson(section),
+    ];
     return WorkoutPlan.create(
       uuid: id,
       dirty: false,
       title: title,
+      description: description,
+      goalIds: canonicalizeGoalIds(goalIds),
       source: _enum(PlanSource.values, source, PlanSource.created),
+      status: _enum(PlanStatus.values, status, PlanStatus.active),
       createdAt: _date(createdAt)!,
       updatedAt: _date(updatedAt)!,
-      days: [for (final day in days) _dayFromJson(day)],
-      commonSections: [
-        for (final section in commonSections) _sectionFromJson(section),
-      ],
+      days: migrateCommonSectionsToDays(days: parsedDays, sections: sections),
     );
   }
 }
@@ -177,12 +196,6 @@ PlanDay _dayFromJson(Map<String, dynamic> json) => PlanDay.create(
       ],
     );
 
-Map<String, dynamic> _sectionToJson(CommonSection section) => {
-      'sectionId': section.sectionId,
-      'title': section.title,
-      'blocks': [for (final block in section.blocks) _blockToJson(block)],
-    };
-
 CommonSection _sectionFromJson(Map<String, dynamic> json) =>
     CommonSection.create(
       sectionId: json['sectionId'] as String,
@@ -232,6 +245,7 @@ Map<String, dynamic> _prescriptionToJson(ExercisePrescription exercise) => {
       'prescribedReps': exercise.prescribedReps,
       'prescribedDurationSeconds': exercise.prescribedDurationSeconds,
       'targetWeightKg': exercise.targetWeightKg,
+      'targetAreaIds': List<String>.from(exercise.targetAreaIds),
     };
 
 ExercisePrescription _prescriptionFromJson(Map<String, dynamic> json) =>
@@ -242,6 +256,10 @@ ExercisePrescription _prescriptionFromJson(Map<String, dynamic> json) =>
       prescribedReps: json['prescribedReps'] as int?,
       prescribedDurationSeconds: json['prescribedDurationSeconds'] as int?,
       targetWeightKg: (json['targetWeightKg'] as num?)?.toDouble(),
+      targetAreaIds: canonicalizeTargetAreaIds([
+        for (final id in json['targetAreaIds'] as List? ?? const [])
+          if (id is String) id,
+      ]),
     );
 
 Map<String, dynamic> _logToJson(ExerciseLog log) => {

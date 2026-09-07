@@ -36,9 +36,10 @@ class StartSession {
     required String planDayId,
     required Future<LiveSessionChoice> Function(WorkoutSession existing)
         onConflict,
-    required Future<List<String>?> Function(List<CommonSection> sections)
-        onCommons,
   }) async {
+    if (plan.status != PlanStatus.active) {
+      return const StartSessionEmpty();
+    }
     PlanDay? day;
     for (final item in plan.days) {
       if (item.dayId == planDayId) {
@@ -66,24 +67,12 @@ class StartSession {
       }
     }
 
-    var included = <String>[];
-    if (plan.commonSections.isNotEmpty) {
-      final chosen = await onCommons(plan.commonSections);
-      if (chosen == null) return const StartSessionCancelled();
-      included = chosen;
-    }
-
-    final logs = exerciseLogsForStart(
-      day: day,
-      commonSections: plan.commonSections,
-      includedCommonSectionIds: included,
-    );
+    final logs = exerciseLogsForStart(day: day);
     if (logs.isEmpty) return const StartSessionEmpty();
 
     final session = await _lifecycle.start(
       plan: plan,
       planDayId: day.dayId,
-      includedCommonSectionIds: included,
     );
     return StartSessionOpened(session);
   }

@@ -86,17 +86,19 @@ void main() {
     }).toEntity();
 
     expect(restored.source, PlanSource.created);
-    expect(restored.days.single.blocks.single.kind, BlockKind.single);
+    expect(restored.days.first.blocks.single.kind, BlockKind.single);
     expect(
-      restored.days.single.blocks.single.mediaSource,
+      restored.days.first.blocks.single.mediaSource,
       ExerciseMediaSource.none,
     );
-    expect(restored.days.single.blocks.single.mediaKind, ExerciseMediaKind.gif);
+    expect(restored.days.first.blocks.single.mediaKind, ExerciseMediaKind.gif);
     expect(
-      restored.days.single.blocks.single.exercises.single.targetWeightKg,
+      restored.days.first.blocks.single.exercises.single.targetWeightKg,
       40.0,
     );
-    expect(restored.commonSections.single.sectionId, 'sec-abs');
+    expect(restored.days, hasLength(2));
+    expect(restored.days.last.dayId, 'sec-abs');
+    expect(restored.days.last.title, 'abs');
   });
 
   test('session DTO round-trips logs and falls back when updatedAt is missing',
@@ -374,9 +376,10 @@ void main() {
     ];
     final plan = PlanDto.fromJson(planJson).toEntity();
     expect(plan.source, PlanSource.created);
-    expect(plan.days, isEmpty);
-    expect(plan.commonSections.single.title, 'abs');
-    expect(plan.commonSections.single.blocks, isEmpty);
+    expect(plan.days, hasLength(1));
+    expect(plan.days.single.dayId, 'sec-1');
+    expect(plan.days.single.title, 'abs');
+    expect(plan.days.single.blocks, isEmpty);
   });
 
   test('missing nested fields use defaults instead of dropping the row', () {

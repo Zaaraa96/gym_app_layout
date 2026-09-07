@@ -6,7 +6,7 @@ Welcome, Plans, live workout, and Month all exist and are wired. Judge this file
 
 ## 1. First launch — Welcome
 
-The app opens on **Welcome** when no plans exist. Later launches skip Welcome whenever any plan is stored and go to **Plans**.
+The app opens on **Welcome** when no plans exist. Later launches skip Welcome whenever any plan is stored — including a draft — and go to **Plans**.
 
 On-screen copy:
 
@@ -26,8 +26,8 @@ Three full-width actions, no bottom nav:
 
 1. Tap **Start with a beginner plan** (Welcome, or empty Plans) or **Beginner** (Plans, when at least one plan already exists).
 2. On **Beginner plans** (“Start with a plan you can do this week. You can edit every exercise later.”), pick:
-   - **Beginner full body** (badge **Recommended**) — three days plus abs/mobility commons
-   - **Beginner 2-day** — A/B, no commons
+   - **Beginner full body** (badge **Recommended**) — three training days plus abs and mobility, imported as extra days
+   - **Beginner 2-day** — A/B
 3. Tap **Use this plan**.
 4. The plan is saved locally. The app jumps to **Plans** (Today card + Your plans). It does **not** open the plan preview.
 
@@ -36,29 +36,31 @@ Tapping the same starter twice does not duplicate it (same title is reused). Aft
 ### 2b. Create from scratch
 
 1. Tap **Create a plan** (Welcome) or **New** (Plans).
-2. On **New Plan**, enter a **title** (required) and optional **summary** (used as Day 1’s summary). Empty title shows **Add a title before saving**. The confirm control is labeled **save**.
-3. Land on that plan’s preview. It starts with one empty **Day 1**. Common sections are listed even when empty, with **Add section**.
-4. Open Day 1: **No exercises on this day yet.** **Start workout** is disabled until the day has a block **or** the plan has a common section.
+2. A draft is created immediately. The screen is **Create plan**, a vertical stepper: Plan details, Day 1, Review & create.
+3. Plan details: **Plan name** (required), optional description (120 chars), optional goals. **CONTINUE** stays on details until the name is filled.
+4. Each day can add single exercises or supersets, target-area chips, and media. **Add another day** inserts a day before Review.
+5. Back or **EXIT FOR NOW** returns to Plans. The row shows a **Draft** badge with **Resume** / **Delete**. Empty names list as **Untitled plan**.
+6. **CREATE PLAN** is disabled until every day has a valid block. After create, the active plan preview opens. **Start workout** is disabled until that day has a block.
 
 ### 2c. Import JSON
 
 1. Tap **Import a plan** (Welcome) or **Import** (Plans).
 2. Pick a `.json` file in the v1 shape (`name`, `basic-plan`, optional `common-plan`). Linux desktop needs a file-dialog helper (`zenity`, `qarma`, or `kdialog`).
 3. Invalid JSON stays on the current screen with a snackbar, for example: **This file is not valid JSON. Remove trailing commas or other syntax errors and try again.**
-4. Valid files open **Import preview**: file name, plan title, expandable days (block summaries), common-section chips, **Save plan** / **Cancel**.
+4. Valid files open **Import preview**: file name, plan title, expandable days (block summaries). Legacy `common-plan` sections become regular days and are explained as **Former common sections**. **Save plan** / **Cancel**.
 5. **Save plan** writes the plan and opens **that plan’s preview** (not Plans). Back returns toward home.
 
-Checked-in sample: `assets/json/plan.json` (`plan 1`, one day, abs + corrective).
+Checked-in sample: `assets/json/plan.json` (`plan 1`, one training day plus abs and corrective imported as extra days).
 
 ## 3. Home — Plans tab
 
 Returning users land here. Bottom nav (**Plans** | **Month**) is on this shell only.
 
-- **Continue workout** banner if a live session exists (title **Continue workout**, subtitle is the day name). Tap to resume logging. Commons are not asked again.
-- **Today** card: the next startable day on the **newest** startable plan (`updatedAt`). A blank created plan does not steal the card; an imported plan with exercises does.
+- **Continue workout** banner if a live session exists (title **Continue workout**, subtitle is the day name). Tap to resume logging.
+- **Today** card: the next startable day on the **newest** startable **active** plan (`updatedAt`). Drafts never appear here. A blank created plan does not steal the card; an imported plan with exercises does.
   - No completed session yet: headline **Today: {day}**, prompt **Start with {first exercise}, then log what you did.**, button **Start today's workout**.
   - Already completed a session today: headline **Next up: {day}**, prompt **You already trained today…**, button **Start next day**.
-- **Your plans** list (title + “1 day” / “N days”). Newest first. Tap a row to open the plan.
+- **Your plans** list (title + “1 day” / “N days”). Newest first. Tap a row to open the plan. Drafts show a **Draft** badge with **Resume** / **Delete**. Empty names list as **Untitled plan**.
 - Bottom buttons when plans exist: **Import**, **New**, and **Beginner** (reopens starter templates). **Beginner** is not on the empty-home row; that state uses a single **Start with a beginner plan** action instead.
 
 Deleting the last plan (overflow on plan preview) lands on empty home: **No plans yet. Start with a beginner template, import one, or create your first.** plus **Start with a beginner plan**. Logged sessions still show on **Month**, and an in-progress session still shows **Continue workout**.
@@ -70,12 +72,11 @@ Deleting the last plan (overflow on plan preview) lands on empty home: **No plan
    - Photo day cards (`assets/image/0–2.png`).
    - App bar: back, title, **Rename plan** (pencil), **Add day**, overflow **More** → **Delete plan**.
    - Confirm: **Delete this plan?** / **Workouts already logged stay on Month.** **Cancel** or **Delete**. Delete returns to Plans.
-   - **Common sections** heading, **Add section**, then chips (tap to edit, delete on the chip) or empty copy: **Optional extras like abs. Include them when you start a day.**
    - Each day card: title, optional summary, first-block summary, exercise count, **Delete day**.
    - FAB **Add day** when at least one day exists.
-3. Tap a day card → **read-only day preview** (SVG, names × reps or duration, set badge; supersets on one row). Copy **Common sections can be included when you start.** when the plan has sections.
-4. **Edit day** opens the editor (day title/summary, add/edit/delete blocks, pick bundled SVG or gallery media). Back without saving destructive edits is safe.
-5. **Start workout** on the preview starts or resumes that day. Disabled when the day has no blocks and the plan has no common sections.
+3. Tap a day card → **read-only day preview** (SVG, names × reps or duration, set badge; supersets on one row).
+4. **Edit day** opens the editor (day title/summary, add/edit/delete blocks, pick bundled SVG or gallery media, target-area chips). Back without saving destructive edits is safe.
+5. **Start workout** on the preview starts or resumes that day. Disabled when the day has no blocks or the plan is still a draft.
 
 ## 5. Start a workout
 
@@ -85,12 +86,8 @@ Same flow from the Today card or from day preview.
    - Title **A workout is already in progress**
    - **Resume existing** | **Abandon and start this day** | **Cancel**
    Same plan + same day resumes with no new sheet.
-2. If the plan has common sections, **Include today**:
-   - **These extras are off unless you turn them on.**
-   - One switch per section, **default off**
-   - **Cancel** / **Start**
-3. If the day has no exercises and no commons were included, a snackbar: **Turn on a section or add an exercise first.**
-4. The live logger opens.
+2. If the day has no exercises, a snackbar: **Add an exercise first.**
+3. The live logger opens.
 
 ## 6. Live workout
 
@@ -125,10 +122,9 @@ Copied from the plan at start. Later plan edits do not change this session. App-
 
 1. Welcome → **Beginner full body**.
 2. Start **today’s** day from the home card.
-3. Include commons if offered, or leave them off.
-4. Log prescribed sets, rest as needed, rate each movement 1–5 (or **Finish workout** on a partial log).
-5. Land back on Plans; today card moves to the next day.
-6. Open the plan, peek at another day, optionally edit.
-7. Open **Month** and confirm a dot + trend row for what was logged.
+3. Log prescribed sets, rest as needed, rate each movement 1–5 (or **Finish workout** on a partial log).
+4. Land back on Plans; today card moves to the next day.
+5. Open the plan, peek at another day, optionally edit.
+6. Open **Month** and confirm a dot + trend row for what was logged.
 
-Import is optional. Creating a blank plan is optional and needs exercises (or a common section) before Start works.
+Import is optional. Creating a plan from scratch uses the stepper builder; **Start workout** needs at least one exercise on that day.

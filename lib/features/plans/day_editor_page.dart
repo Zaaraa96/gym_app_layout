@@ -13,33 +13,27 @@ import 'exercise_block_dialog.dart';
 class DayEditorArgs {
   const DayEditorArgs({
     required this.planId,
-    this.dayId,
-    this.sectionId,
-  }) : assert(dayId != null || sectionId != null);
+    required this.dayId,
+  });
 
   /// [WorkoutPlan.uuid], not a local row key.
   final String planId;
-  final String? dayId;
-  final String? sectionId;
+  final String dayId;
 }
 
-/// Edit one day's (or common section's) title, summary, and exercise blocks.
+/// Edit one day's title, summary, and exercise blocks.
 class DayEditorPage extends StatefulWidget {
   const DayEditorPage({
     super.key,
     required this.planId,
+    required this.dayId,
     required this.ports,
-    this.dayId,
-    this.sectionId,
-  }) : assert(dayId != null || sectionId != null);
+  });
 
   /// [WorkoutPlan.uuid], not a local row key.
   final String planId;
-  final String? dayId;
-  final String? sectionId;
+  final String dayId;
   final AppPorts ports;
-
-  bool get isCommonSection => sectionId != null;
 
   @override
   State<DayEditorPage> createState() => _DayEditorPageState();
@@ -51,18 +45,11 @@ class _DayEditorPageState extends State<DayEditorPage> {
   final _summaryController = TextEditingController();
   WorkoutPlan? _plan;
   PlanDay? _day;
-  CommonSection? _section;
   bool _loading = true;
   String? _error;
   int _loadId = 0;
 
-  bool get _isSection => widget.isCommonSection;
-
-  List<ExerciseBlock> get _blocks =>
-      _isSection ? (_section?.blocks ?? const []) : (_day?.blocks ?? const []);
-
-  String get _heading =>
-      _isSection ? (_section?.title ?? 'Section') : (_day?.title ?? 'Day');
+  List<ExerciseBlock> get _blocks => _day?.blocks ?? const [];
 
   @override
   void initState() {
@@ -82,35 +69,22 @@ class _DayEditorPageState extends State<DayEditorPage> {
     try {
       final plan = await _plans.byUuid(widget.planId);
       PlanDay? day;
-      CommonSection? section;
       if (plan != null) {
-        if (_isSection) {
-          for (final item in plan.commonSections) {
-            if (item.sectionId == widget.sectionId) {
-              section = item;
-              break;
-            }
-          }
-        } else {
-          for (final item in plan.days) {
-            if (item.dayId == widget.dayId) {
-              day = item;
-              break;
-            }
+        for (final item in plan.days) {
+          if (item.dayId == widget.dayId) {
+            day = item;
+            break;
           }
         }
       }
       if (!mounted || id != _loadId) return;
-      if (section != null) {
-        _titleController.text = section.title;
-      } else if (day != null) {
+      if (day != null) {
         _titleController.text = day.title;
         _summaryController.text = day.summary;
       }
       setState(() {
         _plan = plan;
         _day = day;
-        _section = section;
         _loading = false;
         _error = null;
       });
@@ -118,10 +92,8 @@ class _DayEditorPageState extends State<DayEditorPage> {
       if (!mounted || id != _loadId) return;
       setState(() {
         _loading = false;
-        if (_day == null && _section == null) {
-          _error = _isSection
-              ? 'Could not load this section.'
-              : 'Could not load this day.';
+        if (_day == null) {
+          _error = 'Could not load this day.';
         }
       });
     }
@@ -135,21 +107,18 @@ class _DayEditorPageState extends State<DayEditorPage> {
     _load();
   }
 
+  Future<void> _persistDay(PlanDay updated) async {
+    final plan = _plan;
+    if (plan == null) return;
+    plan.days = [
+      for (final item in plan.days)
+        if (item.dayId == updated.dayId) updated else item,
+    ];
+    await _plans.save(plan);
+    await _load();
+  }
+
   Future<void> _persistBlocks(List<ExerciseBlock> blocks) async {
-    if (_isSection) {
-      final section = _section;
-      if (section == null) return;
-      await _persistSection(
-        CommonSection.create(
-          sectionId: section.sectionId,
-          title: _titleController.text.trim().isEmpty
-              ? section.title
-              : _titleController.text.trim(),
-          blocks: blocks,
-        ),
-      );
-      return;
-    }
     final day = _day;
     if (day == null) return;
     await _persistDay(
@@ -164,28 +133,6 @@ class _DayEditorPageState extends State<DayEditorPage> {
     );
   }
 
-  Future<void> _persistDay(PlanDay updated) async {
-    final plan = _plan;
-    if (plan == null) return;
-    plan.days = [
-      for (final item in plan.days)
-        if (item.dayId == updated.dayId) updated else item,
-    ];
-    await _plans.save(plan);
-    await _load();
-  }
-
-  Future<void> _persistSection(CommonSection updated) async {
-    final plan = _plan;
-    if (plan == null) return;
-    plan.commonSections = [
-      for (final item in plan.commonSections)
-        if (item.sectionId == updated.sectionId) updated else item,
-    ];
-    await _plans.save(plan);
-    await _load();
-  }
-
   Future<void> _saveAndClose() async {
     await _persistBlocks(List<ExerciseBlock>.from(_blocks));
     if (!mounted) return;
@@ -193,10 +140,11 @@ class _DayEditorPageState extends State<DayEditorPage> {
   }
 
   Future<void> _addOrEditBlock({ExerciseBlock? existing, int? index}) async {
-    if (_day == null && _section == null) return;
+    if (_day == null) return;
     final result = await showExerciseBlockDialog(
       context,
       existing: existing,
+      goalIds: _plan?.goalIds ?? const [],
     );
     if (result == null) return;
     final blocks = List<ExerciseBlock>.from(_blocks);
@@ -209,18 +157,18 @@ class _DayEditorPageState extends State<DayEditorPage> {
   }
 
   Future<void> _deleteBlock(int index) async {
-    if (_day == null && _section == null) return;
+    if (_day == null) return;
     final blocks = List<ExerciseBlock>.from(_blocks)..removeAt(index);
     await _persistBlocks(blocks);
   }
 
   @override
   Widget build(BuildContext context) {
-    final ready = _isSection ? _section != null : _day != null;
+    final ready = _day != null;
     return Scaffold(
       appBar: AppBar(
         title: Text(
-          _heading,
+          _day?.title ?? 'Day',
           style: titleTextStyle,
           overflow: TextOverflow.ellipsis,
         ),
@@ -249,27 +197,22 @@ class _DayEditorPageState extends State<DayEditorPage> {
           : _loading && !ready
               ? const Center(child: CircularProgressIndicator())
               : !ready
-                  ? Center(
-                      child: AppText(
-                        _isSection
-                            ? 'This section is no longer here.'
-                            : 'This day is no longer here.',
-                      ),
+                  ? const Center(
+                      child: AppText('This day is no longer here.'),
                     )
                   : ListView(
                       padding: const EdgeInsets.fromLTRB(20, 12, 20, 88),
                       children: [
                         AppTextField(
-                          label: _isSection ? 'section title' : 'day title',
+                          label: 'day title',
                           controller: _titleController,
                         ),
-                        if (!_isSection)
-                          AppTextField(
-                            label: 'day summary',
-                            hint: 'which muscles this day trains…',
-                            maxLines: 2,
-                            controller: _summaryController,
-                          ),
+                        AppTextField(
+                          label: 'day summary',
+                          hint: 'which muscles this day trains…',
+                          maxLines: 2,
+                          controller: _summaryController,
+                        ),
                         const SizedBox(height: 8),
                         if (_blocks.isEmpty) ...[
                           const Padding(

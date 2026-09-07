@@ -1,8 +1,10 @@
 import 'dart:convert';
 
 import '../common/exercise_asset_catalog.dart';
+import '../domain/common_section_migration.dart';
 import '../domain/models/models.dart';
 import '../domain/new_id.dart';
+import '../domain/plan_catalog.dart';
 
 /// Thrown when a JSON file cannot be turned into a [WorkoutPlan].
 ///
@@ -16,6 +18,17 @@ class PlanImportException implements Exception {
   String toString() => message;
 }
 
+/// Parsed import plus titles that used to be `common-plan` sections.
+class JsonPlanImport {
+  const JsonPlanImport({
+    required this.plan,
+    this.convertedCommonSectionTitles = const [],
+  });
+
+  final WorkoutPlan plan;
+  final List<String> convertedCommonSectionTitles;
+}
+
 /// Maps v1 import JSON (`name`, `basic-plan`, `common-plan`) onto [WorkoutPlan].
 class JsonPlanImporter {
   const JsonPlanImporter({
@@ -27,7 +40,9 @@ class JsonPlanImporter {
   final DateTime Function()? clock;
 
   /// Parses [source] into a new imported plan. Nested ids are generated here.
-  WorkoutPlan import(String source) {
+  WorkoutPlan import(String source) => importDetailed(source).plan;
+
+  JsonPlanImport importDetailed(String source) {
     final Object? decoded;
     try {
       decoded = jsonDecode(source);
@@ -62,14 +77,25 @@ class JsonPlanImporter {
       }
     }
 
+    final convertedTitles = [
+      for (final section in commonSections) section.title,
+    ];
     final now = (clock ?? DateTime.now)().toUtc();
-    return WorkoutPlan.create(
-      title: title,
-      source: PlanSource.imported,
-      createdAt: now,
-      updatedAt: now,
-      days: days,
-      commonSections: commonSections,
+    return JsonPlanImport(
+      plan: WorkoutPlan.create(
+        title: title,
+        description: _optionalString(root['description']),
+        goalIds: canonicalizeGoalIds(_stringList(root['goals'])),
+        source: PlanSource.imported,
+        status: PlanStatus.active,
+        createdAt: now,
+        updatedAt: now,
+        days: migrateCommonSectionsToDays(
+          days: days,
+          sections: commonSections,
+        ),
+      ),
+      convertedCommonSectionTitles: convertedTitles,
     );
   }
 
@@ -201,12 +227,18 @@ class JsonPlanImporter {
       );
     }
 
+    final rawAreas = json['target-areas'];
+    final targetAreaIds = rawAreas == null
+        ? catalogTargetAreaIdsForTitle(title)
+        : canonicalizeTargetAreaIds(_stringList(rawAreas));
+
     return ExercisePrescription.create(
       prescriptionId: newId(),
       title: title,
       prescribedSets: sets,
       prescribedReps: reps,
       prescribedDurationSeconds: duration,
+      targetAreaIds: targetAreaIds,
     );
   }
 }
@@ -229,6 +261,20 @@ String _requiredString(Object? value, String message) {
     throw PlanImportException(message);
   }
   return value.trim();
+}
+
+String _optionalString(Object? value) {
+  if (value is! String) return '';
+  return value.trim();
+}
+
+List<String> _stringList(Object? value) {
+  if (value == null) return const [];
+  if (value is! List) return const [];
+  return [
+    for (final item in value)
+      if (item is String && item.trim().isNotEmpty) item.trim(),
+  ];
 }
 
 int? _asInt(Object? value, String what) {

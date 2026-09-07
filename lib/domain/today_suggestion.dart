@@ -19,18 +19,13 @@ class TodaySuggestion {
   final String prompt;
 }
 
-/// True when Start would copy at least one block, or commons can fill a session.
+/// True when Start would copy at least one block.
 bool dayCanStart(WorkoutPlan plan, PlanDay day) =>
-    day.blocks.isNotEmpty || plan.commonSections.isNotEmpty;
+    plan.status == PlanStatus.active && day.blocks.isNotEmpty;
 
 String firstExerciseTitle(PlanDay day, WorkoutPlan plan) {
   for (final block in day.blocks) {
     if (block.exercises.isNotEmpty) return block.exercises.first.title;
-  }
-  for (final section in plan.commonSections) {
-    for (final block in section.blocks) {
-      if (block.exercises.isNotEmpty) return block.exercises.first.title;
-    }
   }
   return 'your first exercise';
 }
@@ -54,6 +49,7 @@ TodaySuggestion? suggestToday({
 }) {
   WorkoutPlan? plan;
   for (final item in plans) {
+    if (item.status != PlanStatus.active) continue;
     if (item.days.any((day) => dayCanStart(item, day))) {
       plan = item;
       break;
@@ -141,7 +137,7 @@ class HomeOverview {
 }
 
 /// One read for the home screen. Suggestion math stays [suggestToday].
-Future<HomeOverview> loadHomeOverview({
+  Future<HomeOverview> loadHomeOverview({
   required PlanRepository plans,
   required SessionRepository sessions,
   DateTime? now,
@@ -153,7 +149,10 @@ Future<HomeOverview> loadHomeOverview({
     plans: items,
     live: live,
     today: suggestToday(
-      plans: items,
+      plans: [
+        for (final plan in items)
+          if (plan.status == PlanStatus.active) plan,
+      ],
       completedNewestFirst: completed,
       now: now,
     ),

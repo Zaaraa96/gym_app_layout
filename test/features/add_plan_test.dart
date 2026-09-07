@@ -11,7 +11,6 @@ import 'package:gym_app/main.dart';
 
 import '../helpers/isar_core.dart';
 
-/// Saving a new plan must write a [WorkoutPlan] and open it for day-by-day editing.
 void main() {
   Directory? tempDir;
   var instanceSeq = 0;
@@ -31,7 +30,7 @@ void main() {
   tearDownAll(() async {
     final dir = tempDir;
     if (dir != null && dir.existsSync()) {
-      await dir.delete(recursive: true);
+      dir.deleteSync(recursive: true);
     }
   });
 
@@ -63,58 +62,63 @@ void main() {
     await settle(tester);
   }
 
-  testWidgets('save writes the plan and opens the plans home', (tester) async {
+  testWidgets('builder writes a draft immediately and keeps an empty name invalid',
+      (tester) async {
     final plans = await bootstrap(tester);
     await launch(tester, AppRoutes.newPlan);
 
-    await tester.enterText(find.byType(TextFormField).first, '  Push  ');
-    await tester.enterText(find.byType(TextFormField).at(1), 'chest and triceps');
-    await tester.tap(find.text('save'));
+    expect(find.text('Create plan'), findsOneWidget);
+    expect(find.byKey(const Key('plan-builder-stepper')), findsOneWidget);
+
+    final stored = await db(tester, plans.all);
+    expect(stored, hasLength(1));
+    expect(stored.single.status, PlanStatus.draft);
+    expect(stored.single.title, isEmpty);
+
+    await tester.tap(find.byKey(const Key('continue-plan-details')));
+    await tester.pump();
+    expect(find.byKey(const Key('plan-name-field')), findsOneWidget);
+  });
+
+  testWidgets('create plan activates a completed draft', (tester) async {
+    final plans = await bootstrap(tester);
+    await launch(tester, AppRoutes.newPlan);
+
+    await tester.enterText(find.byKey(const Key('plan-name-field')), '  Push  ');
+    await tester.pump();
+    await tester.tap(find.byKey(const Key('continue-plan-details')));
+    await tester.pump();
+    await settle(tester);
+
+    await tester.tap(find.text('Add exercise or superset'));
+    await tester.pump();
+    await tester.enterText(
+      find.descendant(
+        of: find.byType(AlertDialog),
+        matching: find.byType(TextFormField),
+      ).first,
+      'squat',
+    );
+    await tester.tap(find.text('Save exercise'));
+    await tester.pump();
+    await settle(tester);
+
+    await tester.tap(find.text('CONTINUE').last);
+    await tester.pump();
+    await settle(tester);
+
+    expect(find.text('CREATE PLAN'), findsOneWidget);
+    await tester.tap(find.byKey(const Key('create-plan')));
     await tester.pump();
     await settle(tester);
 
     expect(Get.currentRoute, AppRoutes.plan);
     expect(find.text('Push'), findsWidgets);
-    expect(find.text('Day 1'), findsOneWidget);
-    expect(find.text('chest and triceps'), findsWidgets);
 
     final stored = await db(tester, plans.all);
-    expect(stored, hasLength(1));
     expect(stored.single.title, 'Push');
+    expect(stored.single.status, PlanStatus.active);
     expect(stored.single.source, PlanSource.created);
-    expect(stored.single.days.single.summary, 'chest and triceps');
-    final now = DateTime.now().toUtc();
-    expect(
-      stored.single.createdAt.toUtc().difference(now).abs(),
-      lessThan(const Duration(seconds: 5)),
-    );
-    expect(
-      stored.single.updatedAt.toUtc().difference(now).abs(),
-      lessThan(const Duration(seconds: 5)),
-    );
-  });
-
-  testWidgets('save without a title stays on the form', (tester) async {
-    await bootstrap(tester);
-    await launch(tester, AppRoutes.newPlan);
-
-    await tester.tap(find.text('save'));
-    await tester.pump();
-
-    expect(find.text('Add a title before saving'), findsOneWidget);
-    expect(Get.currentRoute, AppRoutes.newPlan);
-  });
-
-  testWidgets('whitespace-only title is treated as empty', (tester) async {
-    await bootstrap(tester);
-    await launch(tester, AppRoutes.newPlan);
-
-    await tester.enterText(find.byType(TextFormField).first, '   ');
-    await tester.tap(find.text('save'));
-    await tester.pump();
-
-    expect(find.text('Add a title before saving'), findsOneWidget);
-    expect(Get.currentRoute, AppRoutes.newPlan);
-    expect(await db(tester, Get.find<PlanRepository>().all), isEmpty);
+    expect(stored.single.days.single.blocks, isNotEmpty);
   });
 }

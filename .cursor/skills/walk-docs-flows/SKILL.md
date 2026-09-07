@@ -76,11 +76,11 @@ Match `docs/user-journey.md` plus the locked UX in `docs/product-plan.md` Step 3
 
 - Welcome only when plan count is 0; three actions; later launches go to Plans
 - Same beginner title twice reuses the stored plan; populated Plans shows **Beginner** (empty home shows **Start with a beginner plan**)
-- Blank created plan: empty Day 1; Start disabled until a block exists **or** a common section exists
+- Blank created plan: empty Day 1; Start disabled until a block exists
 - Invalid JSON: readable error; valid `assets/json/plan.json` preview then save
 - Bottom nav on the home shell only
 - Plan overflow **Delete plan**; confirm copy says logged workouts stay on Month; sessions remain
-- Commons sheet default **off**; in-progress conflict: Resume / Abandon and start / Cancel
+- In-progress conflict: Resume / Abandon and start / Cancel
 - Live: session is a snapshot; supersets alternate; rest is manual and not saved; rate 1–5 after prescribed sets; all rated → complete; Finish vs Discard
 - Month: dots ignore abandoned; trends per `exerciseTitleKey`
 

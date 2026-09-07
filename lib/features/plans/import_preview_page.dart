@@ -10,10 +10,15 @@ import '../../domain/models/models.dart';
 import 'block_summary.dart';
 
 class ImportPreviewArgs {
-  const ImportPreviewArgs({required this.fileName, required this.plan});
+  const ImportPreviewArgs({
+    required this.fileName,
+    required this.plan,
+    this.convertedCommonSectionTitles = const [],
+  });
 
   final String fileName;
   final WorkoutPlan plan;
+  final List<String> convertedCommonSectionTitles;
 }
 
 /// Confirm a parsed import before it is written to Isar.
@@ -23,11 +28,13 @@ class ImportPreviewPage extends StatefulWidget {
     required this.fileName,
     required this.plan,
     required this.ports,
+    this.convertedCommonSectionTitles = const [],
   });
 
   final String fileName;
   final WorkoutPlan plan;
   final AppPorts ports;
+  final List<String> convertedCommonSectionTitles;
 
   @override
   State<ImportPreviewPage> createState() => _ImportPreviewPageState();
@@ -77,17 +84,17 @@ class _ImportPreviewPageState extends State<ImportPreviewPage> {
                 AppText(plan.title, style: titleTextStyle),
                 const SizedBox(height: 16),
                 ...plan.days.map(_dayTile),
-                if (plan.commonSections.isNotEmpty) ...[
+                if (widget.convertedCommonSectionTitles.isNotEmpty) ...[
                   const SizedBox(height: 12),
-                  const AppText('Common sections', style: dataTextStyle),
+                  const AppText(
+                    'Former common sections',
+                    style: dataTextStyle,
+                  ),
                   const SizedBox(height: 8),
-                  Wrap(
-                    spacing: 8,
-                    runSpacing: 8,
-                    children: [
-                      for (final section in plan.commonSections)
-                        Chip(label: Text(section.title)),
-                    ],
+                  AppText(
+                    'These used to be optional extras. They are now regular '
+                    'days: ${widget.convertedCommonSectionTitles.join(', ')}.',
+                    style: subtitleTextStyle,
                   ),
                 ],
               ],

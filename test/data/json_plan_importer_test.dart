@@ -17,10 +17,9 @@ void main() {
     expect(plan.title, 'plan 1');
     expect(plan.source, PlanSource.imported);
     expect(plan.createdAt, DateTime.utc(2026, 8, 26, 12));
-    expect(plan.days, hasLength(1));
-    expect(plan.commonSections, hasLength(2));
+    expect(plan.days, hasLength(3));
 
-    final day = plan.days.single;
+    final day = plan.days.first;
     expect(day.dayId, isNotEmpty);
     expect(day.title, 'day 1- 4sar');
     expect(day.blocks, hasLength(2));
@@ -41,7 +40,7 @@ void main() {
     expect(single.exercises.single.title, 'reverse lunges+ Press');
     expect(single.exercises.single.prescribedReps, 12);
 
-    final abs = plan.commonSections[0];
+    final abs = plan.days[1];
     expect(abs.title, 'abs');
     expect(abs.blocks.single.kind, BlockKind.single);
     expect(abs.blocks.single.svgPath, 'assets/image/exercises/shoot-out.png');
@@ -50,16 +49,17 @@ void main() {
     expect(abs.blocks.single.exercises.single.prescribedReps, isNull);
     expect(abs.blocks.single.exercises.single.prescribedDurationSeconds, 30);
 
-    expect(plan.commonSections[1].title, 'corrective');
+    expect(plan.days[2].title, 'corrective');
     expect(
-      plan.commonSections[1].blocks.single.svgPath,
+      plan.days[2].blocks.single.svgPath,
       'assets/image/exercises/step-lunge-stretch.png',
     );
   });
 
   test('ignores the informational days count', () {
     final plan = importer.import(_sampleJson);
-    expect(plan.days, hasLength(1));
+    expect(plan.days.first.title, 'day 1- 4sar');
+    expect(plan.days.map((day) => day.title), containsAll(['abs', 'corrective']));
   });
 
   test('rejects a trailing comma with a readable error', () {
@@ -209,8 +209,7 @@ void main() {
   }]
 }
 ''');
-    expect(plan.commonSections, isEmpty);
-    expect(plan.days.single.blocks.single.exercises.single.title, 'squat');
+    expect(plan.days, hasLength(1));
   });
 
   test('empty common-plan is valid and common-section errors are UI-safe', () {
@@ -227,7 +226,7 @@ void main() {
   "common-plan": []
 }
 ''');
-    expect(emptyCommons.commonSections, isEmpty);
+    expect(emptyCommons.days, hasLength(1));
 
     expect(
       () => importer.import('''
@@ -837,13 +836,14 @@ void main() {
     expect(plan.days.single.title, 'Day One');
     expect(plan.days.single.blocks.single.exercises.single.title, 'Mystery Move');
     expect(plan.days.single.blocks.single.svgPath, isNull);
-    expect(plan.commonSections.single.title, 'Abs');
+    expect(plan.days, hasLength(2));
+    expect(plan.days.last.title, 'Abs');
     expect(
-      plan.commonSections.single.blocks.single.exercises.single.title,
+      plan.days.last.blocks.single.exercises.single.title,
       'plank',
     );
     expect(
-      plan.commonSections.single.blocks.single.svgPath,
+      plan.days.last.blocks.single.svgPath,
       'assets/image/exercises/plank.png',
     );
   });
@@ -922,9 +922,68 @@ void main() {
   "common-plan": []
 }
 ''');
-    expect(plan.commonSections, isEmpty);
     expect(plan.days, hasLength(1));
     expect(plan.days.single.blocks.single.exercises.single.title, 'squat');
+  });
+
+  test('optional goals and target-areas are additive', () {
+    final plan = importer.import('''
+{
+  "name": "Goals plan",
+  "goals": ["build-strength", "mystery"],
+  "description": "Heavy days",
+  "basic-plan": [{
+    "name": "day 1",
+    "exercises": [{
+      "type": "single",
+      "exercise": {
+        "title": "bench press",
+        "sets": 4,
+        "times": 6,
+        "target-areas": ["chest", "triceps"]
+      }
+    }]
+  }]
+}
+''');
+    expect(plan.goalIds, ['build-strength']);
+    expect(plan.description, 'Heavy days');
+    expect(
+      plan.days.single.blocks.single.exercises.single.targetAreaIds,
+      ['chest', 'triceps'],
+    );
+  });
+
+  test('omitted target-areas auto-fill from the catalog', () {
+    final plan = importer.import('''
+{
+  "name": "Auto",
+  "basic-plan": [{
+    "name": "day 1",
+    "exercises": [{
+      "type": "single",
+      "exercise": { "title": "bench press", "sets": 3, "times": 8 }
+    }]
+  }]
+}
+''');
+    expect(
+      plan.days.single.blocks.single.exercises.single.targetAreaIds,
+      ['chest', 'triceps', 'front-shoulders'],
+    );
+  });
+
+  test('legacy common-plan becomes extra days and is listed on the detailed import',
+      () {
+    final imported = importer.importDetailed(_sampleJson);
+    expect(
+      imported.convertedCommonSectionTitles,
+      ['abs', 'corrective'],
+    );
+    expect(
+      imported.plan.days.map((day) => day.title),
+      containsAll(['abs', 'corrective']),
+    );
   });
 }
 
