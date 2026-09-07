@@ -219,7 +219,7 @@ WorkoutPlan _workoutPlanDeserialize(
           PlanSource.imported;
   object.status =
       _WorkoutPlanstatusValueEnumMap[reader.readByteOrNull(offsets[7])] ??
-          PlanStatus.draft;
+          PlanStatus.active;
   object.title = reader.readString(offsets[8]);
   object.updatedAt = reader.readDateTime(offsets[9]);
   object.uuid = reader.readString(offsets[10]);
@@ -262,7 +262,7 @@ P _workoutPlanDeserializeProp<P>(
           PlanSource.imported) as P;
     case 7:
       return (_WorkoutPlanstatusValueEnumMap[reader.readByteOrNull(offset)] ??
-          PlanStatus.draft) as P;
+          PlanStatus.active) as P;
     case 8:
       return (reader.readString(offset)) as P;
     case 9:
@@ -283,12 +283,12 @@ const _WorkoutPlansourceValueEnumMap = {
   1: PlanSource.created,
 };
 const _WorkoutPlanstatusEnumValueMap = {
-  'draft': 0,
-  'active': 1,
+  'active': 0,
+  'draft': 1,
 };
 const _WorkoutPlanstatusValueEnumMap = {
-  0: PlanStatus.draft,
-  1: PlanStatus.active,
+  0: PlanStatus.active,
+  1: PlanStatus.draft,
 };
 
 Id _workoutPlanGetId(WorkoutPlan object) {

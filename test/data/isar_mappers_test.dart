@@ -223,4 +223,52 @@ void main() {
     expect(restored.days.map((day) => day.title), ['abs', 'abs (extras)']);
     expect(restored.days.last.blocks.single.exercises.single.title, 'plank');
   });
+
+  test('missing PlanStatus is active so pre-field rows stay startable', () {
+    expect(PlanStatus.values.first, PlanStatus.active);
+    expect(PlanStatus.active.index, 0);
+    expect(PlanStatus.draft.index, 1);
+
+    final now = DateTime.utc(2026, 9, 7);
+    final created = WorkoutPlan.create(
+      title: 'Imported before drafts',
+      source: PlanSource.imported,
+      createdAt: now,
+      updatedAt: now,
+      days: [
+        PlanDay.create(
+          dayId: 'day-1',
+          title: 'Day 1',
+          blocks: [
+            ExerciseBlock.create(
+              blockId: 'b',
+              kind: BlockKind.single,
+              exercises: [
+                ExercisePrescription.create(
+                  prescriptionId: 'p',
+                  title: 'squat',
+                  prescribedSets: 3,
+                  prescribedReps: 10,
+                ),
+              ],
+            ),
+          ],
+        ),
+      ],
+    );
+    expect(created.status, PlanStatus.active);
+    expect(planToIsar(created).status.index, 0);
+    expect(planFromIsar(planToIsar(created)).status, PlanStatus.active);
+
+    final row = isar_plan.WorkoutPlan()
+      ..id = 5
+      ..uuid = 'legacy-no-status'
+      ..dirty = false
+      ..title = 'Legacy'
+      ..source = PlanSource.imported
+      ..createdAt = now
+      ..updatedAt = now;
+    expect(row.status, PlanStatus.active);
+    expect(planFromIsar(row).status, PlanStatus.active);
+  });
 }

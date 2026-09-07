@@ -5,7 +5,11 @@ enum PlanSource { imported, created }
 ///
 /// Separate from [PlanSource]: a created plan can be a draft, and an imported
 /// plan is active.
-enum PlanStatus { draft, active }
+///
+/// [active] is first so a missing Isar byte (rows written before this field)
+/// deserializes as startable. Isar stores `status.index` and falls back to
+/// `PlanStatus.values.first` when the property is absent.
+enum PlanStatus { active, draft }
 
 /// A block is either one movement or a grouped superset.
 enum BlockKind { single, superset }

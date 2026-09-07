@@ -61,6 +61,7 @@ void main() {
     final loadedPlan = planFromIsar((await isar.workoutPlans.get(plan.id))!);
     expect(loadedPlan.title, 'plan 1');
     expect(loadedPlan.source, PlanSource.imported);
+    expect(loadedPlan.status, PlanStatus.active);
     expect(loadedPlan.days, hasLength(2));
 
     final day = loadedPlan.days.first;
