@@ -140,8 +140,7 @@ class PlanBuilderController extends ChangeNotifier {
   void reorderBlocks(String dayId, int oldIndex, int newIndex) {
     final day = _day(dayId);
     if (day == null) return;
-    var to = newIndex;
-    if (to > oldIndex) to -= 1;
+    final to = newIndex;
     final blocks = List<ExerciseBlock>.from(day.blocks);
     final item = blocks.removeAt(oldIndex);
     blocks.insert(to, item);

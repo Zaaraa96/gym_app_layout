@@ -603,7 +603,8 @@ class _PlanDetailsStep extends StatelessWidget {
           key: const Key('continue-plan-details'),
           onPressed: () {
             if (controller.plan.title.trim().isEmpty) {
-              SemanticsService.announce(
+              SemanticsService.sendAnnouncement(
+                View.of(context),
                 'Add a plan name.',
                 TextDirection.ltr,
               );
@@ -669,7 +670,7 @@ class _DayStep extends StatelessWidget {
             shrinkWrap: true,
             physics: const NeverScrollableScrollPhysics(),
             itemCount: day.blocks.length,
-            onReorder: (oldIndex, newIndex) =>
+            onReorderItem: (oldIndex, newIndex) =>
                 controller.reorderBlocks(day.dayId, oldIndex, newIndex),
             itemBuilder: (context, index) {
               final block = day.blocks[index];
@@ -707,7 +708,8 @@ class _DayStep extends StatelessWidget {
           key: Key('continue-day-${day.dayId}'),
           onPressed: () {
             if (issues.isNotEmpty) {
-              SemanticsService.announce(
+              SemanticsService.sendAnnouncement(
+                View.of(context),
                 issues.first.message,
                 TextDirection.ltr,
               );

@@ -66,6 +66,23 @@ void main() {
     expect((await plans.all()).single.status, PlanStatus.active);
   });
 
+  test('reorderBlocks uses onReorderItem indexes as-is', () async {
+    final plans = MemoryPlanRepository();
+    final controller = await PlanBuilderController.openNew(plans);
+    final dayId = controller.plan.days.single.dayId;
+    controller.setDayBlocks(dayId, [
+      ExerciseBlock.create(blockId: 'a', kind: BlockKind.single),
+      ExerciseBlock.create(blockId: 'b', kind: BlockKind.single),
+      ExerciseBlock.create(blockId: 'c', kind: BlockKind.single),
+    ]);
+    controller.reorderBlocks(dayId, 0, 2);
+    expect(
+      controller.plan.days.single.blocks.map((block) => block.blockId),
+      ['b', 'c', 'a'],
+    );
+    controller.dispose();
+  });
+
   test('today suggestion ignores drafts', () {
     final now = DateTime.utc(2026, 9, 7);
     final draft = WorkoutPlan.create(
