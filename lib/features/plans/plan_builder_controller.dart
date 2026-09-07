@@ -203,7 +203,9 @@ class PlanBuilderController extends ChangeNotifier {
     try {
       _plan.title = _plan.title.trim();
       _plan.description = _plan.description.trim();
-      _plan.status = PlanStatus.draft;
+      if (_plan.status != PlanStatus.active) {
+        _plan.status = PlanStatus.draft;
+      }
       await plans.save(_plan);
       saveStatus = DraftSaveStatus.saved;
       saveError = null;

@@ -62,6 +62,7 @@ void main() {
     ]);
     expect(planCanActivate(controller.plan), isTrue);
     expect(await controller.activate(), isTrue);
+    await controller.flush();
     expect((await plans.all()).single.status, PlanStatus.active);
   });
 

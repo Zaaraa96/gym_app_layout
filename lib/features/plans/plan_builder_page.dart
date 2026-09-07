@@ -68,7 +68,9 @@ class _PlanBuilderPageState extends State<PlanBuilderPage>
   }
 
   void unawaitedFlush(PlanBuilderController controller) {
-    controller.flush();
+    if (controller.plan.status != PlanStatus.active) {
+      controller.flush();
+    }
     controller.dispose();
   }
 
@@ -154,11 +156,7 @@ class _PlanBuilderPageState extends State<PlanBuilderPage>
   Future<void> _leave() async {
     await _controller?.flush();
     if (!mounted) return;
-    if (Navigator.of(context).canPop()) {
-      Get.back();
-    } else {
-      Get.offAllNamed(AppRoutes.home);
-    }
+    Get.offAllNamed(AppRoutes.home);
   }
 
   Future<void> _create() async {

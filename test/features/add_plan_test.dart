@@ -82,6 +82,7 @@ void main() {
       ),
     ]);
     expect(await controller.activate(), isTrue);
+    await controller.flush();
     final stored = (await plans.all()).single;
     expect(stored.title, 'Push');
     expect(stored.status, PlanStatus.active);
