@@ -57,7 +57,8 @@ void main() {
     );
   }
 
-  test('start snapshots day blocks then included common sections', () async {
+  test('start snapshots day blocks and does not append common sections',
+      () async {
     final db = await open();
     final plan = _plan();
     await db.plans.save(plan);
@@ -79,13 +80,11 @@ void main() {
     expect(session.exerciseLogs.map((l) => l.exerciseTitle), [
       'kang squat',
       'leg extension',
-      'shoot out',
     ]);
     expect(session.exerciseLogs[0].fromCommonSection, isFalse);
     expect(session.exerciseLogs[0].blockKind, BlockKind.superset);
-    expect(session.exerciseLogs[2].fromCommonSection, isTrue);
-    expect(session.exerciseLogs[2].prescribedDurationSeconds, 30);
-    expect(session.exerciseLogs[2].exerciseTitleKey, 'shoot out');
+    expect(session.exerciseLogs.every((log) => log.fromCommonSection == false),
+        isTrue);
   });
 
   test('inProgress returns the live session and ignore abandoned', () async {
@@ -373,8 +372,7 @@ void main() {
     );
   });
 
-  test('unknown common section ids are skipped and omitted commons stay out',
-      () async {
+  test('common-section ids never add exercises to a new session', () async {
     final db = await open();
     final plan = _plan();
     await db.plans.save(plan);
@@ -401,7 +399,7 @@ void main() {
     );
     expect(
       withUnknown.exerciseLogs.map((l) => l.exerciseTitle),
-      ['kang squat', 'leg extension', 'shoot out'],
+      ['kang squat', 'leg extension'],
     );
     expect(withUnknown.includedCommonSectionIds, ['sec-abs', 'sec-missing']);
   });

@@ -67,7 +67,17 @@ void main() {
       loadAsset: load,
     );
     expect(first.title, starterFullBody.title);
-    expect(first.days, hasLength(3));
+    expect(first.days, hasLength(5));
+    expect(
+      first.days.map((day) => day.title),
+      [
+        'Day 1 — Squat and push',
+        'Day 2 — Hinge and pull',
+        'Day 3 — Lunge and core',
+        'abs',
+        'mobility',
+      ],
+    );
     expect(first.id, greaterThan(0));
 
     final second = await installStarterPlan(
