@@ -13,9 +13,9 @@ extension GetWorkoutSessionCollection on Isar {
   IsarCollection<WorkoutSession> get workoutSessions => this.collection();
 }
 
-const WorkoutSessionSchema = CollectionSchema(
+final WorkoutSessionSchema = CollectionSchema(
   name: r'WorkoutSession',
-  id: 3465719098422617094,
+  id: int.parse('3465719098422617094'),
   properties: {
     r'dayTitleSnapshot': PropertySchema(
       id: 0,
@@ -87,7 +87,7 @@ const WorkoutSessionSchema = CollectionSchema(
   idName: r'id',
   indexes: {
     r'uuid': IndexSchema(
-      id: 2134397340427724972,
+      id: int.parse('2134397340427724972'),
       name: r'uuid',
       unique: false,
       replace: false,
@@ -100,7 +100,7 @@ const WorkoutSessionSchema = CollectionSchema(
       ],
     ),
     r'planId': IndexSchema(
-      id: 7282644713036731817,
+      id: int.parse('7282644713036731817'),
       name: r'planId',
       unique: false,
       replace: false,
@@ -113,7 +113,7 @@ const WorkoutSessionSchema = CollectionSchema(
       ],
     ),
     r'startedAt': IndexSchema(
-      id: 8114395319341636597,
+      id: int.parse('8114395319341636597'),
       name: r'startedAt',
       unique: false,
       replace: false,
@@ -2328,9 +2328,9 @@ extension WorkoutSessionQueryProperty
 // coverage:ignore-file
 // ignore_for_file: duplicate_ignore, non_constant_identifier_names, constant_identifier_names, invalid_use_of_protected_member, unnecessary_cast, prefer_const_constructors, lines_longer_than_80_chars, require_trailing_commas, inference_failure_on_function_invocation, unnecessary_parenthesis, unnecessary_raw_strings, unnecessary_null_checks, join_return_with_assignment, prefer_final_locals, avoid_js_rounded_ints, avoid_positional_boolean_parameters, always_specify_types
 
-const ExerciseLogSchema = Schema(
+final ExerciseLogSchema = Schema(
   name: r'ExerciseLog',
-  id: 6307021889001100190,
+  id: int.parse('6307021889001100190'),
   properties: {
     r'blockId': PropertySchema(
       id: 0,
@@ -3612,9 +3612,9 @@ extension ExerciseLogQueryObject
 // coverage:ignore-file
 // ignore_for_file: duplicate_ignore, non_constant_identifier_names, constant_identifier_names, invalid_use_of_protected_member, unnecessary_cast, prefer_const_constructors, lines_longer_than_80_chars, require_trailing_commas, inference_failure_on_function_invocation, unnecessary_parenthesis, unnecessary_raw_strings, unnecessary_null_checks, join_return_with_assignment, prefer_final_locals, avoid_js_rounded_ints, avoid_positional_boolean_parameters, always_specify_types
 
-const SetLogSchema = Schema(
+final SetLogSchema = Schema(
   name: r'SetLog',
-  id: 7663625254499761518,
+  id: int.parse('7663625254499761518'),
   properties: {
     r'completedAt': PropertySchema(
       id: 0,

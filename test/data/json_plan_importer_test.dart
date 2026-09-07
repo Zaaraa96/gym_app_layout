@@ -833,10 +833,10 @@ void main() {
 ''');
 
     expect(plan.title, 'Imported Plan');
-    expect(plan.days.single.title, 'Day One');
-    expect(plan.days.single.blocks.single.exercises.single.title, 'Mystery Move');
-    expect(plan.days.single.blocks.single.svgPath, isNull);
     expect(plan.days, hasLength(2));
+    expect(plan.days.first.title, 'Day One');
+    expect(plan.days.first.blocks.single.exercises.single.title, 'Mystery Move');
+    expect(plan.days.first.blocks.single.svgPath, isNull);
     expect(plan.days.last.title, 'Abs');
     expect(
       plan.days.last.blocks.single.exercises.single.title,

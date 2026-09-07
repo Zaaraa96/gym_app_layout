@@ -100,6 +100,10 @@ void main() {
 
   testWidgets('stepper shows complete, current, incomplete, and untouched',
       (tester) async {
+    tester.view.physicalSize = const Size(800, 1400);
+    tester.view.devicePixelRatio = 1;
+    addTearDown(tester.view.resetPhysicalSize);
+
     final plans = MemoryPlanRepository();
     final now = DateTime.utc(2026, 9, 7);
     final plan = WorkoutPlan.create(
@@ -151,7 +155,7 @@ void main() {
     expect(find.text('Upper'), findsWidgets);
     expect(find.text('Add at least one exercise.'), findsWidgets);
 
-    await tester.tap(find.text('Plan details'));
+    await tester.tap(find.byKey(const Key('step-details')));
     await tester.pump();
     expect(find.text('Needs attention'), findsWidgets);
     expect(find.text('Review & create'), findsOneWidget);

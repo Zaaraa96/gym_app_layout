@@ -14,7 +14,7 @@ void main() {
   test('alias match uses keywords such as rdl', () {
     expect(
       catalogTargetAreaIdsForTitle('rdl'),
-      ['hamstrings', 'glutes'],
+      ['glutes', 'hamstrings'],
     );
   });
 

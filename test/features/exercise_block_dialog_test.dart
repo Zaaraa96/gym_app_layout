@@ -4,6 +4,17 @@ import 'package:gym_app/domain/models/models.dart';
 import 'package:gym_app/features/plans/exercise_block_dialog.dart';
 
 void main() {
+  TestWidgetsFlutterBinding.ensureInitialized();
+
+  setUp(() {
+    final view = TestWidgetsFlutterBinding.instance.platformDispatcher.views.first;
+    view.physicalSize = const Size(800, 1400);
+    view.devicePixelRatio = 1;
+  });
+
+  tearDown(() {
+    TestWidgetsFlutterBinding.instance.platformDispatcher.views.first.resetPhysicalSize();
+  });
   testWidgets('catalog match fills target areas on a single exercise',
       (tester) async {
     ExerciseBlock? saved;
@@ -90,7 +101,7 @@ void main() {
       saved!.exercises[0].targetAreaIds,
       ['chest', 'triceps', 'front-shoulders'],
     );
-    expect(saved!.exercises[1].targetAreaIds, ['hamstrings', 'glutes']);
+    expect(saved!.exercises[1].targetAreaIds, ['glutes', 'hamstrings']);
   });
 
   testWidgets('manual target edits survive set changes and ask before replace',

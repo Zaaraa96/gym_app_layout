@@ -69,6 +69,9 @@ void main() {
   Future<void> settle(WidgetTester tester) => settleApp(tester);
 
   Future<void> launch(WidgetTester tester, String route) async {
+    tester.view.physicalSize = const Size(800, 1600);
+    tester.view.devicePixelRatio = 1;
+    addTearDown(tester.view.resetPhysicalSize);
     await tester.pumpWidget(MyApp(initialRoute: route));
     await tester.pump(const Duration(milliseconds: 100));
     await settle(tester);

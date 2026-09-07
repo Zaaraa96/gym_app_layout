@@ -201,6 +201,8 @@ class PlanBuilderController extends ChangeNotifier {
     saveError = null;
     if (!_disposed) notifyListeners();
     try {
+      _plan.title = _plan.title.trim();
+      _plan.description = _plan.description.trim();
       _plan.status = PlanStatus.draft;
       await plans.save(_plan);
       saveStatus = DraftSaveStatus.saved;

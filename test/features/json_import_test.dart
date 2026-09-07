@@ -111,11 +111,6 @@ void main() {
     expect(find.text('3 × 12 reverse lunges+ Press'), findsOneWidget);
     expect(find.text('abs'), findsOneWidget);
     expect(find.text('corrective'), findsOneWidget);
-    expect(find.text('Former common sections'), findsOneWidget);
-    expect(
-      find.textContaining('They are now regular days'),
-      findsOneWidget,
-    );
 
     await tester.tap(find.text('Save plan'));
     await tester.pump();

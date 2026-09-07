@@ -1,3 +1,5 @@
+import 'dart:io';
+
 import 'package:flutter_test/flutter_test.dart';
 import 'package:get/get.dart';
 import 'package:gym_app/data/app_ports.dart';
@@ -15,13 +17,27 @@ import 'package:isar/isar.dart';
 /// [IsarError] means the library is already loaded. Anything else (network,
 /// permissions) fails here instead of looking like a later [Isar.open] bug.
 Future<void> ensureIsarCore() async {
+  final bundled = _copyBundledLinuxIsarIfNeeded();
   try {
-    await Isar.initializeIsarCore(download: true);
+    await Isar.initializeIsarCore(download: !bundled);
   } on IsarError {
     // Already loaded for this process.
   } catch (error, stack) {
     fail('Could not load the Isar native library: $error\n$stack');
   }
+}
+
+bool _copyBundledLinuxIsarIfNeeded() {
+  if (!Platform.isLinux) return false;
+  final dest = File('${Directory.current.path}/libisar.so');
+  if (dest.existsSync()) return true;
+  final home = Platform.environment['HOME'] ?? '';
+  final bundled = File(
+    '$home/.pub-cache/hosted/pub.dev/isar_flutter_libs-3.1.0+1/linux/libisar.so',
+  );
+  if (!bundled.existsSync()) return false;
+  bundled.copySync(dest.path);
+  return true;
 }
 
 PlanRepository putPlans(Isar isar) {
