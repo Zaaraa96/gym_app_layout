@@ -74,7 +74,11 @@ void main() {
     expect(day.blocks[0].exercises.first.prescribedReps, 12);
     expect(day.blocks[0].exercises.first.prescribedDurationSeconds, isNull);
     expect(day.blocks[1].kind, BlockKind.single);
-    expect(day.blocks[1].svgPath, 'assets/image/upper-body.svg');
+    expect(day.blocks[1].svgPath, isNull);
+    expect(
+      day.blocks[1].exercises.single.svgPath,
+      'assets/image/upper-body.svg',
+    );
 
     final abs = loadedPlan.days.last;
     expect(abs.dayId, 'sec-abs');

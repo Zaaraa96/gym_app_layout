@@ -1,6 +1,7 @@
 import 'package:isar/isar.dart';
 
 import '../../domain/common_section_migration.dart';
+import '../../domain/exercise_media_migration.dart';
 import '../../domain/models/models.dart' as domain;
 import '../../domain/plan_catalog.dart';
 import 'workout_plan.dart';
@@ -69,29 +70,32 @@ domain.CommonSection _sectionFromIsar(CommonSection section) {
 }
 
 ExerciseBlock _blockToIsar(domain.ExerciseBlock block) {
+  final migrated = migrateBlockMediaToExercises(block);
   return ExerciseBlock()
-    ..blockId = block.blockId
-    ..kind = block.kind
-    ..svgPath = block.svgPath
-    ..mediaUri = block.mediaUri
-    ..mediaSource = block.mediaSource
-    ..mediaKind = block.mediaKind
+    ..blockId = migrated.blockId
+    ..kind = migrated.kind
+    ..svgPath = null
+    ..mediaUri = null
+    ..mediaSource = domain.ExerciseMediaSource.none
+    ..mediaKind = domain.ExerciseMediaKind.unknown
     ..exercises = [
-      for (final exercise in block.exercises) _prescriptionToIsar(exercise),
+      for (final exercise in migrated.exercises) _prescriptionToIsar(exercise),
     ];
 }
 
 domain.ExerciseBlock _blockFromIsar(ExerciseBlock block) {
-  return domain.ExerciseBlock.create(
-    blockId: block.blockId,
-    kind: block.kind,
-    svgPath: block.svgPath,
-    mediaUri: block.mediaUri,
-    mediaSource: block.mediaSource,
-    mediaKind: block.mediaKind,
-    exercises: [
-      for (final exercise in block.exercises) _prescriptionFromIsar(exercise),
-    ],
+  return migrateBlockMediaToExercises(
+    domain.ExerciseBlock.create(
+      blockId: block.blockId,
+      kind: block.kind,
+      svgPath: block.svgPath,
+      mediaUri: block.mediaUri,
+      mediaSource: block.mediaSource,
+      mediaKind: block.mediaKind,
+      exercises: [
+        for (final exercise in block.exercises) _prescriptionFromIsar(exercise),
+      ],
+    ),
   );
 }
 
@@ -103,7 +107,12 @@ ExercisePrescription _prescriptionToIsar(domain.ExercisePrescription exercise) {
     ..prescribedReps = exercise.prescribedReps
     ..prescribedDurationSeconds = exercise.prescribedDurationSeconds
     ..targetWeightKg = exercise.targetWeightKg
-    ..targetAreaIds = canonicalizeTargetAreaIds(exercise.targetAreaIds);
+    ..targetAreaIds = canonicalizeTargetAreaIds(exercise.targetAreaIds)
+    ..catalogExerciseId = exercise.catalogExerciseId
+    ..svgPath = exercise.svgPath
+    ..mediaUri = exercise.mediaUri
+    ..mediaSource = exercise.mediaSource
+    ..mediaKind = exercise.mediaKind;
 }
 
 domain.ExercisePrescription _prescriptionFromIsar(ExercisePrescription exercise) {
@@ -115,6 +124,11 @@ domain.ExercisePrescription _prescriptionFromIsar(ExercisePrescription exercise)
     prescribedDurationSeconds: exercise.prescribedDurationSeconds,
     targetWeightKg: exercise.targetWeightKg,
     targetAreaIds: canonicalizeTargetAreaIds(exercise.targetAreaIds),
+    catalogExerciseId: exercise.catalogExerciseId,
+    svgPath: exercise.svgPath,
+    mediaUri: exercise.mediaUri,
+    mediaSource: exercise.mediaSource,
+    mediaKind: exercise.mediaKind,
   );
 }
 

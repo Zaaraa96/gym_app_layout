@@ -8,7 +8,7 @@ This document defines the replacement for the current multi-page create-plan flo
 
 Creating a plan becomes one vertical Material stepper instead of this route stack:
 
-`New Plan → Plan preview → Day preview → Edit day → Add exercise dialog`
+`New Plan → Plan preview → Day preview → Edit day → full-screen exercise editor`
 
 The user stays oriented because the plan, its days, validation state, and final review remain on one screen. Each day is a top-level step. Exercises and supersets live inside their day; individual exercises are not top-level steps.
 

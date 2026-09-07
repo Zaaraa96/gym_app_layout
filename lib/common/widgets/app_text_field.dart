@@ -16,6 +16,7 @@ class AppTextField extends StatelessWidget {
     this.autofocus = false,
     this.onChanged,
     this.enabled = true,
+    this.focusNode,
   });
 
   final String? label;
@@ -28,6 +29,7 @@ class AppTextField extends StatelessWidget {
   final bool autofocus;
   final ValueChanged<String>? onChanged;
   final bool enabled;
+  final FocusNode? focusNode;
   final InputBorder border = OutlineInputBorder(
     borderSide: const BorderSide(width: 1.0),
     borderRadius: BorderRadius.circular(16),
@@ -41,6 +43,7 @@ class AppTextField extends StatelessWidget {
       padding: const EdgeInsets.symmetric(vertical: 8.0),
       child: TextFormField(
         controller: controller,
+        focusNode: focusNode,
         validator: validator,
         textInputAction: textInputAction,
         keyboardType: keyboardType,

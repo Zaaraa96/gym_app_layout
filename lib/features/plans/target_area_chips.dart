@@ -9,11 +9,13 @@ class TargetAreaChips extends StatelessWidget {
     required this.selectedIds,
     this.onChanged,
     this.readOnly = false,
+    this.catalogSuggested = false,
   });
 
   final List<String> selectedIds;
   final ValueChanged<List<String>>? onChanged;
   final bool readOnly;
+  final bool catalogSuggested;
 
   @override
   Widget build(BuildContext context) {
@@ -28,7 +30,16 @@ class TargetAreaChips extends StatelessWidget {
             'Target areas',
             style: theme.textTheme.labelLarge,
           ),
-          const SizedBox(height: 6),
+          if (catalogSuggested && selected.isNotEmpty)
+            Padding(
+              padding: const EdgeInsets.only(top: 2, bottom: 4),
+              child: Text(
+                'Suggested automatically',
+                style: theme.textTheme.bodySmall,
+              ),
+            )
+          else
+            const SizedBox(height: 6),
           if (selected.isEmpty && readOnly)
             Text(
               'No target areas',

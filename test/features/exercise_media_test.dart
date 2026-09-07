@@ -87,6 +87,26 @@ void main() {
     expect(resolveBlockMedia(matched).uri, 'assets/image/exercises/plank.png');
     expect(selectedBundledAsset(matched)?.id, 'plank');
 
+    final fromExercise = ExerciseBlock.create(
+      blockId: 'b-ex',
+      kind: BlockKind.single,
+      mediaUri: 'assets/image/exercises/squat.png',
+      mediaSource: ExerciseMediaSource.asset,
+      mediaKind: ExerciseMediaKind.image,
+      exercises: [
+        ExercisePrescription.create(
+          prescriptionId: 'p1',
+          title: 'plank',
+          prescribedSets: 1,
+          prescribedDurationSeconds: 30,
+          mediaUri: 'assets/image/exercises/plank.png',
+          mediaSource: ExerciseMediaSource.asset,
+          mediaKind: ExerciseMediaKind.image,
+        ),
+      ],
+    );
+    expect(resolveBlockMedia(fromExercise).uri, 'assets/image/exercises/plank.png');
+
     final unknown = ExerciseBlock.create(
       blockId: 'b3',
       kind: BlockKind.single,

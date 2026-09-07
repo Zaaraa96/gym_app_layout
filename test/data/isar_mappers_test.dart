@@ -63,7 +63,11 @@ void main() {
     final row = planToIsar(plan);
     expect(row.id, 7);
     expect(row.uuid, 'plan-uuid');
-    expect(row.days.first.blocks.single.mediaKind, ExerciseMediaKind.image);
+    expect(row.days.first.blocks.single.mediaKind, ExerciseMediaKind.unknown);
+    expect(
+      row.days.first.blocks.single.exercises.single.mediaUri,
+      'assets/image/exercises/kang-squat.png',
+    );
 
     final restored = planFromIsar(row);
     expect(restored.id, 7);

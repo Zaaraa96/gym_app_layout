@@ -12,7 +12,7 @@ import '../../domain/plan_catalog.dart';
 import '../../domain/plan_validation.dart';
 import 'block_summary.dart';
 import 'exercise_asset_catalog.dart' as catalog;
-import 'exercise_block_dialog.dart';
+import 'exercise_editor_page.dart';
 import 'exercise_media_thumbnail.dart';
 import 'plan_builder_controller.dart';
 import 'target_area_chips.dart';
@@ -213,19 +213,31 @@ class _PlanBuilderPageState extends State<PlanBuilderPage>
     ExerciseBlock? existing,
     int? index,
   }) async {
-    final result = await showExerciseBlockDialog(
+    final dayIndex = controller.plan.days.indexWhere((item) => item.dayId == day.dayId);
+    final dayLabel = dayIndex < 0
+        ? day.title
+        : 'Day ${dayIndex + 1} · ${day.title}';
+    await showExerciseEditor(
       context,
       existing: existing,
       goalIds: controller.plan.goalIds,
+      dayLabel: dayLabel,
+      onSave: (block) async {
+        final blocks = List<ExerciseBlock>.from(day.blocks);
+        if (index == null) {
+          blocks.add(block);
+        } else {
+          blocks[index] = block;
+        }
+        return controller.commitDayBlocks(day.dayId, blocks);
+      },
+      onDelete: existing == null || index == null
+          ? null
+          : () {
+              final blocks = List<ExerciseBlock>.from(day.blocks)..removeAt(index);
+              return controller.commitDayBlocks(day.dayId, blocks);
+            },
     );
-    if (result == null) return;
-    final blocks = List<ExerciseBlock>.from(day.blocks);
-    if (index == null) {
-      blocks.add(result);
-    } else {
-      blocks[index] = result;
-    }
-    controller.setDayBlocks(day.dayId, blocks);
   }
 }
 
@@ -696,7 +708,7 @@ class _DayStep extends StatelessWidget {
           key: Key('add-exercise-${day.dayId}'),
           onPressed: () => onAddBlock(controller, day),
           icon: const Icon(Icons.add),
-          label: const Text('Add exercise or superset'),
+          label: const Text('Add exercise'),
         ),
         if (controller.plan.days.length > 1)
           TextButton(
@@ -757,17 +769,32 @@ class _BuilderBlockCard extends StatelessWidget {
                   fontWeight: FontWeight.w700,
                 ),
               ),
-            for (final exercise in block.exercises) ...[
+            for (var i = 0; i < block.exercises.length; i++) ...[
               ListTile(
                 contentPadding: EdgeInsets.zero,
-                leading: ExerciseMediaThumbnail(block: block, size: 48),
-                title: Text(exercise.title),
-                subtitle: Text(formatLoad(exercise)),
+                leading: ExerciseMediaThumbnail(
+                  block: ExerciseBlock.create(
+                    blockId: block.blockId,
+                    kind: BlockKind.single,
+                    svgPath: i == 0 ? block.svgPath : null,
+                    mediaUri: i == 0 ? block.mediaUri : null,
+                    mediaSource: i == 0
+                        ? block.mediaSource
+                        : ExerciseMediaSource.none,
+                    mediaKind: i == 0
+                        ? block.mediaKind
+                        : ExerciseMediaKind.unknown,
+                    exercises: [block.exercises[i]],
+                  ),
+                  size: 48,
+                ),
+                title: Text(block.exercises[i].title),
+                subtitle: Text(formatLoad(block.exercises[i])),
                 trailing: Row(
                   mainAxisSize: MainAxisSize.min,
                   children: [
                     IconButton(
-                      tooltip: 'Edit ${exercise.title}',
+                      tooltip: 'Edit ${block.exercises[i].title}',
                       onPressed: onEdit,
                       icon: const Icon(Icons.edit_outlined),
                     ),
@@ -782,7 +809,7 @@ class _BuilderBlockCard extends StatelessWidget {
                 onTap: onEdit,
               ),
               TargetAreaChips(
-                selectedIds: exercise.targetAreaIds,
+                selectedIds: block.exercises[i].targetAreaIds,
                 readOnly: true,
                 onChanged: (_) => onEdit(),
               ),

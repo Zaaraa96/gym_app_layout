@@ -156,7 +156,6 @@ class JsonPlanImporter {
     return ExerciseBlock.create(
       blockId: newId(),
       kind: BlockKind.single,
-      svgPath: matchExerciseAsset(exercise.title)?.assetPath,
       exercises: [exercise],
     );
   }
@@ -183,7 +182,6 @@ class JsonPlanImporter {
     return ExerciseBlock.create(
       blockId: newId(),
       kind: BlockKind.superset,
-      svgPath: matchExerciseAsset(exercises.first.title)?.assetPath,
       exercises: exercises,
     );
   }
@@ -232,6 +230,18 @@ class JsonPlanImporter {
         ? catalogTargetAreaIdsForTitle(title)
         : canonicalizeTargetAreaIds(_stringList(rawAreas));
 
+    final match = matchExerciseAsset(title);
+    final catalogId = _optionalString(json['catalog-exercise-id']).isNotEmpty
+        ? _optionalString(json['catalog-exercise-id'])
+        : _optionalString(json['catalogExerciseId']).isNotEmpty
+            ? _optionalString(json['catalogExerciseId'])
+            : match?.id;
+    final mediaUri = _optionalNonEmpty(json['mediaUri']) ??
+        _optionalNonEmpty(json['svgPath']) ??
+        match?.assetPath;
+    final mediaSourceName = _optionalString(json['mediaSource']);
+    final mediaKindName = _optionalString(json['mediaKind']);
+
     return ExercisePrescription.create(
       prescriptionId: newId(),
       title: title,
@@ -239,6 +249,15 @@ class JsonPlanImporter {
       prescribedReps: reps,
       prescribedDurationSeconds: duration,
       targetAreaIds: targetAreaIds,
+      catalogExerciseId: catalogId,
+      svgPath: mediaUri,
+      mediaUri: mediaUri,
+      mediaSource: mediaUri == null
+          ? ExerciseMediaSource.none
+          : _mediaSource(mediaSourceName),
+      mediaKind: mediaUri == null
+          ? ExerciseMediaKind.unknown
+          : _mediaKind(mediaKindName, mediaUri),
     );
   }
 }
@@ -266,6 +285,28 @@ String _requiredString(Object? value, String message) {
 String _optionalString(Object? value) {
   if (value is! String) return '';
   return value.trim();
+}
+
+String? _optionalNonEmpty(Object? value) {
+  final text = _optionalString(value);
+  return text.isEmpty ? null : text;
+}
+
+ExerciseMediaSource _mediaSource(String raw) {
+  for (final value in ExerciseMediaSource.values) {
+    if (value.name == raw) return value;
+  }
+  return ExerciseMediaSource.asset;
+}
+
+ExerciseMediaKind _mediaKind(String raw, String path) {
+  for (final value in ExerciseMediaKind.values) {
+    if (value.name == raw) return value;
+  }
+  final lower = path.toLowerCase();
+  if (lower.endsWith('.svg')) return ExerciseMediaKind.svg;
+  if (lower.endsWith('.gif')) return ExerciseMediaKind.gif;
+  return ExerciseMediaKind.image;
 }
 
 List<String> _stringList(Object? value) {

@@ -11,10 +11,12 @@ import 'package:gym_app/domain/plan_repository.dart';
 import 'package:gym_app/domain/session_lifecycle.dart';
 import 'package:gym_app/domain/session_repository.dart';
 import 'package:gym_app/features/plans/day_editor_page.dart';
+import 'package:gym_app/features/plans/exercise_editor_page.dart';
 import 'package:gym_app/features/plans/exercise_media_picker.dart';
 import 'package:gym_app/features/plans/plan_page.dart';
 import 'package:gym_app/main.dart';
 
+import '../helpers/exercise_editor.dart';
 import '../helpers/fake_exercise_gallery_picker.dart';
 import '../helpers/isar_core.dart';
 
@@ -214,16 +216,10 @@ void main() {
 
     expect(Get.currentRoute, AppRoutes.editDay);
 
-    Finder dialogField() => find.descendant(
-          of: find.byType(AlertDialog),
-          matching: find.byType(TextFormField),
-        );
-
     await tester.tap(find.text('Add exercise'));
-    await tester.pump();
-    await tester.enterText(dialogField().first, 'kang squat');
-    await tester.tap(find.text('Save exercise'));
-    await tester.pump();
+    await tester.pumpAndSettle();
+    await tester.enterText(exerciseNameField(), 'kang squat');
+    await commitExerciseEditor(tester);
     await settle(tester);
 
     expect(
@@ -235,19 +231,11 @@ void main() {
     );
 
     await tester.tap(find.byKey(const Key('add-exercise')));
-    await tester.pump();
-    await tester.enterText(dialogField().first, 'plank');
-    await tester.tap(find.widgetWithText(ChoiceChip, 'Duration').first);
-    await tester.pump();
-    await tester.enterText(
-      find.descendant(
-        of: find.byType(AlertDialog),
-        matching: find.widgetWithText(TextFormField, 'seconds'),
-      ),
-      '45',
-    );
-    await tester.tap(find.text('Save exercise'));
-    await tester.pump();
+    await tester.pumpAndSettle();
+    await tester.enterText(exerciseNameField(), 'plank');
+    await selectTimed(tester);
+    await tester.enterText(exerciseDurationField(), '45');
+    await commitExerciseEditor(tester);
     await settle(tester);
 
     expect(find.text('3 × 45s plank'), findsWidgets);
@@ -256,12 +244,18 @@ void main() {
     final day = stored.single.days.single;
     expect(day.blocks, hasLength(2));
     expect(day.blocks.first.exercises.single.title, 'kang squat');
-    expect(day.blocks.first.svgPath, 'assets/image/exercises/kang-squat.png');
+    expect(
+      day.blocks.first.exercises.single.mediaUri,
+      'assets/image/exercises/kang-squat.png',
+    );
     expect(day.blocks.first.exercises.single.prescribedReps, 12);
     expect(day.blocks.last.exercises.single.prescribedDurationSeconds, 45);
-    expect(day.blocks.last.svgPath, 'assets/image/exercises/plank.png');
+    expect(
+      day.blocks.last.exercises.single.mediaUri,
+      'assets/image/exercises/plank.png',
+    );
     expect(day.blocks.last.kind, BlockKind.single);
-    expect(day.blocks.last.mediaUri, 'assets/image/exercises/plank.png');
+    expect(day.blocks.last.mediaUri, isNull);
   });
 
   testWidgets('saving an exercise without a name stays on the dialog',
@@ -281,12 +275,12 @@ void main() {
     await settle(tester);
 
     await tester.tap(find.text('Add exercise'));
-    await tester.pump();
-    await tester.tap(find.text('Save exercise'));
+    await tester.pumpAndSettle();
+    await tester.tap(find.byKey(const Key('exercise-editor-commit')));
     await tester.pump();
 
-    expect(find.text('Add an exercise name'), findsOneWidget);
-    expect(find.text('Save exercise'), findsOneWidget);
+    expect(find.textContaining('Add a name for Movement A'), findsOneWidget);
+    expect(find.byType(ExerciseEditorPage), findsOneWidget);
     final stored = await db(tester, plans.all);
     expect(stored.single.days.single.blocks, isEmpty);
   });
@@ -306,16 +300,10 @@ void main() {
     await tester.pump();
     await settle(tester);
 
-    Finder dialogField() => find.descendant(
-          of: find.byType(AlertDialog),
-          matching: find.byType(TextFormField),
-        );
-
     await tester.tap(find.text('Add exercise'));
-    await tester.pump();
-    await tester.enterText(dialogField().first, 'kang squat');
-    await tester.tap(find.text('Save exercise'));
-    await tester.pump();
+    await tester.pumpAndSettle();
+    await tester.enterText(exerciseNameField(), 'kang squat');
+    await commitExerciseEditor(tester);
     await settle(tester);
     expect(
       find.descendant(
@@ -351,7 +339,7 @@ void main() {
     await settle(tester);
 
     await tester.tap(find.text('Add exercise'));
-    await tester.pump();
+    await tester.pumpAndSettle();
     await tester.tap(find.byKey(const Key('exercise-media-picker')));
     await tester.pumpAndSettle();
     final deadlift = find.byKey(const Key('bundled-asset-deadlift'));
@@ -366,23 +354,18 @@ void main() {
     await tester.tap(deadlift);
     await tester.pumpAndSettle();
 
-    await tester.enterText(
-      find
-          .descendant(
-            of: find.byType(AlertDialog),
-            matching: find.byType(TextFormField),
-          )
-          .first,
-      'heavy deadlift',
-    );
-    await tester.tap(find.text('Save exercise'));
-    await tester.pump();
+    await tester.enterText(exerciseNameField(), 'heavy deadlift');
+    await commitExerciseEditor(tester);
     await settle(tester);
 
     final stored = await db(tester, plans.all);
     final block = stored.single.days.single.blocks.single;
-    expect(block.mediaUri, 'assets/image/exercises/deadlift.png');
-    expect(block.mediaSource, ExerciseMediaSource.asset);
+    expect(
+      block.exercises.single.mediaUri,
+      'assets/image/exercises/deadlift.png',
+    );
+    expect(block.exercises.single.mediaSource, ExerciseMediaSource.asset);
+    expect(block.mediaUri, isNull);
   });
 
   testWidgets('a plan can be renamed and a day can be deleted', (tester) async {
@@ -446,22 +429,12 @@ void main() {
     await tester.pump();
     await settle(tester);
 
-    Finder dialogField() => find.descendant(
-          of: find.byType(AlertDialog),
-          matching: find.byType(TextFormField),
-        );
-
     await tester.tap(find.text('Add exercise'));
-    await tester.pump();
-    await tester.enterText(dialogField().first, 'bench press');
-    await tester.tap(find.byType(Switch));
-    await tester.pump();
-    await tester.enterText(
-      find.widgetWithText(TextFormField, 'second exercise name'),
-      'bent over row',
-    );
-    await tester.tap(find.text('Save exercise'));
-    await tester.pump();
+    await tester.pumpAndSettle();
+    await tester.enterText(exerciseNameField(), 'bench press');
+    await selectSuperset(tester);
+    await tester.enterText(exerciseNameField(1), 'bent over row');
+    await commitExerciseEditor(tester);
     await settle(tester);
 
     expect(
@@ -494,29 +467,16 @@ void main() {
     await tester.pump();
     await settle(tester);
 
-    Finder dialogField() => find.descendant(
-          of: find.byType(AlertDialog),
-          matching: find.byType(TextFormField),
-        );
-
     await tester.tap(find.text('Add exercise'));
-    await tester.pump();
-    await tester.enterText(dialogField().first, 'bench press');
-    await tester.tap(find.byType(Switch));
-    await tester.pump();
-    await tester.enterText(
-      find.widgetWithText(TextFormField, 'second exercise name'),
-      'bent over row',
-    );
+    await tester.pumpAndSettle();
+    await tester.enterText(exerciseNameField(), 'bench press');
+    await selectSuperset(tester);
+    await tester.enterText(exerciseNameField(1), 'bent over row');
     await tester.ensureVisible(find.byKey(const Key('add-movement')));
     await tester.tap(find.byKey(const Key('add-movement')));
-    await tester.pump();
-    await tester.enterText(
-      find.widgetWithText(TextFormField, 'exercise 3 name'),
-      'face pull',
-    );
-    await tester.tap(find.text('Save exercise'));
-    await tester.pump();
+    await tester.pumpAndSettle();
+    await tester.enterText(exerciseNameField(2), 'face pull');
+    await commitExerciseEditor(tester);
     await settle(tester);
 
     expect(
@@ -671,8 +631,7 @@ void main() {
     expect(stored.single.days.single.summary, 'upper body');
   });
 
-  testWidgets(
-      'zero or blank sets, reps, and seconds fall back to 3 × 12 or 30s',
+  testWidgets('default sets and reps are 3 × 12 and timed defaults to 30s',
       (tester) async {
     final plans = await bootstrap(tester);
     await db(tester, () => plans.save(samplePlan()));
@@ -689,15 +648,9 @@ void main() {
     await settle(tester);
 
     await tester.tap(find.text('Add exercise'));
-    await tester.pump();
-    await tester.enterText(
-      find.widgetWithText(TextFormField, 'exercise name'),
-      'mystery move',
-    );
-    await tester.enterText(find.widgetWithText(TextFormField, 'sets'), '0');
-    await tester.enterText(find.widgetWithText(TextFormField, 'reps'), '');
-    await tester.tap(find.text('Save exercise'));
-    await tester.pump();
+    await tester.pumpAndSettle();
+    await tester.enterText(exerciseNameField(), 'mystery move');
+    await commitExerciseEditor(tester);
     await settle(tester);
 
     expect(
@@ -709,18 +662,10 @@ void main() {
     );
 
     await tester.tap(find.byKey(const Key('add-exercise')));
-    await tester.pump();
-    await tester.enterText(
-      find.widgetWithText(TextFormField, 'exercise name'),
-      'hold-ish',
-    );
-    await tester
-        .ensureVisible(find.widgetWithText(ChoiceChip, 'Duration').first);
-    await tester.tap(find.widgetWithText(ChoiceChip, 'Duration').first);
-    await tester.pump();
-    await tester.enterText(find.widgetWithText(TextFormField, 'seconds'), '0');
-    await tester.tap(find.text('Save exercise'));
-    await tester.pump();
+    await tester.pumpAndSettle();
+    await tester.enterText(exerciseNameField(), 'hold-ish');
+    await selectTimed(tester);
+    await commitExerciseEditor(tester);
     await settle(tester);
 
     expect(find.text('3 × 30s hold-ish'), findsWidgets);
@@ -862,17 +807,15 @@ void main() {
     await settle(tester);
 
     await tester.tap(find.text('Add exercise'));
-    await tester.pump();
-    await tester.enterText(
-      find.widgetWithText(TextFormField, 'exercise name'),
-      'ghost squat',
-    );
-    await tester.tap(find.widgetWithText(TextButton, 'Cancel'));
-    await tester.pump();
-    await settle(tester);
+    await tester.pumpAndSettle();
+    await tester.enterText(exerciseNameField(), 'ghost squat');
+    await tester.tap(find.byTooltip('Close exercise editor'));
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('Discard changes'));
+    await tester.pumpAndSettle();
 
     expect(find.text('ghost squat'), findsNothing);
-    expect(find.text('Save exercise'), findsNothing);
+    expect(find.byType(ExerciseEditorPage), findsNothing);
     final stored = await db(tester, plans.all);
     expect(stored.single.days.single.blocks, isEmpty);
   });
@@ -926,25 +869,10 @@ void main() {
     await settle(tester);
 
     await tester.tap(find.text('3 × 8 bench press'));
-    await tester.pump();
-    await tester.enterText(
-      find
-          .descendant(
-            of: find.byType(AlertDialog),
-            matching: find.byType(TextFormField),
-          )
-          .first,
-      'incline bench',
-    );
-    await tester.enterText(
-      find.descendant(
-        of: find.byType(AlertDialog),
-        matching: find.widgetWithText(TextFormField, 'sets'),
-      ),
-      '4',
-    );
-    await tester.tap(find.text('Save exercise'));
-    await tester.pump();
+    await tester.pumpAndSettle();
+    await tester.enterText(exerciseNameField(), 'incline bench');
+    await tester.enterText(exerciseSetsField(), '4');
+    await commitExerciseEditor(tester);
     await settle(tester);
 
     expect(find.text('4 × 8 incline bench'), findsOneWidget);
@@ -1011,26 +939,17 @@ void main() {
     await settle(tester);
 
     await tester.tap(find.text('Add exercise'));
-    await tester.pump();
-    await tester.enterText(
-      find
-          .descendant(
-            of: find.byType(AlertDialog),
-            matching: find.byType(TextFormField),
-          )
-          .first,
-      'bench press',
-    );
-    await tester.tap(find.byType(Switch));
-    await tester.pump();
-    await tester.tap(find.text('Save exercise'));
+    await tester.pumpAndSettle();
+    await tester.enterText(exerciseNameField(), 'bench press');
+    await selectSuperset(tester);
+    await tester.tap(find.byKey(const Key('exercise-editor-commit')));
     await tester.pump();
 
     expect(
-      find.text('Add a name for each exercise in the superset'),
-      findsOneWidget,
+      find.textContaining('Add a name for Movement B'),
+      findsWidgets,
     );
-    expect(find.text('Save exercise'), findsOneWidget);
+    expect(find.byType(ExerciseEditorPage), findsOneWidget);
     final stored = await db(tester, plans.all);
     expect(stored.single.days.single.blocks, isEmpty);
   });
@@ -1084,21 +1003,13 @@ void main() {
     await settle(tester);
 
     await tester.tap(find.text('3 × 8 bench press'));
-    await tester.pump();
+    await tester.pumpAndSettle();
     expect(find.text('Edit exercise'), findsOneWidget);
 
-    final durationChip = find.widgetWithText(ChoiceChip, 'Duration').first;
-    await tester.ensureVisible(durationChip);
-    await tester.tap(durationChip);
-    await tester.pump();
-    final secondsField = find.descendant(
-      of: find.byType(AlertDialog),
-      matching: find.widgetWithText(TextFormField, 'seconds'),
-    );
-    await tester.ensureVisible(secondsField);
-    await tester.enterText(secondsField, '45');
-    await tester.tap(find.text('Save exercise'));
-    await tester.pump();
+    await tester.ensureVisible(find.text('Timed').first);
+    await selectTimed(tester);
+    await tester.enterText(exerciseDurationField(), '45');
+    await commitExerciseEditor(tester);
     await settle(tester);
 
     expect(find.text('3 × 45s bench press'), findsOneWidget);

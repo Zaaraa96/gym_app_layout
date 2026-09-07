@@ -1,4 +1,5 @@
 import '../../domain/common_section_migration.dart';
+import '../../domain/exercise_media_migration.dart';
 import '../../domain/models/models.dart';
 import '../../domain/plan_catalog.dart';
 
@@ -205,37 +206,43 @@ CommonSection _sectionFromJson(Map<String, dynamic> json) =>
       ],
     );
 
-Map<String, dynamic> _blockToJson(ExerciseBlock block) => {
-      'blockId': block.blockId,
-      'kind': block.kind.name,
-      'svgPath': block.svgPath,
-      'mediaUri': block.mediaUri,
-      'mediaSource': block.mediaSource.name,
-      'mediaKind': block.mediaKind.name,
+Map<String, dynamic> _blockToJson(ExerciseBlock block) {
+  final migrated = migrateBlockMediaToExercises(block);
+  return {
+      'blockId': migrated.blockId,
+      'kind': migrated.kind.name,
+      'svgPath': null,
+      'mediaUri': null,
+      'mediaSource': ExerciseMediaSource.none.name,
+      'mediaKind': ExerciseMediaKind.unknown.name,
       'exercises': [
-        for (final exercise in block.exercises) _prescriptionToJson(exercise),
+        for (final exercise in migrated.exercises) _prescriptionToJson(exercise),
       ],
     };
+}
 
-ExerciseBlock _blockFromJson(Map<String, dynamic> json) => ExerciseBlock.create(
-      blockId: json['blockId'] as String,
-      kind: _enum(BlockKind.values, json['kind'], BlockKind.single),
-      svgPath: json['svgPath'] as String?,
-      mediaUri: json['mediaUri'] as String?,
-      mediaSource: _enum(
-        ExerciseMediaSource.values,
-        json['mediaSource'],
-        ExerciseMediaSource.none,
+ExerciseBlock _blockFromJson(Map<String, dynamic> json) =>
+    migrateBlockMediaToExercises(
+      ExerciseBlock.create(
+        blockId: json['blockId'] as String,
+        kind: _enum(BlockKind.values, json['kind'], BlockKind.single),
+        svgPath: json['svgPath'] as String?,
+        mediaUri: json['mediaUri'] as String?,
+        mediaSource: _enum(
+          ExerciseMediaSource.values,
+          json['mediaSource'],
+          ExerciseMediaSource.none,
+        ),
+        mediaKind: _enum(
+          ExerciseMediaKind.values,
+          json['mediaKind'],
+          ExerciseMediaKind.unknown,
+        ),
+        exercises: [
+          for (final exercise in _asMaps(json['exercises']))
+            _prescriptionFromJson(exercise),
+        ],
       ),
-      mediaKind: _enum(
-        ExerciseMediaKind.values,
-        json['mediaKind'],
-        ExerciseMediaKind.unknown,
-      ),
-      exercises: [
-        for (final exercise in _asMaps(json['exercises']))
-          _prescriptionFromJson(exercise),
-      ],
     );
 
 Map<String, dynamic> _prescriptionToJson(ExercisePrescription exercise) => {
@@ -246,6 +253,11 @@ Map<String, dynamic> _prescriptionToJson(ExercisePrescription exercise) => {
       'prescribedDurationSeconds': exercise.prescribedDurationSeconds,
       'targetWeightKg': exercise.targetWeightKg,
       'targetAreaIds': List<String>.from(exercise.targetAreaIds),
+      'catalogExerciseId': exercise.catalogExerciseId,
+      'svgPath': exercise.svgPath,
+      'mediaUri': exercise.mediaUri,
+      'mediaSource': exercise.mediaSource.name,
+      'mediaKind': exercise.mediaKind.name,
     };
 
 ExercisePrescription _prescriptionFromJson(Map<String, dynamic> json) =>
@@ -260,6 +272,19 @@ ExercisePrescription _prescriptionFromJson(Map<String, dynamic> json) =>
         for (final id in json['targetAreaIds'] as List? ?? const [])
           if (id is String) id,
       ]),
+      catalogExerciseId: json['catalogExerciseId'] as String?,
+      svgPath: json['svgPath'] as String?,
+      mediaUri: json['mediaUri'] as String?,
+      mediaSource: _enum(
+        ExerciseMediaSource.values,
+        json['mediaSource'],
+        ExerciseMediaSource.none,
+      ),
+      mediaKind: _enum(
+        ExerciseMediaKind.values,
+        json['mediaKind'],
+        ExerciseMediaKind.unknown,
+      ),
     );
 
 Map<String, dynamic> _logToJson(ExerciseLog log) => {

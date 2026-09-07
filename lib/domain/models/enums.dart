@@ -14,6 +14,12 @@ enum PlanStatus { active, draft }
 /// A block is either one movement or a grouped superset.
 enum BlockKind { single, superset }
 
+/// How the exercise editor presents a block.
+enum ExerciseEditorMode { single, superset }
+
+/// Exactly one of reps or duration is stored on a prescription.
+enum PrescriptionType { reps, timed }
+
 /// Lifecycle of a [WorkoutSession]. At most one [inProgress] session exists.
 enum SessionStatus { inProgress, completed, abandoned }
 

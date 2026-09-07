@@ -125,4 +125,15 @@ void main() {
     await tester.pump();
     expect(tester.takeException(), isNull);
   });
+
+  test('searchExerciseCatalog ranks prefix matches and empty query by goals',
+      () {
+    final plank = searchExerciseCatalog(query: 'plank');
+    expect(plank.first.id, 'plank');
+    final muscle = searchExerciseCatalog(
+      query: '',
+      goalIds: const ['build-muscle'],
+    );
+    expect(muscle.first.goalIds, contains('build-muscle'));
+  });
 }

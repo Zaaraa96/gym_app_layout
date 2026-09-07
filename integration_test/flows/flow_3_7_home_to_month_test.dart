@@ -44,7 +44,7 @@ void main() {
       await gym.tapText('Edit day');
       await gym.tapKey('add-exercise');
       await gym.enterAddExerciseTitle('Ghost raise');
-      await gym.tapText('Save exercise');
+      await gym.tapText('ADD EXERCISE');
       await gym.tapText('Save');
       await gym.back();
       await gym.back();

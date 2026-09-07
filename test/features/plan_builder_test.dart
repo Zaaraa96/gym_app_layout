@@ -187,7 +187,7 @@ void main() {
     expect(create.onPressed, isNull);
     await tester.tap(find.text('Fix this'));
     await tester.pump();
-    expect(find.text('Add exercise or superset'), findsOneWidget);
+    expect(find.text('Add exercise'), findsOneWidget);
   });
 
   testWidgets('Plans lists drafts with Resume and Delete', (tester) async {
