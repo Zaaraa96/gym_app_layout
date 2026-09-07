@@ -40,7 +40,7 @@ void main() {
   Future<({SessionRepository sessions, WorkoutController controller})>
   startController({
     WorkoutPlan? plan,
-    List<String> commons = const ['sec-abs'],
+    List<String> commons = const [],
   }) async {
     instanceSeq += 1;
     final service = await IsarService.init(
@@ -628,8 +628,20 @@ WorkoutPlan _plan() {
               ),
             ],
           ),
+          ExerciseBlock.create(
+            blockId: 'block-abs',
+            kind: BlockKind.single,
+            exercises: [
+              ExercisePrescription.create(
+                prescriptionId: 'p-shoot',
+                title: 'shoot out',
+                prescribedSets: 1,
+                prescribedDurationSeconds: 30,
+              ),
+            ],
+          ),
         ],
       ),
     ],
-      );
+  );
 }
