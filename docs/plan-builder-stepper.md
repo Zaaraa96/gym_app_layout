@@ -61,12 +61,15 @@ Each day step contains:
 - Editable day name and optional summary.
 - Ordered exercise blocks.
 - A single block with one exercise, or a superset block with two or more exercises.
-- Sets and exactly one prescription type per exercise: reps or duration.
-- Optional exercise media using the existing asset/gallery behavior.
+- Sets for a single exercise; shared Rounds for every movement in a superset.
+- Exactly one prescription type per exercise: reps or duration.
+- Optional media owned by each exercise, including each movement in a superset.
 - Multiple editable **Target areas** chips per exercise.
-- **Add exercise or superset**.
-- Drag handles for block ordering. Reordering movements inside a superset may be included if it can reuse the same interaction safely.
+- One **Add exercise** action opens the full-screen editor; the user chooses Single exercise or Superset inside it.
+- Drag handles for block ordering and for movement ordering inside a superset.
 - **Continue** validates and collapses the day, then opens the next incomplete step.
+
+See [Exercise editor](exercise-editor.md) for the approved Single exercise and Superset modes, close behavior, validation, media migration, and persistence contract.
 
 Stepper states:
 
