@@ -452,7 +452,7 @@ lib/
     progress/               # month tab, session log
 ```
 
-Routes: `/`, `/home`, `/starters`, `/import`, `/new-plan`, `/plan`, `/day`, `/edit-day`, `/session`, `/day-log`, `/session-log`. Month is a tab on `/home`. Live workout is `/session`. Plan and session arguments are **uuids**, not Isar row ids. `/new-plan` takes an optional uuid to resume a draft.
+Routes: `/`, `/home`, `/starters`, `/import`, `/new-plan`, `/plan`, `/day`, `/edit-day`, `/catalog-exercise`, `/edit-catalog-exercise`, `/session`, `/day-log`, `/session-log`. Month and Exercises are tabs on `/home`. Live workout is `/session`. Plan and session arguments are **uuids**, not Isar row ids. `/new-plan` takes an optional uuid to resume a draft.
 
 ---
 
