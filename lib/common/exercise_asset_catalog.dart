@@ -335,6 +335,77 @@ List<ExerciseAssetEntry> suggestedAssetsForTitle(String title) {
   return [match, ...rest];
 }
 
+/// Offline catalog search. Empty [query] returns goal-ranked suggestions.
+///
+/// Ranking: title/alias match score, then selected plan goals, then label.
+List<ExerciseAssetEntry> searchExerciseCatalog({
+  required String query,
+  List<String> goalIds = const [],
+  int limit = 8,
+}) {
+  final q = normalizeExerciseTitle(query);
+  if (q.isEmpty) {
+    return suggestedExercisesForGoals(goalIds).take(limit).toList();
+  }
+  final scored = <(ExerciseAssetEntry, int)>[];
+  for (final entry in bundledExerciseAssets) {
+    final score = _searchScore(q, entry);
+    if (score <= 0) continue;
+    scored.add((entry, score));
+  }
+  final goals = canonicalizeGoalIds(goalIds);
+  int goalScore(ExerciseAssetEntry entry) {
+    var n = 0;
+    for (final id in entry.goalIds) {
+      if (goals.contains(id)) n += 1;
+    }
+    return n;
+  }
+
+  scored.sort((a, b) {
+    final byScore = b.$2.compareTo(a.$2);
+    if (byScore != 0) return byScore;
+    final byGoal = goalScore(b.$1) - goalScore(a.$1);
+    if (byGoal != 0) return byGoal;
+    return a.$1.label.toLowerCase().compareTo(b.$1.label.toLowerCase());
+  });
+  return [for (final item in scored.take(limit)) item.$1];
+}
+
+int _searchScore(String query, ExerciseAssetEntry entry) {
+  final name = normalizeExerciseTitle(entry.label);
+  final phrase = entry.phrase;
+  if (name == query || phrase == query || entry.id == query) {
+    return 100 + phrase.length;
+  }
+  if (name.startsWith(query) || phrase.startsWith(query)) {
+    return 80 + phrase.length;
+  }
+  var score = 0;
+  if (name.contains(query) || phrase.contains(query)) {
+    score = 50 + phrase.length;
+  }
+  final words = query.split(RegExp(r'\s+'));
+  if (words.length > 1 &&
+      words.every(
+        (word) =>
+            word.isNotEmpty && (name.contains(word) || phrase.contains(word)),
+      )) {
+    score = score < 40 ? 40 : score;
+  }
+  for (final keyword in entry.keywords) {
+    final needle = normalizeExerciseTitle(keyword);
+    if (needle.isEmpty) continue;
+    if (needle == query) {
+      score = score < 90 + needle.length ? 90 + needle.length : score;
+    } else if (needle.contains(query) || query.contains(needle)) {
+      final bump = 30 + needle.length;
+      if (bump > score) score = bump;
+    }
+  }
+  return score;
+}
+
 /// Ranks catalog exercises for the add-exercise picker.
 ///
 /// No goals: alphabetical by label. With goals: tagged matches first, then

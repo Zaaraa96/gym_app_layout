@@ -140,15 +140,12 @@ class GymApp {
   }
 
   Future<void> enterAddExerciseTitle(String name) async {
-    final field = find.descendant(
-      of: find.byType(AlertDialog),
-      matching: find.byType(TextFormField),
-    );
+    final field = find.byKey(const Key('exercise-name-0'));
     final deadline = DateTime.now().add(const Duration(seconds: 10));
     while (DateTime.now().isBefore(deadline) && field.evaluate().isEmpty) {
       await $.pump(const Duration(milliseconds: 200));
     }
-    await $.tester.enterText(field.first, name);
+    await $.tester.enterText(field, name);
     await $.pump(const Duration(milliseconds: 200));
   }
 
@@ -314,8 +311,8 @@ class GymApp {
     await expectVisible('No exercises yet. Add the first movement.');
     await tapText('Add exercise');
     await $('Add exercise').waitUntilVisible();
-    await $(TextFormField).first.enterText(name);
-    await tapText('Save exercise');
+    await $(const Key('exercise-name-0')).enterText(name);
+    await tapText('ADD EXERCISE');
     await tapText('Save');
     await expectVisible('Start workout');
   }

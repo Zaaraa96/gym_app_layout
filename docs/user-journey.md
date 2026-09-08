@@ -38,7 +38,7 @@ Tapping the same starter twice does not duplicate it (same title is reused). Aft
 1. Tap **Create a plan** (Welcome) or **New** (Plans).
 2. A draft is created immediately. The screen is **Create plan**, a vertical stepper: Plan details, Day 1, Review & create.
 3. Plan details: **Plan name** (required), optional description (120 chars), optional goals. **CONTINUE** stays on details until the name is filled.
-4. Each day can add single exercises or supersets, target-area chips, and media. **Add another day** inserts a day before Review.
+4. Each day has one **Add exercise** action. It opens a full-screen editor where the user chooses **Single exercise** or **Superset**, then commits with **ADD EXERCISE** / **ADD SUPERSET**. **Add another day** inserts a day before Review.
 5. Back or **EXIT FOR NOW** returns to Plans. The row shows a **Draft** badge with **Resume** / **Delete**. Empty names list as **Untitled plan**.
 6. **CREATE PLAN** is disabled until every day has a valid block. After create, the active plan preview opens. **Start workout** is disabled until that day has a block.
 

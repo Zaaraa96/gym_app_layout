@@ -8,7 +8,7 @@ import '../../data/app_ports.dart';
 import '../../domain/models/models.dart';
 import '../../domain/plan_repository.dart';
 import 'block_summary.dart';
-import 'exercise_block_dialog.dart';
+import 'exercise_editor_page.dart';
 
 class DayEditorArgs {
   const DayEditorArgs({
@@ -107,21 +107,26 @@ class _DayEditorPageState extends State<DayEditorPage> {
     _load();
   }
 
-  Future<void> _persistDay(PlanDay updated) async {
+  Future<bool> _persistDay(PlanDay updated) async {
     final plan = _plan;
-    if (plan == null) return;
+    if (plan == null) return false;
     plan.days = [
       for (final item in plan.days)
         if (item.dayId == updated.dayId) updated else item,
     ];
-    await _plans.save(plan);
-    await _load();
+    try {
+      await _plans.save(plan);
+      await _load();
+      return true;
+    } catch (_) {
+      return false;
+    }
   }
 
-  Future<void> _persistBlocks(List<ExerciseBlock> blocks) async {
+  Future<bool> _persistBlocks(List<ExerciseBlock> blocks) async {
     final day = _day;
-    if (day == null) return;
-    await _persistDay(
+    if (day == null) return false;
+    return _persistDay(
       PlanDay.create(
         dayId: day.dayId,
         title: _titleController.text.trim().isEmpty
@@ -141,19 +146,28 @@ class _DayEditorPageState extends State<DayEditorPage> {
 
   Future<void> _addOrEditBlock({ExerciseBlock? existing, int? index}) async {
     if (_day == null) return;
-    final result = await showExerciseBlockDialog(
+    final day = _day!;
+    await showExerciseEditor(
       context,
       existing: existing,
       goalIds: _plan?.goalIds ?? const [],
+      dayLabel: day.title,
+      onSave: (block) async {
+        final blocks = List<ExerciseBlock>.from(_blocks);
+        if (index == null) {
+          blocks.add(block);
+        } else {
+          blocks[index] = block;
+        }
+        return _persistBlocks(blocks);
+      },
+      onDelete: existing == null || index == null
+          ? null
+          : () {
+              final blocks = List<ExerciseBlock>.from(_blocks)..removeAt(index);
+              return _persistBlocks(blocks);
+            },
     );
-    if (result == null) return;
-    final blocks = List<ExerciseBlock>.from(_blocks);
-    if (index == null) {
-      blocks.add(result);
-    } else {
-      blocks[index] = result;
-    }
-    await _persistBlocks(blocks);
   }
 
   Future<void> _deleteBlock(int index) async {

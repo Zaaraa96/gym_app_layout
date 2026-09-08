@@ -137,6 +137,22 @@ class PlanBuilderController extends ChangeNotifier {
     _markDirty();
   }
 
+  /// Writes [blocks] and saves immediately. Restores the previous list if save
+  /// fails so the editor can stay open with its draft intact.
+  Future<bool> commitDayBlocks(String dayId, List<ExerciseBlock> blocks) async {
+    final day = _day(dayId);
+    if (day == null) return false;
+    final previous = List<ExerciseBlock>.from(day.blocks);
+    day.blocks = blocks;
+    await flush();
+    if (saveStatus == DraftSaveStatus.failed) {
+      day.blocks = previous;
+      if (!_disposed) notifyListeners();
+      return false;
+    }
+    return true;
+  }
+
   void reorderBlocks(String dayId, int oldIndex, int newIndex) {
     final day = _day(dayId);
     if (day == null) return;

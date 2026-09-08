@@ -102,10 +102,10 @@ class ExerciseBlock {
 
   late BlockKind kind;
 
-  /// Legacy bundled SVG path. Prefer [mediaUri] for new data.
+  /// Legacy block media. New writes leave these empty; prefer exercise media.
   String? svgPath;
 
-  /// Asset path, local file path, or remote URL depending on [mediaSource].
+  /// Legacy block media. Readers fall back here when exercise media is absent.
   String? mediaUri;
 
   ExerciseMediaSource mediaSource = ExerciseMediaSource.none;
@@ -147,6 +147,19 @@ class ExercisePrescription {
   /// Stable target-area ids. Optional; never blocks plan creation.
   List<String> targetAreaIds = [];
 
+  /// Bundled catalog id when this title was chosen from the catalog.
+  String? catalogExerciseId;
+
+  /// Bundled SVG/PNG path. Prefer [mediaUri] for new data.
+  String? svgPath;
+
+  /// Asset path, local file path, or remote URL depending on [mediaSource].
+  String? mediaUri;
+
+  ExerciseMediaSource mediaSource = ExerciseMediaSource.none;
+
+  ExerciseMediaKind mediaKind = ExerciseMediaKind.unknown;
+
   ExercisePrescription();
 
   ExercisePrescription.create({
@@ -157,5 +170,18 @@ class ExercisePrescription {
     this.prescribedDurationSeconds,
     this.targetWeightKg,
     List<String>? targetAreaIds,
+    this.catalogExerciseId,
+    this.svgPath,
+    this.mediaUri,
+    this.mediaSource = ExerciseMediaSource.none,
+    this.mediaKind = ExerciseMediaKind.unknown,
   }) : targetAreaIds = targetAreaIds ?? [];
+
+  bool get hasStoredMedia {
+    final uri = mediaUri?.trim();
+    return uri != null &&
+        uri.isNotEmpty &&
+        mediaSource != ExerciseMediaSource.none &&
+        mediaKind != ExerciseMediaKind.unknown;
+  }
 }

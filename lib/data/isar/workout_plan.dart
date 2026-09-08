@@ -100,10 +100,10 @@ class ExerciseBlock {
   @enumerated
   late BlockKind kind;
 
-  /// Legacy bundled SVG path. Prefer [mediaUri] for new data.
+  /// Legacy block media. New writes leave these empty.
   String? svgPath;
 
-  /// Asset path, local file path, or remote URL depending on [mediaSource].
+  /// Legacy block media. Readers fall back here when exercise media is absent.
   String? mediaUri;
 
   @enumerated
@@ -147,6 +147,18 @@ class ExercisePrescription {
 
   List<String> targetAreaIds = [];
 
+  String? catalogExerciseId;
+
+  String? svgPath;
+
+  String? mediaUri;
+
+  @enumerated
+  ExerciseMediaSource mediaSource = ExerciseMediaSource.none;
+
+  @enumerated
+  ExerciseMediaKind mediaKind = ExerciseMediaKind.unknown;
+
   ExercisePrescription();
 
   ExercisePrescription.create({
@@ -157,5 +169,10 @@ class ExercisePrescription {
     this.prescribedDurationSeconds,
     this.targetWeightKg,
     List<String>? targetAreaIds,
+    this.catalogExerciseId,
+    this.svgPath,
+    this.mediaUri,
+    this.mediaSource = ExerciseMediaSource.none,
+    this.mediaKind = ExerciseMediaKind.unknown,
   }) : targetAreaIds = targetAreaIds ?? [];
 }

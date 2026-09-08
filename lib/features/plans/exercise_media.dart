@@ -24,6 +24,11 @@ class ExerciseMediaRef {
 const defaultBlockSvg = 'assets/image/upper-body.svg';
 
 ExerciseMediaRef resolveBlockMedia(ExerciseBlock block) {
+  if (block.exercises.isNotEmpty) {
+    final fromExercise = resolveExerciseMedia(block.exercises.first);
+    if (fromExercise != null) return fromExercise;
+  }
+
   final uri = block.mediaUri?.trim();
   final source = block.mediaSource;
   final kind = block.mediaKind;
@@ -57,6 +62,32 @@ ExerciseMediaRef resolveBlockMedia(ExerciseBlock block) {
     uri: defaultBlockSvg,
     source: ExerciseMediaSource.asset,
     kind: ExerciseMediaKind.svg,
+  );
+}
+
+/// Stored or catalog media for one movement. Null when neither is present.
+ExerciseMediaRef? resolveExerciseMedia(ExercisePrescription exercise) {
+  if (exercise.hasStoredMedia) {
+    return ExerciseMediaRef(
+      uri: exercise.mediaUri!.trim(),
+      source: exercise.mediaSource,
+      kind: exercise.mediaKind,
+    );
+  }
+  final legacy = exercise.svgPath?.trim();
+  if (legacy != null && legacy.isNotEmpty) {
+    return ExerciseMediaRef(
+      uri: legacy,
+      source: ExerciseMediaSource.asset,
+      kind: kindForPath(legacy),
+    );
+  }
+  final matched = matchExerciseAsset(exercise.title);
+  if (matched == null) return null;
+  return ExerciseMediaRef(
+    uri: matched.assetPath,
+    source: ExerciseMediaSource.asset,
+    kind: kindForPath(matched.assetPath),
   );
 }
 

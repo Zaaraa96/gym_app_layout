@@ -12,7 +12,7 @@ import '../../domain/plan_catalog.dart';
 import '../../domain/plan_validation.dart';
 import 'block_summary.dart';
 import 'exercise_asset_catalog.dart' as catalog;
-import 'exercise_block_dialog.dart';
+import 'exercise_editor_page.dart';
 import 'exercise_media_thumbnail.dart';
 import 'plan_builder_controller.dart';
 import 'target_area_chips.dart';
@@ -213,19 +213,31 @@ class _PlanBuilderPageState extends State<PlanBuilderPage>
     ExerciseBlock? existing,
     int? index,
   }) async {
-    final result = await showExerciseBlockDialog(
+    final dayIndex = controller.plan.days.indexWhere((item) => item.dayId == day.dayId);
+    final n = dayIndex + 1;
+    final title = day.title.trim();
+    final dayLabel = title.isEmpty || title == 'Day $n' ? 'Day $n' : 'Day $n · $title';
+    await showExerciseEditor(
       context,
       existing: existing,
       goalIds: controller.plan.goalIds,
+      dayLabel: dayLabel,
+      onSave: (block) async {
+        final blocks = List<ExerciseBlock>.from(day.blocks);
+        if (index == null) {
+          blocks.add(block);
+        } else {
+          blocks[index] = block;
+        }
+        return controller.commitDayBlocks(day.dayId, blocks);
+      },
+      onDelete: existing == null || index == null
+          ? null
+          : () {
+              final blocks = List<ExerciseBlock>.from(day.blocks)..removeAt(index);
+              return controller.commitDayBlocks(day.dayId, blocks);
+            },
     );
-    if (result == null) return;
-    final blocks = List<ExerciseBlock>.from(day.blocks);
-    if (index == null) {
-      blocks.add(result);
-    } else {
-      blocks[index] = result;
-    }
-    controller.setDayBlocks(day.dayId, blocks);
   }
 }
 
@@ -666,37 +678,46 @@ class _DayStep extends StatelessWidget {
             ),
           )
         else
-          ReorderableListView.builder(
-            shrinkWrap: true,
-            physics: const NeverScrollableScrollPhysics(),
-            itemCount: day.blocks.length,
-            onReorderItem: (oldIndex, newIndex) =>
-                controller.reorderBlocks(day.dayId, oldIndex, newIndex),
-            itemBuilder: (context, index) {
-              final block = day.blocks[index];
-              return _BuilderBlockCard(
-                key: Key('builder-block-${block.blockId}'),
-                block: block,
-                onEdit: () => onAddBlock(
-                  controller,
-                  day,
-                  existing: block,
-                  index: index,
+          Column(
+            children: [
+              for (var index = 0; index < day.blocks.length; index++)
+                _BuilderBlockCard(
+                  key: Key('builder-block-${day.blocks[index].blockId}'),
+                  block: day.blocks[index],
+                  onEdit: () => onAddBlock(
+                    controller,
+                    day,
+                    existing: day.blocks[index],
+                    index: index,
+                  ),
+                  onDelete: () {
+                    final blocks = List<ExerciseBlock>.from(day.blocks)
+                      ..removeAt(index);
+                    controller.setDayBlocks(day.dayId, blocks);
+                  },
+                  onMoveUp: index == 0
+                      ? null
+                      : () => controller.reorderBlocks(
+                            day.dayId,
+                            index,
+                            index - 1,
+                          ),
+                  onMoveDown: index == day.blocks.length - 1
+                      ? null
+                      : () => controller.reorderBlocks(
+                            day.dayId,
+                            index,
+                            index + 1,
+                          ),
                 ),
-                onDelete: () {
-                  final blocks = List<ExerciseBlock>.from(day.blocks)
-                    ..removeAt(index);
-                  controller.setDayBlocks(day.dayId, blocks);
-                },
-              );
-            },
+            ],
           ),
         const SizedBox(height: 8),
         OutlinedButton.icon(
           key: Key('add-exercise-${day.dayId}'),
           onPressed: () => onAddBlock(controller, day),
           icon: const Icon(Icons.add),
-          label: const Text('Add exercise or superset'),
+          label: const Text('Add exercise'),
         ),
         if (controller.plan.days.length > 1)
           TextButton(
@@ -731,11 +752,15 @@ class _BuilderBlockCard extends StatelessWidget {
     required this.block,
     required this.onEdit,
     required this.onDelete,
+    this.onMoveUp,
+    this.onMoveDown,
   });
 
   final ExerciseBlock block;
   final VoidCallback onEdit;
   final VoidCallback onDelete;
+  final VoidCallback? onMoveUp;
+  final VoidCallback? onMoveDown;
 
   @override
   Widget build(BuildContext context) {
@@ -749,40 +774,67 @@ class _BuilderBlockCard extends StatelessWidget {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
-            if (isSuperset)
-              Text(
-                'SUPERSET',
-                style: theme.textTheme.labelMedium?.copyWith(
-                  color: theme.colorScheme.primary,
-                  fontWeight: FontWeight.w700,
+            Row(
+              children: [
+                if (isSuperset)
+                  Expanded(
+                    child: Text(
+                      'SUPERSET',
+                      style: theme.textTheme.labelMedium?.copyWith(
+                        color: theme.colorScheme.primary,
+                        fontWeight: FontWeight.w700,
+                      ),
+                    ),
+                  )
+                else
+                  const Spacer(),
+                IconButton(
+                  tooltip: isSuperset ? 'Edit superset' : 'Edit exercise',
+                  onPressed: onEdit,
+                  icon: const Icon(Icons.edit_outlined),
                 ),
-              ),
-            for (final exercise in block.exercises) ...[
+                IconButton(
+                  tooltip: isSuperset ? 'Delete superset' : 'Delete exercise',
+                  onPressed: onDelete,
+                  icon: const Icon(Icons.delete_outline),
+                ),
+                IconButton(
+                  tooltip: 'Move up',
+                  onPressed: onMoveUp,
+                  icon: const Icon(Icons.arrow_upward),
+                ),
+                IconButton(
+                  tooltip: 'Move down',
+                  onPressed: onMoveDown,
+                  icon: const Icon(Icons.arrow_downward),
+                ),
+              ],
+            ),
+            for (var i = 0; i < block.exercises.length; i++) ...[
               ListTile(
                 contentPadding: EdgeInsets.zero,
-                leading: ExerciseMediaThumbnail(block: block, size: 48),
-                title: Text(exercise.title),
-                subtitle: Text(formatLoad(exercise)),
-                trailing: Row(
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    IconButton(
-                      tooltip: 'Edit ${exercise.title}',
-                      onPressed: onEdit,
-                      icon: const Icon(Icons.edit_outlined),
-                    ),
-                    IconButton(
-                      tooltip: 'Delete block',
-                      onPressed: onDelete,
-                      icon: const Icon(Icons.delete_outline),
-                    ),
-                    const Icon(Icons.drag_handle),
-                  ],
+                leading: ExerciseMediaThumbnail(
+                  block: ExerciseBlock.create(
+                    blockId: block.blockId,
+                    kind: BlockKind.single,
+                    svgPath: i == 0 ? block.svgPath : null,
+                    mediaUri: i == 0 ? block.mediaUri : null,
+                    mediaSource: i == 0
+                        ? block.mediaSource
+                        : ExerciseMediaSource.none,
+                    mediaKind: i == 0
+                        ? block.mediaKind
+                        : ExerciseMediaKind.unknown,
+                    exercises: [block.exercises[i]],
+                  ),
+                  size: 48,
                 ),
+                title: Text(block.exercises[i].title),
+                subtitle: Text(formatLoad(block.exercises[i])),
                 onTap: onEdit,
               ),
               TargetAreaChips(
-                selectedIds: exercise.targetAreaIds,
+                selectedIds: block.exercises[i].targetAreaIds,
                 readOnly: true,
                 onChanged: (_) => onEdit(),
               ),

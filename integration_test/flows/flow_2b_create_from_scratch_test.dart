@@ -25,11 +25,11 @@ void main() {
       await gym.tapText('Resume');
       await gym.expectVisible('Create plan');
       await gym.tapText('Day 1');
-      await gym.expectVisible('Add exercise or superset');
+      await gym.expectVisible('Add exercise');
 
-      await gym.tapText('Add exercise or superset');
+      await gym.tapText('Add exercise');
       await gym.enterAddExerciseTitle('Bodyweight squat');
-      await gym.tapText('Save exercise');
+      await gym.tapText('ADD EXERCISE');
       await gym.tapText('CONTINUE');
       await gym.expectVisible('CREATE PLAN');
       await gym.tapKey('create-plan');

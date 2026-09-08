@@ -56,6 +56,16 @@ class PickedExerciseMedia {
     } else {
       block.svgPath = null;
     }
+    if (block.exercises.isNotEmpty) {
+      applyToPrescription(block.exercises.first);
+    }
+  }
+
+  void applyToPrescription(ExercisePrescription exercise) {
+    exercise.mediaUri = uri;
+    exercise.mediaSource = source;
+    exercise.mediaKind = kind;
+    exercise.svgPath = source == ExerciseMediaSource.asset ? uri : null;
   }
 
   void clearFrom(ExerciseBlock block) => PickedExerciseMedia.clearBlock(block);
@@ -67,7 +77,33 @@ class PickedExerciseMedia {
     block.svgPath = null;
   }
 
+  static void clearPrescription(ExercisePrescription exercise) {
+    exercise.mediaUri = null;
+    exercise.mediaSource = ExerciseMediaSource.none;
+    exercise.mediaKind = ExerciseMediaKind.unknown;
+    exercise.svgPath = null;
+  }
+
+  static PickedExerciseMedia? fromPrescription(ExercisePrescription exercise) {
+    if (exercise.hasStoredMedia) {
+      return PickedExerciseMedia(
+        uri: exercise.mediaUri!.trim(),
+        source: exercise.mediaSource,
+        kind: exercise.mediaKind,
+      );
+    }
+    final legacy = exercise.svgPath?.trim();
+    if (legacy != null && legacy.isNotEmpty) {
+      return PickedExerciseMedia.asset(legacy);
+    }
+    return null;
+  }
+
   static PickedExerciseMedia? fromBlock(ExerciseBlock block) {
+    if (block.exercises.isNotEmpty) {
+      final fromExercise = fromPrescription(block.exercises.first);
+      if (fromExercise != null) return fromExercise;
+    }
     final uri = block.mediaUri?.trim();
     final source = block.mediaSource;
     final kind = block.mediaKind;

@@ -91,7 +91,10 @@ void main() {
       restored.days.first.blocks.single.mediaSource,
       ExerciseMediaSource.none,
     );
-    expect(restored.days.first.blocks.single.mediaKind, ExerciseMediaKind.gif);
+    expect(
+      restored.days.first.blocks.single.exercises.single.mediaKind,
+      ExerciseMediaKind.gif,
+    );
     expect(
       restored.days.first.blocks.single.exercises.single.targetWeightKg,
       40.0,
