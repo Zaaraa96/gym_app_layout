@@ -201,10 +201,6 @@ class _DayEditorPageState extends State<DayEditorPage> {
     final ready = _day != null;
     return Scaffold(
       appBar: AppBar(
-        leading: IconButton(
-          icon: const Icon(Icons.arrow_back),
-          onPressed: _done,
-        ),
         title: Text(
           _day?.title ?? 'Day',
           style: titleTextStyle,
