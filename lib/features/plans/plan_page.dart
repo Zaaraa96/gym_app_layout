@@ -10,10 +10,12 @@ import '../../common/widgets/app_text_field.dart';
 import '../../data/app_ports.dart';
 import '../../domain/models/models.dart';
 import '../../domain/new_id.dart';
+import '../../domain/plan_catalog.dart';
 import '../../domain/plan_repository.dart';
-import 'block_summary.dart';
+import 'day_card_summary.dart';
 import 'day_editor_page.dart';
 import 'day_preview_page.dart';
+import 'rotating_exercise_thumbnail.dart';
 
 /// One plan: rename it, add days, open a day to edit its workout.
 class PlanPage extends StatefulWidget {
@@ -342,7 +344,6 @@ class _PlanPageState extends State<PlanPage> {
             _DayCard(
               key: Key('day-card-${plan.days[index].dayId}'),
               day: plan.days[index],
-              index: index,
               onOpen: () => _openDay(plan.days[index]),
               onDelete: () => _deleteDay(plan.days[index]),
             ),
@@ -355,107 +356,154 @@ class _DayCard extends StatelessWidget {
   const _DayCard({
     super.key,
     required this.day,
-    required this.index,
     required this.onOpen,
     required this.onDelete,
   });
 
   final PlanDay day;
-  final int index;
   final VoidCallback onOpen;
   final VoidCallback onDelete;
 
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
+    final focus = dayFocusLabel(day);
+    final estimate = dayEstimateLabel(day);
+    final volume = dayVolumeLabel(day);
+    final chips = dayCardVisibleTargetAreaIds(day);
+    final extra = dayCardHiddenTargetAreaCount(day);
+    final thumbnails = dayCardThumbnails(day);
     return Padding(
       padding: const EdgeInsets.symmetric(vertical: 8),
-      child: SizedBox(
-        height: 200,
-        width: double.infinity,
-        child: Material(
-          color: Colors.transparent,
-          clipBehavior: Clip.antiAlias,
+      child: Card.outlined(
+        clipBehavior: Clip.antiAlias,
+        shape: RoundedRectangleBorder(
           borderRadius: BorderRadius.circular(20),
-          child: InkWell(
-            onTap: onOpen,
-            child: ColoredBox(
-              color: Colors.transparent,
-              child: Stack(
-                fit: StackFit.expand,
-                children: [
-                  IgnorePointer(
-                    child: Transform.flip(
-                      flipX: index == 1,
-                      child: Opacity(
-                        opacity: 0.8,
-                        child: Image.asset(
-                          'assets/image/${index % 3}.png',
-                          fit: BoxFit.cover,
-                          width: double.infinity,
-                          errorBuilder: (_, __, ___) => ColoredBox(
-                            color: [
-                              theme.colorScheme.primaryContainer,
-                              theme.colorScheme.secondaryContainer,
-                              theme.colorScheme.tertiaryContainer,
-                            ][index % 3],
+          side: BorderSide(color: theme.colorScheme.outlineVariant),
+        ),
+        child: InkWell(
+          onTap: onOpen,
+          child: Padding(
+            padding: const EdgeInsets.fromLTRB(16, 8, 12, 12),
+            child: Row(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Row(
+                        children: [
+                          Expanded(
+                            child: AppText(day.title, style: titleTextStyle),
                           ),
-                        ),
-                      ),
-                    ),
-                  ),
-                  Padding(
-                    padding: const EdgeInsets.all(12),
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Row(
-                          children: [
-                            Expanded(
-                              child: AppText(day.title, style: titleTextStyle),
-                            ),
-                            IconButton(
-                              tooltip: 'Delete day',
-                              onPressed: onDelete,
-                              icon: const Icon(Icons.delete_outline),
-                            ),
-                          ],
-                        ),
-                        if (day.summary.isNotEmpty)
-                          Padding(
-                            padding: EdgeInsets.only(
-                              right: MediaQuery.of(context).size.width / 3,
-                            ),
-                            child: AppText(day.summary, style: dataTextStyle),
-                          ),
-                        if (day.blocks.isNotEmpty) ...[
-                          const SizedBox(height: 8),
-                          AppText(
-                            formatBlock(day.blocks.first),
-                            style: dataTextStyle,
+                          IconButton(
+                            tooltip: 'Delete day',
+                            onPressed: onDelete,
+                            icon: const Icon(Icons.delete_outline),
                           ),
                         ],
-                        const Spacer(),
-                        Row(
-                          children: [
-                            Expanded(
-                              child: AppText(
-                                '${day.blocks.length} '
-                                '${day.blocks.length == 1 ? 'exercise' : 'exercises'}',
-                                style: subtitleTextStyle,
-                              ),
+                      ),
+                      if (focus != null)
+                        Padding(
+                          padding: const EdgeInsets.only(bottom: 8),
+                          child: Text(
+                            focus,
+                            key: const Key('day-card-focus'),
+                            maxLines: 2,
+                            overflow: TextOverflow.ellipsis,
+                            style: theme.textTheme.titleSmall?.copyWith(
+                              color: theme.colorScheme.primary,
+                              fontWeight: FontWeight.w600,
                             ),
-                            Icon(
-                              Icons.arrow_forward,
-                              color: theme.colorScheme.tertiary,
-                            ),
-                          ],
+                          ),
                         ),
-                      ],
+                      if (chips.isNotEmpty)
+                        Padding(
+                          padding: const EdgeInsets.only(bottom: 8),
+                          child: Wrap(
+                            spacing: 6,
+                            runSpacing: 6,
+                            children: [
+                              for (final id in chips)
+                                Chip(
+                                  key: Key('day-card-chip-$id'),
+                                  label: Text(targetAreaLabel(id)),
+                                  visualDensity: VisualDensity.compact,
+                                  materialTapTargetSize:
+                                      MaterialTapTargetSize.shrinkWrap,
+                                  padding: EdgeInsets.zero,
+                                  labelPadding: const EdgeInsets.symmetric(
+                                    horizontal: 8,
+                                  ),
+                                  side: BorderSide.none,
+                                  backgroundColor:
+                                      theme.colorScheme.primaryContainer,
+                                  labelStyle: theme.textTheme.labelMedium
+                                      ?.copyWith(
+                                    color: theme.colorScheme.onPrimaryContainer,
+                                  ),
+                                ),
+                              if (extra > 0)
+                                Chip(
+                                  key: const Key('day-card-more-targets'),
+                                  label: Text('+$extra'),
+                                  visualDensity: VisualDensity.compact,
+                                  materialTapTargetSize:
+                                      MaterialTapTargetSize.shrinkWrap,
+                                  padding: EdgeInsets.zero,
+                                  labelPadding: const EdgeInsets.symmetric(
+                                    horizontal: 8,
+                                  ),
+                                  side: BorderSide.none,
+                                ),
+                            ],
+                          ),
+                        ),
+                      const SizedBox(height: 4),
+                      Row(
+                        children: [
+                          if (estimate.isNotEmpty) ...[
+                            Icon(
+                              Icons.schedule,
+                              size: 16,
+                              color: theme.colorScheme.onSurfaceVariant,
+                            ),
+                            const SizedBox(width: 4),
+                            Text(
+                              estimate,
+                              key: const Key('day-card-estimate'),
+                              style: subtitleTextStyle,
+                            ),
+                            const SizedBox(width: 12),
+                          ],
+                          Expanded(
+                            child: Text(
+                              volume,
+                              key: const Key('day-card-volume'),
+                              style: subtitleTextStyle,
+                            ),
+                          ),
+                          Icon(
+                            Icons.arrow_forward,
+                            color: theme.colorScheme.tertiary,
+                          ),
+                        ],
+                      ),
+                    ],
+                  ),
+                ),
+                if (thumbnails.isNotEmpty) ...[
+                  const SizedBox(width: 8),
+                  Padding(
+                    padding: const EdgeInsets.only(top: 8, bottom: 4),
+                    child: RotatingExerciseThumbnail(
+                      key: const Key('day-card-thumbnails'),
+                      media: thumbnails,
                     ),
                   ),
                 ],
-              ),
+              ],
             ),
           ),
         ),
