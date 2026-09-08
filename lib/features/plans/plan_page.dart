@@ -126,55 +126,23 @@ class _PlanPageState extends State<PlanPage> {
   Future<void> _addDay() async {
     final plan = _plan;
     if (plan == null) return;
-    final titleController =
-        TextEditingController(text: 'Day ${plan.days.length + 1}');
-    final summaryController = TextEditingController();
-    final created = await showDialog<bool>(
+    final created = await showDialog<_AddDayResult>(
       context: context,
-      builder: (context) => AlertDialog(
-        title: const Text('Add day'),
-        content: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            AppTextField(
-              label: 'day title',
-              controller: titleController,
-              autofocus: true,
-            ),
-            AppTextField(
-              label: 'day summary',
-              hint: 'muscles, focus, notes…',
-              maxLines: 2,
-              controller: summaryController,
-            ),
-          ],
-        ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(context, false),
-            child: const Text('Cancel'),
-          ),
-          FilledButton(
-            onPressed: () => Navigator.pop(context, true),
-            child: const Text('Save day'),
-          ),
-        ],
+      builder: (context) => _AddDayDialog(
+        defaultTitle: 'Day ${plan.days.length + 1}',
       ),
     );
-    final title = titleController.text.trim().isEmpty
-        ? 'Day ${plan.days.length + 1}'
-        : titleController.text.trim();
-    final summary = summaryController.text.trim();
-    titleController.dispose();
-    summaryController.dispose();
-    if (created != true) return;
+    if (created == null || !mounted) return;
+    final title =
+        created.title.isEmpty ? 'Day ${plan.days.length + 1}' : created.title;
     final day = PlanDay.create(
       dayId: newId(),
       title: title,
-      summary: summary,
+      summary: created.summary,
     );
     plan.days = [...plan.days, day];
     await _save(plan);
+    if (!mounted) return;
     await _openEditor(day);
   }
 
@@ -390,6 +358,7 @@ class _DayCard extends StatelessWidget {
               children: [
                 Expanded(
                   child: Column(
+                    mainAxisSize: MainAxisSize.min,
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
                       Row(
@@ -498,7 +467,7 @@ class _DayCard extends StatelessWidget {
                   Padding(
                     padding: const EdgeInsets.only(top: 8, bottom: 4),
                     child: RotatingExerciseThumbnail(
-                      key: const Key('day-card-thumbnails'),
+                      key: Key('day-card-thumbnails-${day.dayId}'),
                       media: thumbnails,
                     ),
                   ),
@@ -508,6 +477,80 @@ class _DayCard extends StatelessWidget {
           ),
         ),
       ),
+    );
+  }
+}
+
+class _AddDayResult {
+  const _AddDayResult({required this.title, required this.summary});
+
+  final String title;
+  final String summary;
+}
+
+class _AddDayDialog extends StatefulWidget {
+  const _AddDayDialog({required this.defaultTitle});
+
+  final String defaultTitle;
+
+  @override
+  State<_AddDayDialog> createState() => _AddDayDialogState();
+}
+
+class _AddDayDialogState extends State<_AddDayDialog> {
+  late final TextEditingController _title;
+  late final TextEditingController _summary;
+
+  @override
+  void initState() {
+    super.initState();
+    _title = TextEditingController(text: widget.defaultTitle);
+    _summary = TextEditingController();
+  }
+
+  @override
+  void dispose() {
+    _title.dispose();
+    _summary.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return AlertDialog(
+      title: const Text('Add day'),
+      content: Column(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          AppTextField(
+            label: 'day title',
+            controller: _title,
+            autofocus: true,
+          ),
+          AppTextField(
+            label: 'day summary',
+            hint: 'muscles, focus, notes…',
+            maxLines: 2,
+            controller: _summary,
+          ),
+        ],
+      ),
+      actions: [
+        TextButton(
+          onPressed: () => Navigator.pop(context),
+          child: const Text('Cancel'),
+        ),
+        FilledButton(
+          onPressed: () => Navigator.pop(
+            context,
+            _AddDayResult(
+              title: _title.text.trim(),
+              summary: _summary.text.trim(),
+            ),
+          ),
+          child: const Text('Save day'),
+        ),
+      ],
     );
   }
 }

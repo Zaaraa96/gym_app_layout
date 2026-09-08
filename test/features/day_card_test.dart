@@ -105,7 +105,6 @@ void main() {
     expect(find.byKey(const Key('day-card-chip-core')), findsOneWidget);
     expect(find.text('~5 min'), findsOneWidget);
     expect(find.text('1 exercise · 3 sets'), findsOneWidget);
-    expect(find.byKey(const Key('day-card-thumbnails')), findsOneWidget);
     expect(find.byType(RotatingExerciseThumbnail), findsOneWidget);
   });
 
