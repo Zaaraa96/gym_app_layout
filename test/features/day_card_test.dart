@@ -99,7 +99,8 @@ void main() {
       ]),
     );
 
-    expect(find.text('Core'), findsOneWidget);
+    expect(find.byKey(const Key('day-card-focus')), findsOneWidget);
+    expect(find.text('Core'), findsWidgets);
     expect(find.byKey(const Key('day-card-chip-abs')), findsOneWidget);
     expect(find.byKey(const Key('day-card-chip-core')), findsOneWidget);
     expect(find.text('~5 min'), findsOneWidget);
