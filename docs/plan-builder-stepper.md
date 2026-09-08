@@ -93,10 +93,11 @@ The review step shows a compact summary, not duplicate exercise forms:
 - **Edit** on complete days.
 - **Fix this** on incomplete days.
 - A total count of required issues.
-- Disabled **Create plan** while required issues remain.
+- **Add another day** in the Review column; tapping it inserts a day and opens that step.
+- Disabled **Finish plan** while required issues remain.
 - **Exit for now**, with copy confirming that the draft was saved.
 
-**Edit** and **Fix this** collapse Review and open the corresponding step in place. When all required issues are resolved, **Create plan** becomes enabled.
+**Edit** and **Fix this** collapse Review and open the corresponding step in place. When all required issues are resolved, **Finish plan** becomes enabled.
 
 ## Step order and interaction
 

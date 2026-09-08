@@ -10,6 +10,7 @@ import '../../domain/plan_catalog.dart';
 import 'exercise_media_picker.dart';
 import 'exercise_media_picker_sheet.dart';
 import 'exercise_media_thumbnail.dart';
+import 'remove_exercise.dart';
 import 'target_area_chips.dart';
 
 sealed class ExerciseEditorResult {
@@ -448,29 +449,11 @@ class _ExerciseEditorPageState extends State<ExerciseEditorPage> {
   }
 
   Future<void> _delete() async {
-    final confirmed = await showDialog<bool>(
-      context: context,
-      builder: (context) => AlertDialog(
-        title: Text(_draft.deleteActionLabel),
-        content: Text(
-          _draft.isSuperset
-              ? 'Remove this superset from the day?'
-              : 'Remove this exercise from the day?',
-        ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(context, false),
-            child: const Text('Cancel'),
-          ),
-          FilledButton(
-            key: const Key('confirm-delete-exercise'),
-            onPressed: () => Navigator.pop(context, true),
-            child: const Text('Delete'),
-          ),
-        ],
-      ),
+    final confirmed = await confirmRemoveExerciseFromDay(
+      context,
+      isSuperset: _draft.isSuperset,
     );
-    if (confirmed != true) return;
+    if (!confirmed) return;
     final persist = widget.onDelete;
     final ok = persist == null ? true : await persist();
     if (!mounted) return;
