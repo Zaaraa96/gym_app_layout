@@ -5,7 +5,7 @@ import 'support/gym_app.dart';
 
 void main() {
   gymPatrolTest(
-    '2b: stepper create, untitled draft, disabled create, then start and discard',
+    '2b: stepper create, untitled draft, Finish plan disabled, extra day, then start and discard',
     ($, gym) async {
       await gym.waitForWelcome();
 
@@ -43,6 +43,13 @@ void main() {
       await gym.expectVisible('Add exercise');
 
       await gym.addExerciseInBuilder('Bodyweight squat');
+      await gym.tapText('CONTINUE');
+      await gym.expectVisible('Finish plan');
+      expect($('Add another day'), findsOneWidget);
+      await gym.tapKey('add-another-day');
+      await gym.expectVisible('Day 2');
+      expect($('Add at least one exercise.'), findsOneWidget);
+      await gym.addExerciseInBuilder('Push-up');
       await gym.tapText('CONTINUE');
       await gym.expectVisible('Finish plan');
       await gym.tapKey('create-plan');

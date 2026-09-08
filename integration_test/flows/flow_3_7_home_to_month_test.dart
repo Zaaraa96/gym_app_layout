@@ -12,6 +12,8 @@ void main() {
       expect($('Import'), findsOneWidget);
       expect($('New'), findsOneWidget);
       expect($(const Key('open-starters')), findsOneWidget);
+      expect($('Exercises'), findsOneWidget);
+      expect($('Month'), findsOneWidget);
       expect($('5 days'), findsOneWidget);
 
       await gym.openPlan(GymApp.fullBodyTitle);
@@ -51,7 +53,7 @@ void main() {
       await gym.tapKey('add-exercise');
       await gym.enterAddExerciseTitle('Ghost raise');
       await gym.commitExerciseEditor();
-      await gym.tapText('Save');
+      await gym.tapKey('save-day');
       await gym.back();
       await gym.back();
 

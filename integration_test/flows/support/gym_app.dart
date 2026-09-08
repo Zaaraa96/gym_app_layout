@@ -40,8 +40,8 @@ class GymApp {
 
   final PatrolIntegrationTester $;
 
-  /// Import preview used to show the file name. Native lookups stay
-  /// package-scoped so picker rows do not collide with in-app copy.
+  /// Native lookups stay package-scoped so picker rows do not collide with
+  /// in-app copy.
   static const _appPackage = 'com.zahra.gym_app';
 
   static const fullBodyTitle = 'Beginner full body';
@@ -108,6 +108,11 @@ class GymApp {
 
   Future<void> pumpQuiet([Duration d = const Duration(milliseconds: 400)]) =>
       $.pump(d);
+
+  Future<void> hideKeyboard() async {
+    FocusManager.instance.primaryFocus?.unfocus();
+    await pumpQuiet(const Duration(milliseconds: 200));
+  }
 
   Future<void> back() async {
     final arrow = find.byIcon(Icons.arrow_back);
@@ -361,15 +366,42 @@ class GymApp {
 
   Future<void> openReviewStep() async {
     await tapKey('step-review');
-    await expectVisible('CREATE PLAN');
+    await expectVisible('Finish plan');
   }
 
   Future<void> expectCreatePlanDisabled() async {
-    await expectVisible('CREATE PLAN');
+    await expectVisible('Finish plan');
+    expect($('CREATE PLAN'), findsNothing);
     final create = $.tester.widget<FilledButton>(
       find.byKey(const Key('create-plan')),
     );
     expect(create.onPressed, isNull);
+  }
+
+  Future<void> expectImportIssuesBanner() async {
+    await $(const Key('import-issues-banner')).waitUntilVisible();
+    expect($('Import didn’t go as planned.'), findsOneWidget);
+    expect(
+      $('This is a draft. Check each day, fix what’s missing, then create the plan.'),
+      findsOneWidget,
+    );
+  }
+
+  Future<void> finishImportedPlan(String title) async {
+    await expectVisible('Create plan');
+    if (!$('Finish plan').exists) {
+      await openReviewStep();
+    }
+    await tapKey('create-plan');
+    await expectPlanPreview(title);
+  }
+
+  Future<void> openExportDialog() async {
+    await _tap(find.byTooltip('More'), settle: SettlePolicy.trySettle);
+    await tapKey('export-plan');
+    await expectVisible('Export plan');
+    await expectVisible(const Key('export-full'));
+    await expectVisible(const Key('export-lite'));
   }
 
   Future<void> expectStartWorkoutDisabled() async {
@@ -387,11 +419,11 @@ class GymApp {
 
   Future<void> addNamedExercise(String name) async {
     await tapText('Edit day');
-    await expectVisible('No exercises yet. Add the first movement.');
+    await expectVisible('Add at least one exercise.');
     await tapText('Add exercise');
     await enterAddExerciseTitle(name);
     await commitExerciseEditor();
-    await tapText('Save');
+    await tapKey('save-day');
     await expectVisible('Start workout');
   }
 
@@ -441,6 +473,9 @@ class GymApp {
   /// not the click target. ACTION_OPEN_DOCUMENT only finishes when the list
   /// row (or the icon to the left of the title) is clicked. Success is the
   /// picker closing, not UiAutomator reporting a tap.
+  Future<void> pickFileFromDownloads(String fileName) =>
+      pickJsonFromDownloads(fileName);
+
   Future<void> pickJsonFromDownloads(String fileName) async {
     await dismissPermissionIfAny();
     await nativeTapText('Allow', timeout: const Duration(milliseconds: 800));
