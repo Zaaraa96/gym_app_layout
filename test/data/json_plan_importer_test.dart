@@ -10,6 +10,15 @@ void main() {
     clock: _clock,
   );
 
+  void expectSalvage(String json, String messagePart) {
+    final imported = importer.importDetailed(json);
+    expect(imported.plan.source, PlanSource.imported);
+    expect(
+      imported.issues.map((i) => i.message).join('\n'),
+      contains(messagePart),
+    );
+  }
+
   test('maps the canonical sample onto days, supersets, and common sections',
       () {
     final plan = importer.import(_sampleJson);
@@ -75,47 +84,19 @@ void main() {
   });
 
   test('rejects a trailing comma with a readable error', () {
-    expect(
-      () => importer.import('{ "name": "plan 1", }'),
-      throwsA(
-        isA<PlanImportException>().having(
-          (e) => e.message,
-          'message',
-          contains('not valid JSON'),
-        ),
-      ),
-    );
+    expectSalvage('{ "name": "plan 1", }', 'syntax issues');
   });
 
   test('rejects a plan with no name', () {
-    expect(
-      () => importer.import('{"basic-plan":[]}'),
-      throwsA(
-        isA<PlanImportException>().having(
-          (e) => e.message,
-          'message',
-          contains('needs a name'),
-        ),
-      ),
-    );
+    expectSalvage('{"basic-plan":[]}', 'needs a name');
   });
 
   test('rejects a plan with no days', () {
-    expect(
-      () => importer.import('{"name":"empty","basic-plan":[]}'),
-      throwsA(
-        isA<PlanImportException>().having(
-          (e) => e.message,
-          'message',
-          contains('no days'),
-        ),
-      ),
-    );
+    expectSalvage('{"name":"empty","basic-plan":[]}', 'No days');
   });
 
   test('rejects an unknown block type', () {
-    expect(
-      () => importer.import('''
+    expectSalvage('''
 {
   "name": "plan",
   "basic-plan": [{
@@ -123,20 +104,11 @@ void main() {
     "exercises": [{ "type": "circuit", "exercise": {} }]
   }]
 }
-'''),
-      throwsA(
-        isA<PlanImportException>().having(
-          (e) => e.message,
-          'message',
-          contains('single" or "super-set'),
-        ),
-      ),
-    );
+''', 'could not read');
   });
 
   test('rejects a super-set with one movement', () {
-    expect(
-      () => importer.import('''
+    expectSalvage('''
 {
   "name": "plan",
   "basic-plan": [{
@@ -149,20 +121,11 @@ void main() {
     }]
   }]
 }
-'''),
-      throwsA(
-        isA<PlanImportException>().having(
-          (e) => e.message,
-          'message',
-          contains('at least two exercises'),
-        ),
-      ),
-    );
+''', 'at least two exercises');
   });
 
   test('rejects an exercise that has both times and duration', () {
-    expect(
-      () => importer.import('''
+    expectSalvage('''
 {
   "name": "plan",
   "basic-plan": [{
@@ -173,20 +136,11 @@ void main() {
     }]
   }]
 }
-'''),
-      throwsA(
-        isA<PlanImportException>().having(
-          (e) => e.message,
-          'message',
-          contains('not both'),
-        ),
-      ),
-    );
+''', 'not both');
   });
 
   test('rejects an exercise with neither times nor duration', () {
-    expect(
-      () => importer.import('''
+    expectSalvage('''
 {
   "name": "plan",
   "basic-plan": [{
@@ -197,15 +151,7 @@ void main() {
     }]
   }]
 }
-'''),
-      throwsA(
-        isA<PlanImportException>().having(
-          (e) => e.message,
-          'message',
-          contains('times (reps) or duration'),
-        ),
-      ),
-    );
+''', 'times (reps) or duration');
   });
 
   test('common-plan is optional', () {
@@ -240,8 +186,7 @@ void main() {
 ''');
     expect(emptyCommons.days, hasLength(1));
 
-    expect(
-      () => importer.import('''
+    expectSalvage('''
 {
   "name": "plan",
   "basic-plan": [{
@@ -253,17 +198,8 @@ void main() {
   }],
   "common-plan": [{ "exercises": [] }]
 }
-'''),
-      throwsA(
-        isA<PlanImportException>().having(
-          (e) => e.message,
-          'message',
-          contains('Common section 1 needs a name'),
-        ),
-      ),
-    );
-    expect(
-      () => importer.import('''
+''', 'Common section 1 needs a name');
+    expectSalvage('''
 {
   "name": "plan",
   "basic-plan": [{
@@ -275,17 +211,8 @@ void main() {
   }],
   "common-plan": [{ "name": "abs" }]
 }
-'''),
-      throwsA(
-        isA<PlanImportException>().having(
-          (e) => e.message,
-          'message',
-          contains('needs an exercises list'),
-        ),
-      ),
-    );
-    expect(
-      () => importer.import('''
+''', 'needs an exercises list');
+    expectSalvage('''
 {
   "name": "plan",
   "basic-plan": [{
@@ -296,15 +223,7 @@ void main() {
     }]
   }]
 }
-'''),
-      throwsA(
-        isA<PlanImportException>().having(
-          (e) => e.message,
-          'message',
-          contains('needs a list of exercises'),
-        ),
-      ),
-    );
+''', 'needs a list of exercises');
   });
 
   test('accepts whole-number doubles for sets and times', () {
@@ -326,8 +245,7 @@ void main() {
   });
 
   test('rejects zero or fractional load values', () {
-    expect(
-      () => importer.import('''
+    expectSalvage('''
 {
   "name": "plan",
   "basic-plan": [{
@@ -338,17 +256,8 @@ void main() {
     }]
   }]
 }
-'''),
-      throwsA(
-        isA<PlanImportException>().having(
-          (e) => e.message,
-          'message',
-          contains('at least 1 set'),
-        ),
-      ),
-    );
-    expect(
-      () => importer.import('''
+''', 'at least 1 set');
+    expectSalvage('''
 {
   "name": "plan",
   "basic-plan": [{
@@ -359,17 +268,8 @@ void main() {
     }]
   }]
 }
-'''),
-      throwsA(
-        isA<PlanImportException>().having(
-          (e) => e.message,
-          'message',
-          contains('times must be at least 1'),
-        ),
-      ),
-    );
-    expect(
-      () => importer.import('''
+''', 'times must be at least 1');
+    expectSalvage('''
 {
   "name": "plan",
   "basic-plan": [{
@@ -380,17 +280,8 @@ void main() {
     }]
   }]
 }
-'''),
-      throwsA(
-        isA<PlanImportException>().having(
-          (e) => e.message,
-          'message',
-          contains('duration must be at least 1 second'),
-        ),
-      ),
-    );
-    expect(
-      () => importer.import('''
+''', 'duration must be at least 1 second');
+    expectSalvage('''
 {
   "name": "plan",
   "basic-plan": [{
@@ -401,17 +292,8 @@ void main() {
     }]
   }]
 }
-'''),
-      throwsA(
-        isA<PlanImportException>().having(
-          (e) => e.message,
-          'message',
-          contains('must be a whole number'),
-        ),
-      ),
-    );
-    expect(
-      () => importer.import('''
+''', 'must be a whole number');
+    expectSalvage('''
 {
   "name": "plan",
   "basic-plan": [{
@@ -422,15 +304,7 @@ void main() {
     }]
   }]
 }
-'''),
-      throwsA(
-        isA<PlanImportException>().having(
-          (e) => e.message,
-          'message',
-          contains('must be a whole number'),
-        ),
-      ),
-    );
+''', 'must be a whole number');
   });
 
   test('accepts a duration whole-number double and a three-move super-set', () {
@@ -462,8 +336,7 @@ void main() {
   });
 
   test('rejects a common section that is missing a name or exercises list', () {
-    expect(
-      () => importer.import('''
+    expectSalvage('''
 {
   "name": "plan",
   "basic-plan": [{
@@ -475,17 +348,8 @@ void main() {
   }],
   "common-plan": [{ "exercises": [] }]
 }
-'''),
-      throwsA(
-        isA<PlanImportException>().having(
-          (e) => e.message,
-          'message',
-          contains('needs a name'),
-        ),
-      ),
-    );
-    expect(
-      () => importer.import('''
+''', 'needs a name');
+    expectSalvage('''
 {
   "name": "plan",
   "basic-plan": [{
@@ -497,17 +361,8 @@ void main() {
   }],
   "common-plan": [{ "name": "abs" }]
 }
-'''),
-      throwsA(
-        isA<PlanImportException>().having(
-          (e) => e.message,
-          'message',
-          contains('needs an exercises list'),
-        ),
-      ),
-    );
-    expect(
-      () => importer.import('''
+''', 'needs an exercises list');
+    expectSalvage('''
 {
   "name": "plan",
   "basic-plan": [{
@@ -519,70 +374,25 @@ void main() {
   }],
   "common-plan": ["abs"]
 }
-'''),
-      throwsA(
-        isA<PlanImportException>().having(
-          (e) => e.message,
-          'message',
-          contains('not a JSON object'),
-        ),
-      ),
-    );
+''', 'not a JSON object');
   });
 
   test('rejects missing structure with readable, UI-safe messages', () {
-    expect(
-      () => importer.import('[]'),
-      throwsA(
-        isA<PlanImportException>().having(
-          (e) => e.message,
-          'message',
-          contains('not a JSON object'),
-        ),
-      ),
-    );
-    expect(
-      () => importer.import('{"name":"plan"}'),
-      throwsA(
-        isA<PlanImportException>().having(
-          (e) => e.message,
-          'message',
-          contains('missing a basic-plan'),
-        ),
-      ),
-    );
-    expect(
-      () => importer.import('''
+    expectSalvage('[]', 'not a JSON object');
+    expectSalvage('{"name":"plan"}', 'No days found');
+    expectSalvage('''
 {
   "name": "plan",
   "basic-plan": [{ "exercises": [] }]
 }
-'''),
-      throwsA(
-        isA<PlanImportException>().having(
-          (e) => e.message,
-          'message',
-          contains('needs a name'),
-        ),
-      ),
-    );
-    expect(
-      () => importer.import('''
+''', 'needs a name');
+    expectSalvage('''
 {
   "name": "plan",
   "basic-plan": [{ "name": "day 1" }]
 }
-'''),
-      throwsA(
-        isA<PlanImportException>().having(
-          (e) => e.message,
-          'message',
-          contains('needs an exercises list'),
-        ),
-      ),
-    );
-    expect(
-      () => importer.import('''
+''', 'needs an exercises list');
+    expectSalvage('''
 {
   "name": "plan",
   "basic-plan": [{
@@ -590,17 +400,8 @@ void main() {
     "exercises": [{ "exercise": { "title": "squat", "sets": 3, "times": 8 } }]
   }]
 }
-'''),
-      throwsA(
-        isA<PlanImportException>().having(
-          (e) => e.message,
-          'message',
-          contains('missing a type'),
-        ),
-      ),
-    );
-    expect(
-      () => importer.import('''
+''', 'could not read');
+    expectSalvage('''
 {
   "name": "plan",
   "basic-plan": [{
@@ -611,17 +412,8 @@ void main() {
     }]
   }]
 }
-'''),
-      throwsA(
-        isA<PlanImportException>().having(
-          (e) => e.message,
-          'message',
-          contains('needs an exercise title'),
-        ),
-      ),
-    );
-    expect(
-      () => importer.import('''
+''', 'needs an exercise title');
+    expectSalvage('''
 {
   "name": "plan",
   "basic-plan": [{
@@ -632,20 +424,11 @@ void main() {
     }]
   }]
 }
-'''),
-      throwsA(
-        isA<PlanImportException>().having(
-          (e) => e.message,
-          'message',
-          contains('needs an exercise object'),
-        ),
-      ),
-    );
+''', 'needs an exercise object');
   });
 
   test('rejects negative load values the same way as zeros', () {
-    expect(
-      () => importer.import('''
+    expectSalvage('''
 {
   "name": "plan",
   "basic-plan": [{
@@ -656,17 +439,8 @@ void main() {
     }]
   }]
 }
-'''),
-      throwsA(
-        isA<PlanImportException>().having(
-          (e) => e.message,
-          'message',
-          contains('at least 1 set'),
-        ),
-      ),
-    );
-    expect(
-      () => importer.import('''
+''', 'at least 1 set');
+    expectSalvage('''
 {
   "name": "plan",
   "basic-plan": [{
@@ -677,17 +451,8 @@ void main() {
     }]
   }]
 }
-'''),
-      throwsA(
-        isA<PlanImportException>().having(
-          (e) => e.message,
-          'message',
-          contains('times must be at least 1'),
-        ),
-      ),
-    );
-    expect(
-      () => importer.import('''
+''', 'times must be at least 1');
+    expectSalvage('''
 {
   "name": "plan",
   "basic-plan": [{
@@ -698,15 +463,7 @@ void main() {
     }]
   }]
 }
-'''),
-      throwsA(
-        isA<PlanImportException>().having(
-          (e) => e.message,
-          'message',
-          contains('duration must be at least 1 second'),
-        ),
-      ),
-    );
+''', 'duration must be at least 1 second');
   });
 
   test('an empty exercises list is a rest day, and a string exercise is rejected',
@@ -720,8 +477,7 @@ void main() {
     expect(rest.days.single.title, 'rest');
     expect(rest.days.single.blocks, isEmpty);
 
-    expect(
-      () => importer.import('''
+    expectSalvage('''
 {
   "name": "plan",
   "basic-plan": [{
@@ -729,30 +485,12 @@ void main() {
     "exercises": ["squat"]
   }]
 }
-'''),
-      throwsA(
-        isA<PlanImportException>().having(
-          (e) => e.message,
-          'message',
-          contains('not a JSON object'),
-        ),
-      ),
-    );
+''', 'not a JSON object');
   });
 
   test('rejects a blank name and a non-array common-plan', () {
-    expect(
-      () => importer.import('{"name":"   ","basic-plan":[]}'),
-      throwsA(
-        isA<PlanImportException>().having(
-          (e) => e.message,
-          'message',
-          contains('needs a name'),
-        ),
-      ),
-    );
-    expect(
-      () => importer.import('''
+    expectSalvage('{"name":"   ","basic-plan":[]}', 'needs a name');
+    expectSalvage('''
 {
   "name": "plan",
   "basic-plan": [{
@@ -764,17 +502,8 @@ void main() {
   }],
   "common-plan": {}
 }
-'''),
-      throwsA(
-        isA<PlanImportException>().having(
-          (e) => e.message,
-          'message',
-          contains('not a JSON array'),
-        ),
-      ),
-    );
-    expect(
-      () => importer.import('''
+''', 'not a JSON array');
+    expectSalvage('''
 {
   "name": "plan",
   "basic-plan": [{
@@ -786,30 +515,13 @@ void main() {
   }],
   "common-plan": [{ "name": "abs" }]
 }
-'''),
-      throwsA(
-        isA<PlanImportException>().having(
-          (e) => e.message,
-          'message',
-          contains('needs an exercises list'),
-        ),
-      ),
-    );
-    expect(
-      () => importer.import('''
+''', 'needs an exercises list');
+    expectSalvage('''
 {
   "name": "plan",
   "basic-plan": ["not a day"]
 }
-'''),
-      throwsA(
-        isA<PlanImportException>().having(
-          (e) => e.message,
-          'message',
-          contains('not a JSON object'),
-        ),
-      ),
-    );
+''', 'not a JSON object');
   });
 
   test('trims titles and leaves unmatched exercises without a preview asset',
@@ -862,8 +574,7 @@ void main() {
   });
 
   test('rejects string or boolean load values and a non-object day', () {
-    expect(
-      () => importer.import('''
+    expectSalvage('''
 {
   "name": "plan",
   "basic-plan": [{
@@ -874,17 +585,8 @@ void main() {
     }]
   }]
 }
-'''),
-      throwsA(
-        isA<PlanImportException>().having(
-          (e) => e.message,
-          'message',
-          contains('must be a whole number'),
-        ),
-      ),
-    );
-    expect(
-      () => importer.import('''
+''', 'must be a whole number');
+    expectSalvage('''
 {
   "name": "plan",
   "basic-plan": [{
@@ -895,30 +597,13 @@ void main() {
     }]
   }]
 }
-'''),
-      throwsA(
-        isA<PlanImportException>().having(
-          (e) => e.message,
-          'message',
-          contains('must be a whole number'),
-        ),
-      ),
-    );
-    expect(
-      () => importer.import('''
+''', 'must be a whole number');
+    expectSalvage('''
 {
   "name": "plan",
   "basic-plan": ["not a day object"]
 }
-'''),
-      throwsA(
-        isA<PlanImportException>().having(
-          (e) => e.message,
-          'message',
-          contains('Day 1 is not a JSON object'),
-        ),
-      ),
-    );
+''', 'Day 1 is not a JSON object');
   });
 
   test('an empty common-plan array is a plan with no extras, not an error', () {

@@ -1,6 +1,8 @@
+import 'plan_export.dart';
 import 'plan_import.dart';
 import 'plan_import_picker.dart';
 import 'memory_catalog_repository.dart';
+import 'plan_package_share.dart';
 import '../domain/catalog_repository.dart';
 import '../domain/plan_repository.dart';
 import '../domain/session_lifecycle.dart';
@@ -15,10 +17,12 @@ class AppPorts {
     CatalogRepository? catalog,
     SessionLifecycle? lifecycle,
     PlanImportPicker? picker,
+    PlanPackageShare? packageShare,
   })  : catalog = catalog ?? MemoryCatalogRepository(),
         lifecycle = lifecycle ?? SessionLifecycle(sessions) {
     startSession = StartSession(this.lifecycle, sessions);
     planImport = PlanImport(plans: plans, picker: picker);
+    planExport = PlanExport(share: packageShare);
   }
 
   final PlanRepository plans;
@@ -27,4 +31,5 @@ class AppPorts {
   final SessionLifecycle lifecycle;
   late final StartSession startSession;
   late final PlanImport planImport;
+  late final PlanExport planExport;
 }

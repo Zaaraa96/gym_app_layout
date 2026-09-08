@@ -3,6 +3,7 @@ import 'package:gym_app/data/json_plan_importer.dart';
 import 'package:gym_app/data/memory_plan_repository.dart';
 import 'package:gym_app/data/plan_import.dart';
 import 'package:gym_app/data/plan_import_picker.dart';
+import 'package:gym_app/domain/models/models.dart';
 
 class _Picker implements PlanImportPicker {
   _Picker({this.file, this.error});
@@ -55,7 +56,7 @@ void main() {
     );
   });
 
-  test('invalid JSON is a failed outcome, not a thrown exception', () async {
+  test('trailing-comma JSON salvages a draft instead of failing', () async {
     final import = PlanImport(
       picker: _Picker(
         file: const PickedPlanFile(
@@ -66,14 +67,11 @@ void main() {
       plans: MemoryPlanRepository(),
     );
     final outcome = await import.pickAndParse();
-    expect(
-      outcome,
-      isA<PlanImportFailed>().having(
-        (failed) => failed.message,
-        'message',
-        contains('not valid JSON'),
-      ),
-    );
+    expect(outcome, isA<PlanImportParsed>());
+    final parsed = outcome as PlanImportParsed;
+    expect(parsed.plan.title, 'plan 1');
+    expect(parsed.plan.status, PlanStatus.draft);
+    expect(parsed.issues, isNotEmpty);
   });
 
   test('valid JSON parses then save writes the plan', () async {
@@ -91,9 +89,24 @@ void main() {
     expect(parsed.fileName, 'plan.json');
     expect(parsed.plan.title, 'Imported');
     expect(parsed.plan.days.single.title, 'Day 1');
+    expect(parsed.plan.status, PlanStatus.draft);
 
     final saved = await import.save(parsed.plan);
     expect(await plans.count(), 1);
     expect((await plans.byUuid(saved.uuid))?.title, 'Imported');
+  });
+
+  test('garbage bytes are a failed outcome', () async {
+    final import = PlanImport(
+      picker: _Picker(
+        file: const PickedPlanFile(
+          fileName: 'note.txt',
+          contents: 'hello world',
+        ),
+      ),
+      plans: MemoryPlanRepository(),
+    );
+    final outcome = await import.pickAndParse();
+    expect(outcome, isA<PlanImportFailed>());
   });
 }
