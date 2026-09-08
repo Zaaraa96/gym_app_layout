@@ -69,10 +69,10 @@ Deleting the last plan (overflow on plan preview) lands on empty home: **No plan
 
 1. Tap a plan.
 2. Plan preview (no bottom nav):
-   - Photo day cards (`assets/image/0–2.png`).
+   - Info day cards (no cycling photos). Details: [plan-day-cards.md](plan-day-cards.md).
    - App bar: back, title, **Rename plan** (pencil), **Add day**, overflow **More** → **Delete plan**.
    - Confirm: **Delete this plan?** / **Workouts already logged stay on Month.** **Cancel** or **Delete**. Delete returns to Plans.
-   - Each day card: title, optional summary, first-block summary, exercise count, **Delete day**.
+   - Each day card: title, optional focus/summary, target-area chips, `~N min` estimate, exercise count, **Delete day**. Catalog/stored stills rotate on the right when a movement has media; unmatched custom exercises stay text-only.
    - FAB **Add day** when at least one day exists.
 3. Tap a day card → **read-only day preview** (SVG, names × reps or duration, set badge; supersets on one row).
 4. **Edit day** opens the editor (day title/summary, add/edit/delete blocks, pick bundled SVG or gallery media, target-area chips). Back without saving destructive edits is safe.

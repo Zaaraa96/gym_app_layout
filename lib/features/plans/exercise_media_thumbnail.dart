@@ -10,24 +10,33 @@ import 'exercise_media.dart';
 class ExerciseMediaThumbnail extends StatelessWidget {
   const ExerciseMediaThumbnail({
     super.key,
-    required this.block,
+    required ExerciseBlock block,
     this.size = 40,
     this.borderRadius = 8,
-  });
+  })  : media = null,
+        _block = block;
 
-  final ExerciseBlock block;
+  const ExerciseMediaThumbnail.media({
+    super.key,
+    required ExerciseMediaRef this.media,
+    this.size = 40,
+    this.borderRadius = 8,
+  }) : _block = null;
+
+  final ExerciseBlock? _block;
+  final ExerciseMediaRef? media;
   final double size;
   final double borderRadius;
 
   @override
   Widget build(BuildContext context) {
-    final media = resolveBlockMedia(block);
+    final resolved = media ?? resolveBlockMedia(_block!);
     return ClipRRect(
       borderRadius: BorderRadius.circular(borderRadius),
       child: SizedBox(
         width: size,
         height: size,
-        child: _MediaBody(media: media),
+        child: _MediaBody(media: resolved),
       ),
     );
   }
