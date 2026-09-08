@@ -10,6 +10,7 @@ void main() {
     final files = [
       File('lib/data/isar/workout_plan.g.dart'),
       File('lib/data/isar/workout_session.g.dart'),
+      File('lib/data/isar/user_catalog_exercise.g.dart'),
     ];
     final offenders = <String>[];
     for (final file in files) {

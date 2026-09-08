@@ -44,7 +44,7 @@ void main() {
 
       await gym.addExerciseInBuilder('Bodyweight squat');
       await gym.tapText('CONTINUE');
-      await gym.expectVisible('CREATE PLAN');
+      await gym.expectVisible('Finish plan');
       await gym.tapKey('create-plan');
       await gym.expectPlanPreview('Scratch week');
 

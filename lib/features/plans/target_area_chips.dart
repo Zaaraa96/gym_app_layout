@@ -100,6 +100,7 @@ class _AddTargetAreaButton extends StatelessWidget {
       itemBuilder: (context) => [
         for (final area in remaining)
           PopupMenuItem(
+            key: Key('pick-target-${area.id}'),
             value: area.id,
             child: Text(area.label),
           ),

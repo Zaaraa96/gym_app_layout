@@ -225,7 +225,7 @@ void main() {
     expect(
       find.descendant(
         of: find.byType(DayEditorPage),
-        matching: find.text('3 × 12 kang squat'),
+        matching: find.text('kang squat'),
       ),
       findsOneWidget,
     );
@@ -238,7 +238,7 @@ void main() {
     await commitExerciseEditor(tester);
     await settle(tester);
 
-    expect(find.text('3 × 45s plank'), findsWidgets);
+    expect(find.text('x45s'), findsWidgets);
 
     final stored = await db(tester, plans.all);
     final day = stored.single.days.single;
@@ -308,16 +308,17 @@ void main() {
     expect(
       find.descendant(
         of: find.byType(DayEditorPage),
-        matching: find.text('3 × 12 kang squat'),
+        matching: find.text('kang squat'),
       ),
       findsOneWidget,
     );
 
     await tester.tap(find.byTooltip('Delete exercise'));
     await tester.pump();
+    await confirmDeleteFromDayList(tester);
     await settle(tester);
 
-    expect(find.text('3 × 12 kang squat'), findsNothing);
+    expect(find.text('kang squat'), findsNothing);
     final stored = await db(tester, plans.all);
     expect(stored.single.days.single.blocks, isEmpty);
   });
@@ -440,10 +441,12 @@ void main() {
     expect(
       find.descendant(
         of: find.byType(DayEditorPage),
-        matching: find.text('3 × 12 bench press + 3 × 12 bent over row'),
+        matching: find.text('SUPERSET'),
       ),
       findsOneWidget,
     );
+    expect(find.text('bench press'), findsWidgets);
+    expect(find.text('bent over row'), findsWidgets);
 
     final stored = await db(tester, plans.all);
     final block = stored.single.days.single.blocks.single;
@@ -482,12 +485,11 @@ void main() {
     expect(
       find.descendant(
         of: find.byType(DayEditorPage),
-        matching: find.text(
-          '3 × 12 bench press + 3 × 12 bent over row + 3 × 12 face pull',
-        ),
+        matching: find.text('SUPERSET'),
       ),
       findsOneWidget,
     );
+    expect(find.text('face pull'), findsWidgets);
 
     final stored = await db(tester, plans.all);
     final block = stored.single.days.single.blocks.single;
@@ -561,15 +563,16 @@ void main() {
     await tester.pump();
     await settle(tester);
 
-    expect(find.text('3 × 8 bench press'), findsOneWidget);
-    expect(find.text('3 × 10 skull crusher'), findsOneWidget);
+    expect(find.text('bench press'), findsOneWidget);
+    expect(find.text('skull crusher'), findsOneWidget);
 
     await tester.tap(find.byTooltip('Delete exercise').last);
     await tester.pump();
+    await confirmDeleteFromDayList(tester);
     await settle(tester);
 
-    expect(find.text('3 × 10 skull crusher'), findsNothing);
-    expect(find.text('3 × 8 bench press'), findsOneWidget);
+    expect(find.text('skull crusher'), findsNothing);
+    expect(find.text('bench press'), findsOneWidget);
 
     final stored = await db(tester, plans.all);
     expect(stored.single.days.single.blocks, hasLength(1));
@@ -619,10 +622,10 @@ void main() {
     await settle(tester);
 
     await tester.enterText(
-      find.widgetWithText(TextFormField, 'day summary'),
+      find.widgetWithText(TextFormField, 'Summary (optional)'),
       'upper body',
     );
-    await tester.tap(find.text('Save'));
+    await tester.tap(find.text('Done'));
     await tester.pump();
     await settle(tester);
 
@@ -656,7 +659,7 @@ void main() {
     expect(
       find.descendant(
         of: find.byType(DayEditorPage),
-        matching: find.text('3 × 12 mystery move'),
+        matching: find.text('mystery move'),
       ),
       findsOneWidget,
     );
@@ -668,7 +671,7 @@ void main() {
     await commitExerciseEditor(tester);
     await settle(tester);
 
-    expect(find.text('3 × 30s hold-ish'), findsWidgets);
+    expect(find.text('hold-ish'), findsWidgets);
 
     final stored = await db(tester, plans.all);
     final blocks = stored.single.days.single.blocks;
@@ -697,8 +700,8 @@ void main() {
     await settle(tester);
 
     await tester.enterText(
-        find.widgetWithText(TextFormField, 'day title'), '   ');
-    await tester.tap(find.text('Save'));
+        find.widgetWithText(TextFormField, 'Day name'), '   ');
+    await tester.tap(find.text('Done'));
     await tester.pump();
     await settle(tester);
 
@@ -868,15 +871,15 @@ void main() {
     await tester.pump();
     await settle(tester);
 
-    await tester.tap(find.text('3 × 8 bench press'));
+    await tester.tap(find.byTooltip('Edit exercise'));
     await tester.pumpAndSettle();
     await tester.enterText(exerciseNameField(), 'incline bench');
     await tester.enterText(exerciseSetsField(), '4');
     await commitExerciseEditor(tester);
     await settle(tester);
 
-    expect(find.text('4 × 8 incline bench'), findsOneWidget);
-    expect(find.text('3 × 8 bench press'), findsNothing);
+    expect(find.text('incline bench'), findsWidgets);
+    expect(find.text('bench press'), findsNothing);
 
     final stored = await db(tester, plans.all);
     final exercise = stored.single.days.single.blocks.single.exercises.single;
@@ -1002,7 +1005,7 @@ void main() {
     await tester.pump();
     await settle(tester);
 
-    await tester.tap(find.text('3 × 8 bench press'));
+    await tester.tap(find.byTooltip('Edit exercise'));
     await tester.pumpAndSettle();
     expect(find.text('Edit exercise'), findsOneWidget);
 
@@ -1012,7 +1015,7 @@ void main() {
     await commitExerciseEditor(tester);
     await settle(tester);
 
-    expect(find.text('3 × 45s bench press'), findsOneWidget);
+    expect(find.text('x45s'), findsOneWidget);
     final stored = await db(tester, plans.all);
     final block = stored.single.days.single.blocks.single;
     expect(block.blockId, 'block-keep');

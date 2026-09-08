@@ -36,3 +36,8 @@ Future<void> selectTimed(WidgetTester tester) async {
   await tester.tap(find.text('Timed'));
   await tester.pumpAndSettle();
 }
+
+Future<void> confirmDeleteFromDayList(WidgetTester tester) async {
+  await tester.tap(find.byKey(const Key('confirm-delete-exercise')));
+  await tester.pumpAndSettle();
+}

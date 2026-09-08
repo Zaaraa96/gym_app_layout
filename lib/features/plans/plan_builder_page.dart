@@ -9,13 +9,33 @@ import '../../common/widgets/app_text_field.dart';
 import '../../data/app_ports.dart';
 import '../../domain/models/models.dart';
 import '../../domain/plan_catalog.dart';
+import '../../domain/plan_import_issue.dart';
 import '../../domain/plan_validation.dart';
-import 'block_summary.dart';
+import 'day_step_body.dart';
 import 'exercise_asset_catalog.dart' as catalog;
 import 'exercise_editor_page.dart';
-import 'exercise_media_thumbnail.dart';
 import 'plan_builder_controller.dart';
-import 'target_area_chips.dart';
+
+/// Arguments for `/new-plan`: resume a draft and optional import issues.
+class PlanBuilderArgs {
+  const PlanBuilderArgs({
+    this.planId,
+    this.importIssues = const [],
+  });
+
+  final String? planId;
+  final List<PlanImportIssue> importIssues;
+
+  static PlanBuilderArgs from(Object? raw) {
+    if (raw is PlanBuilderArgs) return raw;
+    if (raw is String) return PlanBuilderArgs(planId: raw);
+    return const PlanBuilderArgs();
+  }
+}
+
+bool _isImportProblem(PlanImportIssue issue) {
+  return issue.code != 'common-plan' && issue.code != 'alt-json';
+}
 
 /// One-screen vertical stepper for creating a plan as a draft.
 class PlanBuilderPage extends StatefulWidget {
@@ -23,10 +43,12 @@ class PlanBuilderPage extends StatefulWidget {
     super.key,
     required this.ports,
     this.planId,
+    this.importIssues = const [],
   });
 
   final AppPorts ports;
   final String? planId;
+  final List<PlanImportIssue> importIssues;
 
   @override
   State<PlanBuilderPage> createState() => _PlanBuilderPageState();
@@ -36,6 +58,7 @@ class _PlanBuilderPageState extends State<PlanBuilderPage>
     with WidgetsBindingObserver {
   PlanBuilderController? _controller;
   Object? _loadError;
+  var _hideImportBanner = false;
   final _title = TextEditingController();
   final _description = TextEditingController();
   final _dayTitles = <String, TextEditingController>{};
@@ -95,6 +118,11 @@ class _PlanBuilderPageState extends State<PlanBuilderPage>
         return;
       }
       _bind(controller);
+      final problems = widget.importIssues.where(_isImportProblem).toList();
+      if (problems.isEmpty && widget.planId != null) {
+        final last = controller.steps.length - 1;
+        if (last >= 0) controller.openStep(last);
+      }
       setState(() {
         _controller = controller;
         _loadError = null;
@@ -202,6 +230,11 @@ class _PlanBuilderPageState extends State<PlanBuilderPage>
                     onCreate: _create,
                     onLeave: _leave,
                     onAddBlock: _addOrEditBlock,
+                    importIssues: widget.importIssues,
+                    hideImportBanner: _hideImportBanner,
+                    onDismissImportBanner: () {
+                      setState(() => _hideImportBanner = true);
+                    },
                   ),
       ),
     );
@@ -291,6 +324,9 @@ class _BuilderBody extends StatelessWidget {
     required this.onCreate,
     required this.onLeave,
     required this.onAddBlock,
+    this.importIssues = const [],
+    this.hideImportBanner = false,
+    this.onDismissImportBanner,
   });
 
   final PlanBuilderController controller;
@@ -306,16 +342,36 @@ class _BuilderBody extends StatelessWidget {
     ExerciseBlock? existing,
     int? index,
   }) onAddBlock;
+  final List<PlanImportIssue> importIssues;
+  final bool hideImportBanner;
+  final VoidCallback? onDismissImportBanner;
 
   @override
   Widget build(BuildContext context) {
     final steps = controller.steps;
     return Column(
       children: [
+        if (importIssues.where(_isImportProblem).isNotEmpty && !hideImportBanner)
+          Material(
+            color: Colors.amber.shade50,
+            child: ListTile(
+              key: const Key('import-issues-banner'),
+              leading: Icon(Icons.warning_amber, color: Colors.amber.shade800),
+              title: const Text('Import didn’t go as planned.'),
+              subtitle: const Text(
+                'This is a draft. Check each day, fix what’s missing, then create the plan.',
+              ),
+              trailing: IconButton(
+                tooltip: 'Dismiss',
+                onPressed: onDismissImportBanner,
+                icon: const Icon(Icons.close),
+              ),
+            ),
+          ),
         Expanded(
           child: ListView.builder(
             key: const Key('plan-builder-stepper'),
-            padding: const EdgeInsets.only(bottom: 16, top: 8),
+            padding: const EdgeInsets.only(bottom: 24, top: 8),
             itemCount: steps.length,
             itemBuilder: (context, index) {
               final step = steps[index];
@@ -338,15 +394,6 @@ class _BuilderBody extends StatelessWidget {
             },
           ),
         ),
-        Padding(
-          padding: const EdgeInsets.only(bottom: 16),
-          child: OutlinedButton.icon(
-            key: const Key('add-another-day'),
-            onPressed: controller.addDay,
-            icon: const Icon(Icons.add),
-            label: const Text('Add another day'),
-          ),
-        ),
       ],
     );
   }
@@ -363,18 +410,46 @@ class _BuilderBody extends StatelessWidget {
         final day = controller.plan.days.firstWhere(
           (item) => item.dayId == step.dayId,
         );
-        return _DayStep(
-          controller: controller,
+        return DayStepBody(
           day: day,
           title: dayTitles[day.dayId]!,
           summary: daySummaries[day.dayId]!,
-          onAddBlock: onAddBlock,
+          onTitleChanged: (value) => controller.setDayTitle(day.dayId, value),
+          onSummaryChanged: (value) =>
+              controller.setDaySummary(day.dayId, value),
+          onAddExercise: () => onAddBlock(controller, day),
+          onEditBlock: (index) => onAddBlock(
+            controller,
+            day,
+            existing: day.blocks[index],
+            index: index,
+          ),
+          onDeleteBlock: (index) async {
+            final blocks = List<ExerciseBlock>.from(day.blocks)..removeAt(index);
+            await controller.commitDayBlocks(day.dayId, blocks);
+          },
+          onMoveUp: (index) => controller.reorderBlocks(
+            day.dayId,
+            index,
+            index - 1,
+          ),
+          onMoveDown: (index) => controller.reorderBlocks(
+            day.dayId,
+            index,
+            index + 1,
+          ),
+          onDeleteDay: controller.plan.days.length > 1
+              ? () => controller.deleteDay(day.dayId)
+              : null,
+          continueEnabled: issuesForDay(day).isEmpty,
+          onContinue: controller.continueFromCurrent,
         );
       case BuilderStepKind.review:
         return _ReviewStep(
           controller: controller,
           onCreate: onCreate,
           onLeave: onLeave,
+          importIssues: importIssues,
         );
     }
   }
@@ -405,28 +480,27 @@ class _StepCard extends StatelessWidget {
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
     final incomplete = visual == BuilderStepVisual.incomplete;
-    return IntrinsicHeight(
-      child: Row(
-        crossAxisAlignment: CrossAxisAlignment.stretch,
-        children: [
-          SizedBox(
-            width: 36,
-            child: Column(
-              children: [
-                _StepGlyph(index: index, visual: visual),
-                if (!last)
-                  Expanded(
-                    child: Container(
-                      width: 2,
-                      color: theme.colorScheme.outlineVariant,
-                    ),
-                  ),
-              ],
-            ),
+    return Row(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        SizedBox(
+          width: 36,
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              _StepGlyph(index: index, visual: visual),
+              if (!last)
+                Container(
+                  width: 2,
+                  height: expanded ? 32 : 16,
+                  color: theme.colorScheme.outlineVariant,
+                ),
+            ],
           ),
-          const SizedBox(width: 8),
-          Expanded(
-            child: Card(
+        ),
+        const SizedBox(width: 8),
+        Expanded(
+          child: Card(
               key: Key('step-${step.key}'),
               color: expanded
                   ? theme.colorScheme.surface
@@ -442,6 +516,7 @@ class _StepCard extends StatelessWidget {
                 ),
               ),
               child: Column(
+                mainAxisSize: MainAxisSize.min,
                 children: [
                   ListTile(
                     onTap: onOpen,
@@ -484,8 +559,7 @@ class _StepCard extends StatelessWidget {
             ),
           ),
         ],
-      ),
-    );
+      );
   }
 }
 
@@ -632,230 +706,19 @@ class _PlanDetailsStep extends StatelessWidget {
   }
 }
 
-class _DayStep extends StatelessWidget {
-  const _DayStep({
-    required this.controller,
-    required this.day,
-    required this.title,
-    required this.summary,
-    required this.onAddBlock,
-  });
-
-  final PlanBuilderController controller;
-  final PlanDay day;
-  final TextEditingController title;
-  final TextEditingController summary;
-  final Future<void> Function(
-    PlanBuilderController controller,
-    PlanDay day, {
-    ExerciseBlock? existing,
-    int? index,
-  }) onAddBlock;
-
-  @override
-  Widget build(BuildContext context) {
-    final issues = issuesForDay(day);
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.stretch,
-      children: [
-        AppTextField(
-          label: 'Day name',
-          controller: title,
-          onChanged: (value) => controller.setDayTitle(day.dayId, value),
-        ),
-        AppTextField(
-          label: 'Summary (optional)',
-          controller: summary,
-          maxLines: 2,
-          onChanged: (value) => controller.setDaySummary(day.dayId, value),
-        ),
-        if (day.blocks.isEmpty)
-          const Padding(
-            padding: EdgeInsets.symmetric(vertical: 12),
-            child: AppText(
-              'Add at least one exercise.',
-              style: subtitleTextStyle,
-            ),
-          )
-        else
-          Column(
-            children: [
-              for (var index = 0; index < day.blocks.length; index++)
-                _BuilderBlockCard(
-                  key: Key('builder-block-${day.blocks[index].blockId}'),
-                  block: day.blocks[index],
-                  onEdit: () => onAddBlock(
-                    controller,
-                    day,
-                    existing: day.blocks[index],
-                    index: index,
-                  ),
-                  onDelete: () {
-                    final blocks = List<ExerciseBlock>.from(day.blocks)
-                      ..removeAt(index);
-                    controller.setDayBlocks(day.dayId, blocks);
-                  },
-                  onMoveUp: index == 0
-                      ? null
-                      : () => controller.reorderBlocks(
-                            day.dayId,
-                            index,
-                            index - 1,
-                          ),
-                  onMoveDown: index == day.blocks.length - 1
-                      ? null
-                      : () => controller.reorderBlocks(
-                            day.dayId,
-                            index,
-                            index + 1,
-                          ),
-                ),
-            ],
-          ),
-        const SizedBox(height: 8),
-        OutlinedButton.icon(
-          key: Key('add-exercise-${day.dayId}'),
-          onPressed: () => onAddBlock(controller, day),
-          icon: const Icon(Icons.add),
-          label: const Text('Add exercise'),
-        ),
-        if (controller.plan.days.length > 1)
-          TextButton(
-            onPressed: () => controller.deleteDay(day.dayId),
-            child: const Text('Delete day'),
-          ),
-        const SizedBox(height: 8),
-        FilledButton(
-          key: Key('continue-day-${day.dayId}'),
-          onPressed: () {
-            if (issues.isNotEmpty) {
-              SemanticsService.sendAnnouncement(
-                View.of(context),
-                issues.first.message,
-                TextDirection.ltr,
-              );
-              controller.refresh();
-              return;
-            }
-            controller.continueFromCurrent();
-          },
-          child: const Text('CONTINUE'),
-        ),
-      ],
-    );
-  }
-}
-
-class _BuilderBlockCard extends StatelessWidget {
-  const _BuilderBlockCard({
-    super.key,
-    required this.block,
-    required this.onEdit,
-    required this.onDelete,
-    this.onMoveUp,
-    this.onMoveDown,
-  });
-
-  final ExerciseBlock block;
-  final VoidCallback onEdit;
-  final VoidCallback onDelete;
-  final VoidCallback? onMoveUp;
-  final VoidCallback? onMoveDown;
-
-  @override
-  Widget build(BuildContext context) {
-    final theme = Theme.of(context);
-    final isSuperset = block.kind == BlockKind.superset;
-    return Card(
-      margin: const EdgeInsets.symmetric(vertical: 6),
-      color: isSuperset ? theme.colorScheme.primaryContainer.withValues(alpha: 0.35) : null,
-      child: Padding(
-        padding: const EdgeInsets.all(8),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.stretch,
-          children: [
-            Row(
-              children: [
-                if (isSuperset)
-                  Expanded(
-                    child: Text(
-                      'SUPERSET',
-                      style: theme.textTheme.labelMedium?.copyWith(
-                        color: theme.colorScheme.primary,
-                        fontWeight: FontWeight.w700,
-                      ),
-                    ),
-                  )
-                else
-                  const Spacer(),
-                IconButton(
-                  tooltip: isSuperset ? 'Edit superset' : 'Edit exercise',
-                  onPressed: onEdit,
-                  icon: const Icon(Icons.edit_outlined),
-                ),
-                IconButton(
-                  tooltip: isSuperset ? 'Delete superset' : 'Delete exercise',
-                  onPressed: onDelete,
-                  icon: const Icon(Icons.delete_outline),
-                ),
-                IconButton(
-                  tooltip: 'Move up',
-                  onPressed: onMoveUp,
-                  icon: const Icon(Icons.arrow_upward),
-                ),
-                IconButton(
-                  tooltip: 'Move down',
-                  onPressed: onMoveDown,
-                  icon: const Icon(Icons.arrow_downward),
-                ),
-              ],
-            ),
-            for (var i = 0; i < block.exercises.length; i++) ...[
-              ListTile(
-                contentPadding: EdgeInsets.zero,
-                leading: ExerciseMediaThumbnail(
-                  block: ExerciseBlock.create(
-                    blockId: block.blockId,
-                    kind: BlockKind.single,
-                    svgPath: i == 0 ? block.svgPath : null,
-                    mediaUri: i == 0 ? block.mediaUri : null,
-                    mediaSource: i == 0
-                        ? block.mediaSource
-                        : ExerciseMediaSource.none,
-                    mediaKind: i == 0
-                        ? block.mediaKind
-                        : ExerciseMediaKind.unknown,
-                    exercises: [block.exercises[i]],
-                  ),
-                  size: 48,
-                ),
-                title: Text(block.exercises[i].title),
-                subtitle: Text(formatLoad(block.exercises[i])),
-                onTap: onEdit,
-              ),
-              TargetAreaChips(
-                selectedIds: block.exercises[i].targetAreaIds,
-                readOnly: true,
-                onChanged: (_) => onEdit(),
-              ),
-            ],
-          ],
-        ),
-      ),
-    );
-  }
-}
 
 class _ReviewStep extends StatelessWidget {
   const _ReviewStep({
     required this.controller,
     required this.onCreate,
     required this.onLeave,
+    this.importIssues = const [],
   });
 
   final PlanBuilderController controller;
   final Future<void> Function() onCreate;
   final Future<void> Function() onLeave;
+  final List<PlanImportIssue> importIssues;
 
   @override
   Widget build(BuildContext context) {
@@ -875,6 +738,21 @@ class _ReviewStep extends StatelessWidget {
           '${totalExerciseCount(plan) == 1 ? 'exercise' : 'exercises'}',
           style: subtitleTextStyle,
         ),
+        if (importIssues.isNotEmpty) ...[
+          const SizedBox(height: 12),
+          for (final issue in importIssues)
+            ListTile(
+              contentPadding: EdgeInsets.zero,
+              leading: Icon(Icons.info_outline, color: Colors.amber.shade800),
+              title: Text(issue.message),
+              trailing: issue.stepKey == null
+                  ? null
+                  : TextButton(
+                      onPressed: () => _openStepKey(issue.stepKey!),
+                      child: const Text('Fix this'),
+                    ),
+            ),
+        ],
         const SizedBox(height: 12),
         for (final day in plan.days) _reviewDay(context, day, issues),
         if (issues.isNotEmpty) ...[
@@ -906,10 +784,17 @@ class _ReviewStep extends StatelessWidget {
             ),
         ],
         const SizedBox(height: 16),
+        OutlinedButton.icon(
+          key: const Key('add-another-day'),
+          onPressed: controller.addDay,
+          icon: const Icon(Icons.add),
+          label: const Text('Add another day'),
+        ),
+        const SizedBox(height: 8),
         FilledButton(
           key: const Key('create-plan'),
           onPressed: ready ? onCreate : null,
-          child: const Text('CREATE PLAN'),
+          child: const Text('Finish plan'),
         ),
         TextButton(
           key: const Key('exit-for-now'),

@@ -1,5 +1,9 @@
+import 'plan_export.dart';
 import 'plan_import.dart';
 import 'plan_import_picker.dart';
+import 'memory_catalog_repository.dart';
+import 'plan_package_share.dart';
+import '../domain/catalog_repository.dart';
 import '../domain/plan_repository.dart';
 import '../domain/session_lifecycle.dart';
 import '../domain/session_repository.dart';
@@ -10,16 +14,22 @@ class AppPorts {
   AppPorts({
     required this.plans,
     required this.sessions,
+    CatalogRepository? catalog,
     SessionLifecycle? lifecycle,
     PlanImportPicker? picker,
-  }) : lifecycle = lifecycle ?? SessionLifecycle(sessions) {
+    PlanPackageShare? packageShare,
+  })  : catalog = catalog ?? MemoryCatalogRepository(),
+        lifecycle = lifecycle ?? SessionLifecycle(sessions) {
     startSession = StartSession(this.lifecycle, sessions);
     planImport = PlanImport(plans: plans, picker: picker);
+    planExport = PlanExport(share: packageShare);
   }
 
   final PlanRepository plans;
   final SessionRepository sessions;
+  final CatalogRepository catalog;
   final SessionLifecycle lifecycle;
   late final StartSession startSession;
   late final PlanImport planImport;
+  late final PlanExport planExport;
 }

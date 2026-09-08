@@ -38,23 +38,23 @@ Tapping the same starter twice does not duplicate it (same title is reused). Aft
 1. Tap **Create a plan** (Welcome) or **New** (Plans).
 2. A draft is created immediately. The screen is **Create plan**, a vertical stepper: Plan details, Day 1, Review & create.
 3. Plan details: **Plan name** (required), optional description (120 chars), optional goals. **CONTINUE** stays on details until the name is filled.
-4. Each day has one **Add exercise** action. It opens a full-screen editor where the user chooses **Single exercise** or **Superset**, then commits with **ADD EXERCISE** / **ADD SUPERSET**. **Add another day** inserts a day before Review.
+4. Each day has one **Add exercise** action. It opens a full-screen editor where the user chooses **Single exercise** or **Superset**, then commits with **ADD EXERCISE** / **ADD SUPERSET**. **Add another day** lives in **Review & create** with **Finish plan**; tapping it inserts a day and opens that day step.
 5. Back or **EXIT FOR NOW** returns to Plans. The row shows a **Draft** badge with **Resume** / **Delete**. Empty names list as **Untitled plan**.
-6. **CREATE PLAN** is disabled until every day has a valid block. After create, the active plan preview opens. **Start workout** is disabled until that day has a block.
+6. **Finish plan** is disabled until every day has a valid block. After finish, the active plan preview opens. **Start workout** is disabled until that day has a block.
 
-### 2c. Import JSON
+### 2c. Import a plan
 
 1. Tap **Import a plan** (Welcome) or **Import** (Plans).
-2. Pick a `.json` file in the v1 shape (`name`, `basic-plan`, optional `common-plan`). Linux desktop needs a file-dialog helper (`zenity`, `qarma`, or `kdialog`).
-3. Invalid JSON stays on the current screen with a snackbar, for example: **This file is not valid JSON. Remove trailing commas or other syntax errors and try again.**
-4. Valid files open **Import preview**: file name, plan title, expandable days (block summaries). Legacy `common-plan` sections become regular days and are explained as **Former common sections**. **Save plan** / **Cancel**.
-5. **Save plan** writes the plan and opens **that plan’s preview** (not Plans). Back returns toward home.
+2. Pick a `.gymplan`, `.zip`, or `.json` file (`name`, `basic-plan`, optional `common-plan`, optional media). Linux desktop needs a file-dialog helper (`zenity`, `qarma`, or `kdialog`).
+3. Unreadable files (not zip or JSON) stay on the current screen with a snackbar.
+4. Everything else opens **Create plan** as a **draft**. Days, exercises, and media that parse are filled in. If something was missing or messy, a banner says **Import didn’t go as planned.** with **This is a draft. Check each day, fix what’s missing, then create the plan.** Review lists the issues. **Finish plan** activates the plan. **EXIT FOR NOW** keeps the draft on Plans.
+5. Same title as an existing plan still creates a **new** draft.
 
 Checked-in sample: `assets/json/plan.json` (`plan 1`, one training day plus abs and corrective imported as extra days).
 
 ## 3. Home — Plans tab
 
-Returning users land here. Bottom nav (**Plans** | **Month**) is on this shell only.
+Returning users land here. Bottom nav (**Plans** | **Exercises** | **Month**) is on this shell only.
 
 - **Continue workout** banner if a live session exists (title **Continue workout**, subtitle is the day name). Tap to resume logging.
 - **Today** card: the next startable day on the **newest** startable **active** plan (`updatedAt`). Drafts never appear here. A blank created plan does not steal the card; an imported plan with exercises does.
@@ -65,17 +65,19 @@ Returning users land here. Bottom nav (**Plans** | **Month**) is on this shell o
 
 Deleting the last plan (overflow on plan preview) lands on empty home: **No plans yet. Start with a beginner template, import one, or create your first.** plus **Start with a beginner plan**. Logged sessions still show on **Month**, and an in-progress session still shows **Continue workout**.
 
+**Exercises** tab lists every supported movement (bundled still + GIF, plus user-added rows that have a picture). Region chips (**All**, **Abs**, **Upper**, **Lower**, **Cardio**) are a union; muscle chips further restrict. Search matches name and alias. FAB **Add exercise** creates a custom catalog entry (name, picture, targets, optional default sets/reps). Bundled rows are view-only; custom rows can be edited or deleted. This catalog is the source of truth for later plan-exercise pre-fill.
+
 ## 4. Open a plan and a day
 
 1. Tap a plan.
 2. Plan preview (no bottom nav):
-   - Photo day cards (`assets/image/0–2.png`).
-   - App bar: back, title, **Rename plan** (pencil), **Add day**, overflow **More** → **Delete plan**.
+   - Info day cards (no cycling photos). Details: [plan-day-cards.md](plan-day-cards.md).
+   - App bar: back, title, **Rename plan** (pencil), **Add day**, overflow **More** → **Export plan** (Full package or Lite JSON) / **Delete plan**.
    - Confirm: **Delete this plan?** / **Workouts already logged stay on Month.** **Cancel** or **Delete**. Delete returns to Plans.
-   - Each day card: title, optional summary, first-block summary, exercise count, **Delete day**.
+   - Each day card: title, optional focus/summary, target-area chips, `~N min` estimate, exercise count, **Delete day**. Catalog/stored stills rotate on the right when a movement has media; unmatched custom exercises stay text-only.
    - FAB **Add day** when at least one day exists.
 3. Tap a day card → **read-only day preview** (SVG, names × reps or duration, set badge; supersets on one row).
-4. **Edit day** opens the editor (day title/summary, add/edit/delete blocks, pick bundled SVG or gallery media, target-area chips). Back without saving destructive edits is safe.
+4. **Edit day** opens the same day layout as Create plan (day name, summary, block cards with edit/delete/reorder, Add exercise). List delete asks **Remove this exercise from the day?** then saves immediately.
 5. **Start workout** on the preview starts or resumes that day. Disabled when the day has no blocks or the plan is still a draft.
 
 ## 5. Start a workout

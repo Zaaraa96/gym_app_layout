@@ -1,6 +1,8 @@
+import '../domain/models/catalog_exercise.dart';
+import '../domain/models/enums.dart';
+import '../domain/models/workout_plan.dart';
 import '../domain/plan_catalog.dart';
 import '../domain/plan_validation.dart';
-import '../domain/models/workout_plan.dart';
 
 /// Bundled exercise icons the day list and editor can match by name.
 class ExerciseAssetEntry {
@@ -10,7 +12,12 @@ class ExerciseAssetEntry {
     required this.assetPath,
     required this.keywords,
     this.targetAreaIds = const [],
+    this.regionIds = const [],
     this.goalIds = const [],
+    this.prescriptionType = PrescriptionType.reps,
+    this.defaultSets = 3,
+    this.defaultReps = 10,
+    this.defaultDurationSeconds,
   });
 
   final String id;
@@ -18,7 +25,12 @@ class ExerciseAssetEntry {
   final String assetPath;
   final List<String> keywords;
   final List<String> targetAreaIds;
+  final List<String> regionIds;
   final List<String> goalIds;
+  final PrescriptionType prescriptionType;
+  final int defaultSets;
+  final int? defaultReps;
+  final int? defaultDurationSeconds;
 
   /// Phrase used when matching titles, e.g. `kang squat`.
   String get phrase => id.replaceAll('-', ' ');
@@ -34,15 +46,29 @@ ExerciseAssetEntry _asset(
   String label,
   List<String> keywords, {
   List<String> targetAreaIds = const [],
+  List<String>? regionIds,
   List<String> goalIds = const [],
+  PrescriptionType prescriptionType = PrescriptionType.reps,
+  int defaultSets = 3,
+  int? defaultReps = 10,
+  int? defaultDurationSeconds,
 }) {
+  final targets = canonicalizeTargetAreaIds(targetAreaIds);
+  final timed = prescriptionType == PrescriptionType.timed;
   return ExerciseAssetEntry(
     id: id,
     label: label,
     assetPath: '$exerciseAssetFolder/$id.png',
     keywords: keywords,
-    targetAreaIds: targetAreaIds,
+    targetAreaIds: targets,
+    regionIds: canonicalizeRegionIds(
+      regionIds ?? defaultRegionIdsFor(targets),
+    ),
     goalIds: goalIds,
+    prescriptionType: prescriptionType,
+    defaultSets: defaultSets,
+    defaultReps: timed ? null : defaultReps,
+    defaultDurationSeconds: timed ? defaultDurationSeconds : null,
   );
 }
 
@@ -208,6 +234,8 @@ final bundledExerciseAssets = <ExerciseAssetEntry>[
     ['plank'],
     targetAreaIds: ['abs', 'core'],
     goalIds: _core,
+    prescriptionType: PrescriptionType.timed,
+    defaultDurationSeconds: 30,
   ),
   _asset(
     'crunches',
@@ -220,21 +248,21 @@ final bundledExerciseAssets = <ExerciseAssetEntry>[
     'bicycle-crunch',
     'Bicycle crunch',
     ['bicycle', 'bicycle crunch'],
-    targetAreaIds: ['abs'],
+    targetAreaIds: ['abs', 'obliques'],
     goalIds: _muscle,
   ),
   _asset(
     'russian-twist',
     'Russian twist',
     ['russian twist', 'twist'],
-    targetAreaIds: ['abs', 'core'],
+    targetAreaIds: ['abs', 'obliques', 'core'],
     goalIds: _muscle,
   ),
   _asset(
     'leg-raise',
     'Leg raise',
     ['leg raise', 'hanging leg'],
-    targetAreaIds: ['abs'],
+    targetAreaIds: ['abs', 'hip-flexors'],
     goalIds: _muscle,
   ),
   _asset(
@@ -248,8 +276,10 @@ final bundledExerciseAssets = <ExerciseAssetEntry>[
     'step-lunge-stretch',
     'Step lunge stretch',
     ['step lunge', 'lunge stretch', 'stretch'],
-    targetAreaIds: ['hips', 'quads', 'hamstrings'],
+    targetAreaIds: ['hips', 'quads', 'hamstrings', 'hip-flexors'],
     goalIds: _mobility,
+    prescriptionType: PrescriptionType.timed,
+    defaultDurationSeconds: 30,
   ),
   _asset(
     'kettlebell-swing',
@@ -263,6 +293,7 @@ final bundledExerciseAssets = <ExerciseAssetEntry>[
     'Box jump',
     ['box jump', 'jump'],
     targetAreaIds: ['quads', 'glutes'],
+    regionIds: ['lower', 'cardio'],
     goalIds: _cardio,
   ),
   _asset(
@@ -271,6 +302,8 @@ final bundledExerciseAssets = <ExerciseAssetEntry>[
     ['mountain climber', 'climber'],
     targetAreaIds: ['abs', 'core', 'full-body'],
     goalIds: _cardio,
+    prescriptionType: PrescriptionType.timed,
+    defaultDurationSeconds: 30,
   ),
 ];
 
@@ -306,6 +339,15 @@ ExerciseAssetEntry? bundledAssetByPath(String? path) {
   if (path == null || path.trim().isEmpty) return null;
   for (final entry in bundledExerciseAssets) {
     if (entry.assetPath == path || entry.gifPath == path) return entry;
+  }
+  return null;
+}
+
+ExerciseAssetEntry? bundledAssetById(String? id) {
+  if (id == null || id.trim().isEmpty) return null;
+  final needle = id.trim();
+  for (final entry in bundledExerciseAssets) {
+    if (entry.id == needle) return entry;
   }
   return null;
 }
@@ -430,6 +472,30 @@ List<ExerciseAssetEntry> suggestedExercisesForGoals(List<String> goalIds) {
   });
   return entries;
 }
+
+/// Maps a bundled still/GIF entry into the merged catalog view.
+CatalogExercise catalogExerciseFromAsset(ExerciseAssetEntry entry) {
+  return CatalogExercise(
+    id: entry.id,
+    title: entry.label,
+    aliases: entry.keywords,
+    regionIds: entry.regionIds,
+    targetAreaIds: entry.targetAreaIds,
+    mediaUri: entry.assetPath,
+    mediaSource: ExerciseMediaSource.asset,
+    mediaKind: ExerciseMediaKind.image,
+    gifPath: entry.gifPath,
+    origin: CatalogOrigin.bundled,
+    prescriptionType: entry.prescriptionType,
+    defaultSets: entry.defaultSets,
+    defaultReps: entry.defaultReps,
+    defaultDurationSeconds: entry.defaultDurationSeconds,
+  );
+}
+
+List<CatalogExercise> bundledCatalogExercises() => [
+      for (final asset in bundledExerciseAssets) catalogExerciseFromAsset(asset),
+    ];
 
 /// Advisory Review notes. Never blocks Create plan.
 List<PlanIssue> goalGuidanceFor(WorkoutPlan plan) {

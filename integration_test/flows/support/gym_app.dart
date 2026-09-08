@@ -40,8 +40,8 @@ class GymApp {
 
   final PatrolIntegrationTester $;
 
-  /// Import preview renders the picked file name, so the app's own semantics
-  /// tree matches the picker's row label. Package-scope every native lookup.
+  /// Import preview used to show the file name. Native lookups stay
+  /// package-scoped so picker rows do not collide with in-app copy.
   static const _appPackage = 'com.zahra.gym_app';
 
   static const fullBodyTitle = 'Beginner full body';
@@ -304,6 +304,11 @@ class GymApp {
   Future<void> openMonthTab() async {
     await _tap(find.byIcon(Icons.calendar_month_outlined), settle: SettlePolicy.trySettle);
     await $(const Key('month-calendar')).waitUntilVisible();
+  }
+
+  Future<void> openExercisesTab() async {
+    await _tap(find.byIcon(Icons.directions_run_outlined), settle: SettlePolicy.trySettle);
+    await $(const Key('exercises-tab')).waitUntilVisible();
   }
 
   Future<void> openPlansTab() async {

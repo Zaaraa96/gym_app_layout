@@ -3,11 +3,10 @@ import 'package:get/get.dart';
 
 import '../../common/widgets/app_load_error.dart';
 import '../../common/widgets/app_text.dart';
-import '../../common/widgets/app_text_field.dart';
 import '../../data/app_ports.dart';
 import '../../domain/models/models.dart';
 import '../../domain/plan_repository.dart';
-import 'block_summary.dart';
+import 'day_step_body.dart';
 import 'exercise_editor_page.dart';
 
 class DayEditorArgs {
@@ -22,6 +21,9 @@ class DayEditorArgs {
 }
 
 /// Edit one day's title, summary, and exercise blocks.
+///
+/// Layout matches the Create plan Day step so add/edit/delete/reorder feel
+/// the same after a plan is already active.
 class DayEditorPage extends StatefulWidget {
   const DayEditorPage({
     super.key,
@@ -79,8 +81,12 @@ class _DayEditorPageState extends State<DayEditorPage> {
       }
       if (!mounted || id != _loadId) return;
       if (day != null) {
-        _titleController.text = day.title;
-        _summaryController.text = day.summary;
+        if (_titleController.text != day.title) {
+          _titleController.text = day.title;
+        }
+        if (_summaryController.text != day.summary) {
+          _summaryController.text = day.summary;
+        }
       }
       setState(() {
         _plan = plan;
@@ -123,23 +129,29 @@ class _DayEditorPageState extends State<DayEditorPage> {
     }
   }
 
-  Future<bool> _persistBlocks(List<ExerciseBlock> blocks) async {
-    final day = _day;
-    if (day == null) return false;
-    return _persistDay(
-      PlanDay.create(
-        dayId: day.dayId,
-        title: _titleController.text.trim().isEmpty
-            ? day.title
-            : _titleController.text.trim(),
-        summary: _summaryController.text.trim(),
-        blocks: blocks,
-      ),
+  PlanDay _draftDay(List<ExerciseBlock> blocks) {
+    final day = _day!;
+    final title = _titleController.text.trim();
+    return PlanDay.create(
+      dayId: day.dayId,
+      title: title.isEmpty ? day.title : title,
+      summary: _summaryController.text.trim(),
+      blocks: blocks,
     );
   }
 
-  Future<void> _saveAndClose() async {
-    await _persistBlocks(List<ExerciseBlock>.from(_blocks));
+  Future<bool> _persistBlocks(List<ExerciseBlock> blocks) async {
+    if (_day == null) return false;
+    return _persistDay(_draftDay(blocks));
+  }
+
+  Future<void> _persistFields() async {
+    if (_day == null) return;
+    await _persistDay(_draftDay(List<ExerciseBlock>.from(_blocks)));
+  }
+
+  Future<void> _done() async {
+    await _persistFields();
     if (!mounted) return;
     Get.back();
   }
@@ -176,6 +188,14 @@ class _DayEditorPageState extends State<DayEditorPage> {
     await _persistBlocks(blocks);
   }
 
+  Future<void> _moveBlock(int from, int to) async {
+    if (_day == null) return;
+    final blocks = List<ExerciseBlock>.from(_blocks);
+    final item = blocks.removeAt(from);
+    blocks.insert(to, item);
+    await _persistBlocks(blocks);
+  }
+
   @override
   Widget build(BuildContext context) {
     final ready = _day != null;
@@ -186,26 +206,7 @@ class _DayEditorPageState extends State<DayEditorPage> {
           style: titleTextStyle,
           overflow: TextOverflow.ellipsis,
         ),
-        actions: [
-          IconButton(
-            key: const Key('add-exercise'),
-            tooltip: 'Add exercise',
-            onPressed: ready ? () => _addOrEditBlock() : null,
-            icon: const Icon(Icons.add),
-          ),
-          TextButton(
-            onPressed: ready ? _saveAndClose : null,
-            child: const Text('Save'),
-          ),
-        ],
       ),
-      floatingActionButton: !ready || _blocks.isEmpty
-          ? null
-          : FloatingActionButton.extended(
-              onPressed: () => _addOrEditBlock(),
-              icon: const Icon(Icons.add),
-              label: const Text('Add exercise'),
-            ),
       body: _error != null && !ready
           ? AppLoadError(message: _error!, onRetry: _retry)
           : _loading && !ready
@@ -215,78 +216,29 @@ class _DayEditorPageState extends State<DayEditorPage> {
                       child: AppText('This day is no longer here.'),
                     )
                   : ListView(
-                      padding: const EdgeInsets.fromLTRB(20, 12, 20, 88),
+                      padding: const EdgeInsets.fromLTRB(20, 12, 20, 24),
                       children: [
-                        AppTextField(
-                          label: 'day title',
-                          controller: _titleController,
-                        ),
-                        AppTextField(
-                          label: 'day summary',
-                          hint: 'which muscles this day trains…',
-                          maxLines: 2,
-                          controller: _summaryController,
-                        ),
-                        const SizedBox(height: 8),
-                        if (_blocks.isEmpty) ...[
-                          const Padding(
-                            padding: EdgeInsets.symmetric(vertical: 24),
-                            child: AppText(
-                              'No exercises yet. Add the first movement.',
-                              style: subtitleTextStyle,
-                              textAlign: TextAlign.center,
-                            ),
+                        DayStepBody(
+                          day: _day!,
+                          title: _titleController,
+                          summary: _summaryController,
+                          onTitleChanged: (_) {},
+                          onSummaryChanged: (_) {},
+                          onAddExercise: () => _addOrEditBlock(),
+                          onEditBlock: (index) => _addOrEditBlock(
+                            existing: _day!.blocks[index],
+                            index: index,
                           ),
-                          FilledButton.icon(
-                            onPressed: () => _addOrEditBlock(),
-                            icon: const Icon(Icons.add),
-                            label: const Text('Add exercise'),
-                          ),
-                        ] else
-                          for (var i = 0; i < _blocks.length; i++)
-                            _BlockTile(
-                              block: _blocks[i],
-                              onEdit: () => _addOrEditBlock(
-                                existing: _blocks[i],
-                                index: i,
-                              ),
-                              onDelete: () => _deleteBlock(i),
-                            ),
+                          onDeleteBlock: _deleteBlock,
+                          onMoveUp: (index) => _moveBlock(index, index - 1),
+                          onMoveDown: (index) => _moveBlock(index, index + 1),
+                          addExerciseKey: const Key('add-exercise'),
+                          continueLabel: 'Done',
+                          continueKey: const Key('save-day'),
+                          onContinue: _done,
+                        ),
                       ],
                     ),
-    );
-  }
-}
-
-class _BlockTile extends StatelessWidget {
-  const _BlockTile({
-    required this.block,
-    required this.onEdit,
-    required this.onDelete,
-  });
-
-  final ExerciseBlock block;
-  final VoidCallback onEdit;
-  final VoidCallback onDelete;
-
-  @override
-  Widget build(BuildContext context) {
-    final theme = Theme.of(context);
-    return Card(
-      margin: const EdgeInsets.symmetric(vertical: 6),
-      child: ListTile(
-        onTap: onEdit,
-        title: AppText(formatBlock(block), style: dataTextStyle),
-        subtitle: AppText(
-          block.kind == BlockKind.superset ? 'Superset' : 'Single',
-          style: subtitleTextStyle,
-        ),
-        trailing: IconButton(
-          tooltip: 'Delete exercise',
-          onPressed: onDelete,
-          icon: Icon(Icons.delete_outline, color: theme.colorScheme.error),
-        ),
-      ),
     );
   }
 }

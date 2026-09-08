@@ -47,6 +47,9 @@ dependencies:
   isar_flutter_libs: *isar_version
   image_picker: ^1.2.3
   file_picker: ^8.3.7
+  archive: ^4.0.0
+  crypto: ^3.0.6
+  share_plus: ^10.1.4
   http: ^1.2.2
 
 

@@ -10,11 +10,13 @@ void main() {
       if (!file.path.endsWith('.dart')) continue;
       if (file.path.endsWith('isar_plan_repository.dart')) continue;
       if (file.path.endsWith('isar_session_repository.dart')) continue;
+      if (file.path.endsWith('isar_catalog_repository.dart')) continue;
       if (file.path.endsWith('main.dart')) continue;
       if (file.path.endsWith('app_bootstrap.dart')) continue;
       final source = file.readAsStringSync();
       if (source.contains('isar_plan_repository.dart') ||
-          source.contains('isar_session_repository.dart')) {
+          source.contains('isar_session_repository.dart') ||
+          source.contains('isar_catalog_repository.dart')) {
         offenders.add(file.path);
       }
     }
@@ -25,6 +27,7 @@ void main() {
     for (final relative in [
       'lib/domain/plan_repository.dart',
       'lib/domain/session_repository.dart',
+      'lib/domain/catalog_repository.dart',
       'lib/domain/session_lifecycle.dart',
     ]) {
       final source = File(relative).readAsStringSync();
@@ -40,6 +43,7 @@ void main() {
     final files = [
       'lib/domain/models/workout_plan.dart',
       'lib/domain/models/workout_session.dart',
+      'lib/domain/models/catalog_exercise.dart',
       'lib/domain/models/enums.dart',
       'lib/domain/models/models.dart',
     ];
@@ -66,6 +70,7 @@ void main() {
     for (final relative in [
       'lib/data/memory_plan_repository.dart',
       'lib/data/memory_session_repository.dart',
+      'lib/data/memory_catalog_repository.dart',
     ]) {
       final source = File(relative).readAsStringSync();
       expect(
@@ -90,7 +95,6 @@ void main() {
       'lib/features/plans/day_editor_page.dart',
       'lib/features/plans/plans_home_page.dart',
       'lib/features/plans/add_plan_page.dart',
-      'lib/features/plans/import_preview_page.dart',
       'lib/features/workout/start_workout.dart',
       'lib/features/workout/live_workout_page.dart',
       'lib/features/workout/workout_controller.dart',
@@ -157,6 +161,7 @@ void main() {
       for (final needle in [
         'Get.find<PlanRepository>',
         'Get.find<SessionRepository>',
+        'Get.find<CatalogRepository>',
         'Get.find<SessionLifecycle>',
         'Get.find<PlanImport',
         'Get.find<StartSession>',
@@ -199,8 +204,9 @@ void main() {
         .whereType<File>()) {
       if (!file.path.endsWith('.dart')) continue;
       final source = file.readAsStringSync();
-      if (source.contains('isar_plan_repository.dart') ||
+      if (          source.contains('isar_plan_repository.dart') ||
           source.contains('isar_session_repository.dart') ||
+          source.contains('isar_catalog_repository.dart') ||
           source.contains('isar_service.dart') ||
           source.contains('http_remote_plan_data_source.dart') ||
           source.contains('http_remote_session_data_source.dart')) {
@@ -237,6 +243,7 @@ void main() {
   test('boot does not register a remote store as PlanRepository', () {
     final source = File('lib/app/app_bootstrap.dart').readAsStringSync();
     expect(source.contains('Get.put<PlanRepository>('), isTrue);
+    expect(source.contains('Get.put<CatalogRepository>('), isTrue);
     expect(
       source.contains('Get.put<PlanRepository>(HttpRemote'),
       isFalse,
