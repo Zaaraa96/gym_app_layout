@@ -13,9 +13,9 @@ extension GetWorkoutPlanCollection on Isar {
   IsarCollection<WorkoutPlan> get workoutPlans => this.collection();
 }
 
-final WorkoutPlanSchema = CollectionSchema(
+const WorkoutPlanSchema = CollectionSchema(
   name: r'WorkoutPlan',
-  id: int.parse('313749700063086650'),
+  id: 313749700063086650,
   properties: {
     r'commonSections': PropertySchema(
       id: 0,
@@ -84,7 +84,7 @@ final WorkoutPlanSchema = CollectionSchema(
   idName: r'id',
   indexes: {
     r'uuid': IndexSchema(
-      id: int.parse('2134397340427724972'),
+      id: 2134397340427724972,
       name: r'uuid',
       unique: false,
       replace: false,
@@ -97,7 +97,7 @@ final WorkoutPlanSchema = CollectionSchema(
       ],
     ),
     r'updatedAt': IndexSchema(
-      id: int.parse('-6238191080293565125'),
+      id: -6238191080293565125,
       name: r'updatedAt',
       unique: false,
       replace: false,
@@ -1986,9 +1986,9 @@ extension WorkoutPlanQueryProperty
 // coverage:ignore-file
 // ignore_for_file: duplicate_ignore, non_constant_identifier_names, constant_identifier_names, invalid_use_of_protected_member, unnecessary_cast, prefer_const_constructors, lines_longer_than_80_chars, require_trailing_commas, inference_failure_on_function_invocation, unnecessary_parenthesis, unnecessary_raw_strings, unnecessary_null_checks, join_return_with_assignment, prefer_final_locals, avoid_js_rounded_ints, avoid_positional_boolean_parameters, always_specify_types
 
-final PlanDaySchema = Schema(
+const PlanDaySchema = Schema(
   name: r'PlanDay',
-  id: int.parse('-5005156141435949856'),
+  id: -5005156141435949856,
   properties: {
     r'blocks': PropertySchema(
       id: 0,
@@ -2592,9 +2592,9 @@ extension PlanDayQueryObject
 // coverage:ignore-file
 // ignore_for_file: duplicate_ignore, non_constant_identifier_names, constant_identifier_names, invalid_use_of_protected_member, unnecessary_cast, prefer_const_constructors, lines_longer_than_80_chars, require_trailing_commas, inference_failure_on_function_invocation, unnecessary_parenthesis, unnecessary_raw_strings, unnecessary_null_checks, join_return_with_assignment, prefer_final_locals, avoid_js_rounded_ints, avoid_positional_boolean_parameters, always_specify_types
 
-final CommonSectionSchema = Schema(
+const CommonSectionSchema = Schema(
   name: r'CommonSection',
-  id: int.parse('-585399362311348873'),
+  id: -585399362311348873,
   properties: {
     r'blocks': PropertySchema(
       id: 0,
@@ -3075,9 +3075,9 @@ extension CommonSectionQueryObject
 // coverage:ignore-file
 // ignore_for_file: duplicate_ignore, non_constant_identifier_names, constant_identifier_names, invalid_use_of_protected_member, unnecessary_cast, prefer_const_constructors, lines_longer_than_80_chars, require_trailing_commas, inference_failure_on_function_invocation, unnecessary_parenthesis, unnecessary_raw_strings, unnecessary_null_checks, join_return_with_assignment, prefer_final_locals, avoid_js_rounded_ints, avoid_positional_boolean_parameters, always_specify_types
 
-final ExerciseBlockSchema = Schema(
+const ExerciseBlockSchema = Schema(
   name: r'ExerciseBlock',
-  id: int.parse('-3133643829650342469'),
+  id: -3133643829650342469,
   properties: {
     r'blockId': PropertySchema(
       id: 0,
@@ -3993,9 +3993,9 @@ extension ExerciseBlockQueryObject
 // coverage:ignore-file
 // ignore_for_file: duplicate_ignore, non_constant_identifier_names, constant_identifier_names, invalid_use_of_protected_member, unnecessary_cast, prefer_const_constructors, lines_longer_than_80_chars, require_trailing_commas, inference_failure_on_function_invocation, unnecessary_parenthesis, unnecessary_raw_strings, unnecessary_null_checks, join_return_with_assignment, prefer_final_locals, avoid_js_rounded_ints, avoid_positional_boolean_parameters, always_specify_types
 
-final ExercisePrescriptionSchema = Schema(
+const ExercisePrescriptionSchema = Schema(
   name: r'ExercisePrescription',
-  id: int.parse('5227406136571368833'),
+  id: 5227406136571368833,
   properties: {
     r'catalogExerciseId': PropertySchema(
       id: 0,

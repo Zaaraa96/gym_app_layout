@@ -1,4 +1,3 @@
-
 import 'package:flutter/material.dart';
 
 class AppScaffold extends StatelessWidget {
@@ -6,6 +5,7 @@ class AppScaffold extends StatelessWidget {
   final Widget? body;
   final Color? backgroundColor;
   final Widget? bottomNavigationBar;
+  final Widget? floatingActionButton;
 
   const AppScaffold({
     super.key,
@@ -13,6 +13,7 @@ class AppScaffold extends StatelessWidget {
     this.body,
     this.backgroundColor,
     this.bottomNavigationBar,
+    this.floatingActionButton,
   });
 
   @override
@@ -25,6 +26,7 @@ class AppScaffold extends StatelessWidget {
         child: body,
       ),
       bottomNavigationBar: bottomNavigationBar,
+      floatingActionButton: floatingActionButton,
     );
   }
 }

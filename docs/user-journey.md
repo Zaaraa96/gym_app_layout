@@ -54,7 +54,7 @@ Checked-in sample: `assets/json/plan.json` (`plan 1`, one training day plus abs 
 
 ## 3. Home — Plans tab
 
-Returning users land here. Bottom nav (**Plans** | **Month**) is on this shell only.
+Returning users land here. Bottom nav (**Plans** | **Exercises** | **Month**) is on this shell only.
 
 - **Continue workout** banner if a live session exists (title **Continue workout**, subtitle is the day name). Tap to resume logging.
 - **Today** card: the next startable day on the **newest** startable **active** plan (`updatedAt`). Drafts never appear here. A blank created plan does not steal the card; an imported plan with exercises does.
@@ -64,6 +64,8 @@ Returning users land here. Bottom nav (**Plans** | **Month**) is on this shell o
 - Bottom buttons when plans exist: **Import**, **New**, and **Beginner** (reopens starter templates). **Beginner** is not on the empty-home row; that state uses a single **Start with a beginner plan** action instead.
 
 Deleting the last plan (overflow on plan preview) lands on empty home: **No plans yet. Start with a beginner template, import one, or create your first.** plus **Start with a beginner plan**. Logged sessions still show on **Month**, and an in-progress session still shows **Continue workout**.
+
+**Exercises** tab lists every supported movement (bundled still + GIF, plus user-added rows that have a picture). Region chips (**All**, **Abs**, **Upper**, **Lower**, **Cardio**) are a union; muscle chips further restrict. Search matches name and alias. FAB **Add exercise** creates a custom catalog entry (name, picture, targets, optional default sets/reps). Bundled rows are view-only; custom rows can be edited or deleted. This catalog is the source of truth for later plan-exercise pre-fill.
 
 ## 4. Open a plan and a day
 
