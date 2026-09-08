@@ -132,7 +132,7 @@ void main() {
     await tester.pump();
 
     expect(find.text('Could not load this day.'), findsNothing);
-    expect(find.text('3 × 10 squat'), findsOneWidget);
+    expect(find.text('squat'), findsOneWidget);
   });
 
   testWidgets('day editor retry reloads a common section after a failed byId', skip: true, (tester) async {});

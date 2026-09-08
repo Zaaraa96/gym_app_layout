@@ -292,7 +292,7 @@ Starting while another session is `inProgress`:
 | Import preview | Show parsed days/blocks; confirm save | `import_preview_page.dart` |
 | Plan preview | Photo day cards; rename; add/delete days; delete-plan overflow (sessions stay) | `plan_page.dart` |
 | Day preview | Block list + Start | `day_preview_page.dart` |
-| Day editor | One day’s title, summary, blocks; optional SVG/gallery media; target areas | `day_editor_page.dart` + block dialog |
+| Day editor | One day’s title, summary, blocks; same cards as Create plan; optional SVG/gallery media; target areas | `day_editor_page.dart` + `day_step_body.dart` |
 | Create plan | Vertical stepper: details, one step per day, Review. Auto-saves a draft | `plan_builder_page.dart` |
 | In-progress conflict | Resume vs abandon-and-start | Dialog in `start_workout.dart` |
 | Live workout | Current block, set logger, rest | `live_workout_page.dart` |
@@ -311,7 +311,7 @@ There is **no** all-in-one post-create plan editor. Creation uses the stepper. A
 
 **Import preview.** File name, plan title, expandable days (block summaries: `3×12 kang squat + leg extension`). Former `common-plan` sections are listed as converted days. Primary: Save plan. Secondary: Cancel.
 
-**Create plan.** Vertical stepper: Plan details (name, description, goals), one step per day (exercises, supersets, target areas), Review & create. Auto-save status in the app bar. **CREATE PLAN** stays disabled until required validation passes.
+**Create plan.** Vertical stepper: Plan details (name, description, goals), one step per day (exercises, supersets, target areas), Review & create. Auto-save status in the app bar. **Finish plan** stays disabled until required validation passes. **Add another day** is in the Review column and opens the new day step.
 
 **Plan preview.** Photo cards (keep `assets/image/0–2.png`). App bar: title, edit icon **renames** the plan, add-day icon, overflow **Delete plan** (confirm: “Workouts already logged stay on Month.”; sessions stay, per Step 2). Add day from the app bar / FAB. Card tap opens Day preview. Day cards can delete that day.
 

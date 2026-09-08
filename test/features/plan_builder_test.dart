@@ -181,13 +181,31 @@ void main() {
     await tester.tap(find.text('Review & create'));
     await tester.pump();
     expect(find.text('Fix this'), findsOneWidget);
+    expect(find.text('Finish plan'), findsOneWidget);
+    expect(find.text('CREATE PLAN'), findsNothing);
     final create = tester.widget<FilledButton>(
       find.byKey(const Key('create-plan')),
     );
     expect(create.onPressed, isNull);
+    expect(find.byKey(const Key('add-another-day')), findsOneWidget);
     await tester.tap(find.text('Fix this'));
     await tester.pump();
     expect(find.text('Add exercise'), findsOneWidget);
+    final continueDay = tester.widget<FilledButton>(
+      find.byKey(const Key('continue-day-day-2')),
+    );
+    expect(continueDay.onPressed, isNull);
+
+    await tester.tap(find.text('Review & create'));
+    await tester.pump();
+    await tester.tap(find.byKey(const Key('add-another-day')));
+    await tester.pump();
+    expect(find.text('Day 3'), findsWidgets);
+    expect(find.text('Add at least one exercise.'), findsWidgets);
+    expect(
+      tester.widget<FilledButton>(find.widgetWithText(FilledButton, 'CONTINUE')).onPressed,
+      isNull,
+    );
   });
 
   testWidgets('expanded day with a saved block keeps its card laid out',
@@ -255,6 +273,27 @@ void main() {
     expect(find.byKey(const Key('add-exercise-day-1')), findsOneWidget);
     expect(find.byTooltip('Edit superset'), findsOneWidget);
     expect(find.byTooltip('Move up'), findsOneWidget);
+
+    final continueDay = tester.widget<FilledButton>(
+      find.byKey(const Key('continue-day-day-1')),
+    );
+    expect(continueDay.onPressed, isNotNull);
+
+    await tester.tap(find.byTooltip('Delete superset'));
+    await tester.pump();
+    expect(find.text('Remove this superset from the day?'), findsOneWidget);
+    await tester.tap(find.byKey(const Key('confirm-delete-exercise')));
+    await tester.pump();
+    await tester.pump(const Duration(milliseconds: 50));
+    expect(find.text('SUPERSET'), findsNothing);
+    expect(find.text('Add at least one exercise.'), findsOneWidget);
+    expect(
+      tester
+          .widget<FilledButton>(find.byKey(const Key('continue-day-day-1')))
+          .onPressed,
+      isNull,
+    );
+    expect((await plans.byUuid(plan.uuid))!.days.single.blocks, isEmpty);
   });
 
   testWidgets('Plans lists drafts with Resume and Delete', (tester) async {

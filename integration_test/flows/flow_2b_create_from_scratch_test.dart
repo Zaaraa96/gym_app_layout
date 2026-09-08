@@ -31,7 +31,7 @@ void main() {
       await gym.enterAddExerciseTitle('Bodyweight squat');
       await gym.tapText('ADD EXERCISE');
       await gym.tapText('CONTINUE');
-      await gym.expectVisible('CREATE PLAN');
+      await gym.expectVisible('Finish plan');
       await gym.tapKey('create-plan');
       await gym.expectVisible('Scratch week');
 
