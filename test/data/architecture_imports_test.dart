@@ -95,7 +95,6 @@ void main() {
       'lib/features/plans/day_editor_page.dart',
       'lib/features/plans/plans_home_page.dart',
       'lib/features/plans/add_plan_page.dart',
-      'lib/features/plans/import_preview_page.dart',
       'lib/features/workout/start_workout.dart',
       'lib/features/workout/live_workout_page.dart',
       'lib/features/workout/workout_controller.dart',

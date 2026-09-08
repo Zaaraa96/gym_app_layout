@@ -40,8 +40,8 @@ class GymApp {
 
   final PatrolIntegrationTester $;
 
-  /// Import preview renders the picked file name, so the app's own semantics
-  /// tree matches the picker's row label. Package-scope every native lookup.
+  /// Import preview used to show the file name. Native lookups stay
+  /// package-scoped so picker rows do not collide with in-app copy.
   static const _appPackage = 'com.zahra.gym_app';
 
   static const fullBodyTitle = 'Beginner full body';

@@ -343,6 +343,15 @@ ExerciseAssetEntry? bundledAssetByPath(String? path) {
   return null;
 }
 
+ExerciseAssetEntry? bundledAssetById(String? id) {
+  if (id == null || id.trim().isEmpty) return null;
+  final needle = id.trim();
+  for (final entry in bundledExerciseAssets) {
+    if (entry.id == needle) return entry;
+  }
+  return null;
+}
+
 ExerciseAssetEntry? bestAssetMatchForTitle(String title) =>
     matchExerciseAsset(title);
 

@@ -42,13 +42,13 @@ Tapping the same starter twice does not duplicate it (same title is reused). Aft
 5. Back or **EXIT FOR NOW** returns to Plans. The row shows a **Draft** badge with **Resume** / **Delete**. Empty names list as **Untitled plan**.
 6. **Finish plan** is disabled until every day has a valid block. After finish, the active plan preview opens. **Start workout** is disabled until that day has a block.
 
-### 2c. Import JSON
+### 2c. Import a plan
 
 1. Tap **Import a plan** (Welcome) or **Import** (Plans).
-2. Pick a `.json` file in the v1 shape (`name`, `basic-plan`, optional `common-plan`). Linux desktop needs a file-dialog helper (`zenity`, `qarma`, or `kdialog`).
-3. Invalid JSON stays on the current screen with a snackbar, for example: **This file is not valid JSON. Remove trailing commas or other syntax errors and try again.**
-4. Valid files open **Import preview**: file name, plan title, expandable days (block summaries). Legacy `common-plan` sections become regular days and are explained as **Former common sections**. **Save plan** / **Cancel**.
-5. **Save plan** writes the plan and opens **that plan’s preview** (not Plans). Back returns toward home.
+2. Pick a `.gymplan`, `.zip`, or `.json` file (`name`, `basic-plan`, optional `common-plan`, optional media). Linux desktop needs a file-dialog helper (`zenity`, `qarma`, or `kdialog`).
+3. Unreadable files (not zip or JSON) stay on the current screen with a snackbar.
+4. Everything else opens **Create plan** as a **draft**. Days, exercises, and media that parse are filled in. If something was missing or messy, a banner says **Import didn’t go as planned.** with **This is a draft. Check each day, fix what’s missing, then create the plan.** Review lists the issues. **Finish plan** activates the plan. **EXIT FOR NOW** keeps the draft on Plans.
+5. Same title as an existing plan still creates a **new** draft.
 
 Checked-in sample: `assets/json/plan.json` (`plan 1`, one training day plus abs and corrective imported as extra days).
 
@@ -72,7 +72,7 @@ Deleting the last plan (overflow on plan preview) lands on empty home: **No plan
 1. Tap a plan.
 2. Plan preview (no bottom nav):
    - Info day cards (no cycling photos). Details: [plan-day-cards.md](plan-day-cards.md).
-   - App bar: back, title, **Rename plan** (pencil), **Add day**, overflow **More** → **Delete plan**.
+   - App bar: back, title, **Rename plan** (pencil), **Add day**, overflow **More** → **Export plan** (Full package or Lite JSON) / **Delete plan**.
    - Confirm: **Delete this plan?** / **Workouts already logged stay on Month.** **Cancel** or **Delete**. Delete returns to Plans.
    - Each day card: title, optional focus/summary, target-area chips, `~N min` estimate, exercise count, **Delete day**. Catalog/stored stills rotate on the right when a movement has media; unmatched custom exercises stay text-only.
    - FAB **Add day** when at least one day exists.

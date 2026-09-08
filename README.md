@@ -1,6 +1,6 @@
 # Gym App
 
-Offline workout app: get a plan in (beginner template, JSON import, or create), log a live session, rate each exercise 1–5, and see a month calendar with per-exercise trends. One local user. Data lives in Isar. The locked product is [docs/product-plan.md](docs/product-plan.md). What a person actually taps is [docs/user-journey.md](docs/user-journey.md).
+Offline workout app: get a plan in (beginner template, plan package import, or create), log a live session, rate each exercise 1–5, and see a month calendar with per-exercise trends. One local user. Data lives in Isar. The locked product is [docs/product-plan.md](docs/product-plan.md). What a person actually taps is [docs/user-journey.md](docs/user-journey.md).
 
 Package name: `gym_app`  
 Application ID: `com.zahra.gym_app`
@@ -24,7 +24,7 @@ Application ID: `com.zahra.gym_app`
 ## User flow
 
 ```
-Welcome (/)  →  Beginner plans / Import preview / New plan
+Welcome (/)  →  Beginner plans / Create plan (import or new)
                      ↓
               Plans home (/home)  —  Plans | Exercises | Month
                      ↓
@@ -108,7 +108,9 @@ dart run build_runner build --delete-conflicting-outputs
 | `isar_generator` + `build_runner` | Isar codegen |
 | `lottie` | Welcome animation (`assets/json/gym.json`) |
 | `flutter_svg` | Exercise-group icons |
-| `file_picker` | JSON import |
+| `file_picker` | Plan package / JSON import and desktop export |
+| `archive` | `.gymplan` zip encode/decode |
+| `share_plus` | Mobile export share sheet |
 | `image_picker` | Optional gallery media in the day editor |
 | `path_provider` | App documents directory |
 | `http` | Optional remotes when `API_BASE_URL` is set |

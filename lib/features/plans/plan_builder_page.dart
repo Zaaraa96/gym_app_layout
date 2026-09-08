@@ -9,11 +9,33 @@ import '../../common/widgets/app_text_field.dart';
 import '../../data/app_ports.dart';
 import '../../domain/models/models.dart';
 import '../../domain/plan_catalog.dart';
+import '../../domain/plan_import_issue.dart';
 import '../../domain/plan_validation.dart';
 import 'day_step_body.dart';
 import 'exercise_asset_catalog.dart' as catalog;
 import 'exercise_editor_page.dart';
 import 'plan_builder_controller.dart';
+
+/// Arguments for `/new-plan`: resume a draft and optional import issues.
+class PlanBuilderArgs {
+  const PlanBuilderArgs({
+    this.planId,
+    this.importIssues = const [],
+  });
+
+  final String? planId;
+  final List<PlanImportIssue> importIssues;
+
+  static PlanBuilderArgs from(Object? raw) {
+    if (raw is PlanBuilderArgs) return raw;
+    if (raw is String) return PlanBuilderArgs(planId: raw);
+    return const PlanBuilderArgs();
+  }
+}
+
+bool _isImportProblem(PlanImportIssue issue) {
+  return issue.code != 'common-plan' && issue.code != 'alt-json';
+}
 
 /// One-screen vertical stepper for creating a plan as a draft.
 class PlanBuilderPage extends StatefulWidget {
@@ -21,10 +43,12 @@ class PlanBuilderPage extends StatefulWidget {
     super.key,
     required this.ports,
     this.planId,
+    this.importIssues = const [],
   });
 
   final AppPorts ports;
   final String? planId;
+  final List<PlanImportIssue> importIssues;
 
   @override
   State<PlanBuilderPage> createState() => _PlanBuilderPageState();
@@ -34,6 +58,7 @@ class _PlanBuilderPageState extends State<PlanBuilderPage>
     with WidgetsBindingObserver {
   PlanBuilderController? _controller;
   Object? _loadError;
+  var _hideImportBanner = false;
   final _title = TextEditingController();
   final _description = TextEditingController();
   final _dayTitles = <String, TextEditingController>{};
@@ -93,6 +118,11 @@ class _PlanBuilderPageState extends State<PlanBuilderPage>
         return;
       }
       _bind(controller);
+      final problems = widget.importIssues.where(_isImportProblem).toList();
+      if (problems.isEmpty && widget.planId != null) {
+        final last = controller.steps.length - 1;
+        if (last >= 0) controller.openStep(last);
+      }
       setState(() {
         _controller = controller;
         _loadError = null;
@@ -200,6 +230,11 @@ class _PlanBuilderPageState extends State<PlanBuilderPage>
                     onCreate: _create,
                     onLeave: _leave,
                     onAddBlock: _addOrEditBlock,
+                    importIssues: widget.importIssues,
+                    hideImportBanner: _hideImportBanner,
+                    onDismissImportBanner: () {
+                      setState(() => _hideImportBanner = true);
+                    },
                   ),
       ),
     );
@@ -289,6 +324,9 @@ class _BuilderBody extends StatelessWidget {
     required this.onCreate,
     required this.onLeave,
     required this.onAddBlock,
+    this.importIssues = const [],
+    this.hideImportBanner = false,
+    this.onDismissImportBanner,
   });
 
   final PlanBuilderController controller;
@@ -304,33 +342,59 @@ class _BuilderBody extends StatelessWidget {
     ExerciseBlock? existing,
     int? index,
   }) onAddBlock;
+  final List<PlanImportIssue> importIssues;
+  final bool hideImportBanner;
+  final VoidCallback? onDismissImportBanner;
 
   @override
   Widget build(BuildContext context) {
     final steps = controller.steps;
-    return ListView.builder(
-      key: const Key('plan-builder-stepper'),
-      padding: const EdgeInsets.only(bottom: 24, top: 8),
-      itemCount: steps.length,
-      itemBuilder: (context, index) {
-        final step = steps[index];
-        final visual = controller.visualAt(index);
-        final expanded = index == controller.currentStepIndex;
-        return _StepCard(
-          index: index,
-          last: index == steps.length - 1,
-          step: step,
-          visual: visual,
-          expanded: expanded,
-          subtitle: subtitleForStep(
-            step: step,
-            plan: controller.plan,
-            visual: visual,
+    return Column(
+      children: [
+        if (importIssues.where(_isImportProblem).isNotEmpty && !hideImportBanner)
+          Material(
+            color: Colors.amber.shade50,
+            child: ListTile(
+              key: const Key('import-issues-banner'),
+              leading: Icon(Icons.warning_amber, color: Colors.amber.shade800),
+              title: const Text('Import didn’t go as planned.'),
+              subtitle: const Text(
+                'This is a draft. Check each day, fix what’s missing, then create the plan.',
+              ),
+              trailing: IconButton(
+                tooltip: 'Dismiss',
+                onPressed: onDismissImportBanner,
+                icon: const Icon(Icons.close),
+              ),
+            ),
           ),
-          onOpen: () => controller.openStep(index),
-          child: expanded ? _stepContent(context, step) : null,
-        );
-      },
+        Expanded(
+          child: ListView.builder(
+            key: const Key('plan-builder-stepper'),
+            padding: const EdgeInsets.only(bottom: 24, top: 8),
+            itemCount: steps.length,
+            itemBuilder: (context, index) {
+              final step = steps[index];
+              final visual = controller.visualAt(index);
+              final expanded = index == controller.currentStepIndex;
+              return _StepCard(
+                index: index,
+                last: index == steps.length - 1,
+                step: step,
+                visual: visual,
+                expanded: expanded,
+                subtitle: subtitleForStep(
+                  step: step,
+                  plan: controller.plan,
+                  visual: visual,
+                ),
+                onOpen: () => controller.openStep(index),
+                child: expanded ? _stepContent(context, step) : null,
+              );
+            },
+          ),
+        ),
+      ],
     );
   }
 
@@ -385,6 +449,7 @@ class _BuilderBody extends StatelessWidget {
           controller: controller,
           onCreate: onCreate,
           onLeave: onLeave,
+          importIssues: importIssues,
         );
     }
   }
@@ -415,28 +480,27 @@ class _StepCard extends StatelessWidget {
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
     final incomplete = visual == BuilderStepVisual.incomplete;
-    return IntrinsicHeight(
-      child: Row(
-        crossAxisAlignment: CrossAxisAlignment.stretch,
-        children: [
-          SizedBox(
-            width: 36,
-            child: Column(
-              children: [
-                _StepGlyph(index: index, visual: visual),
-                if (!last)
-                  Expanded(
-                    child: Container(
-                      width: 2,
-                      color: theme.colorScheme.outlineVariant,
-                    ),
-                  ),
-              ],
-            ),
+    return Row(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        SizedBox(
+          width: 36,
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              _StepGlyph(index: index, visual: visual),
+              if (!last)
+                Container(
+                  width: 2,
+                  height: expanded ? 32 : 16,
+                  color: theme.colorScheme.outlineVariant,
+                ),
+            ],
           ),
-          const SizedBox(width: 8),
-          Expanded(
-            child: Card(
+        ),
+        const SizedBox(width: 8),
+        Expanded(
+          child: Card(
               key: Key('step-${step.key}'),
               color: expanded
                   ? theme.colorScheme.surface
@@ -452,6 +516,7 @@ class _StepCard extends StatelessWidget {
                 ),
               ),
               child: Column(
+                mainAxisSize: MainAxisSize.min,
                 children: [
                   ListTile(
                     onTap: onOpen,
@@ -494,8 +559,7 @@ class _StepCard extends StatelessWidget {
             ),
           ),
         ],
-      ),
-    );
+      );
   }
 }
 
@@ -648,11 +712,13 @@ class _ReviewStep extends StatelessWidget {
     required this.controller,
     required this.onCreate,
     required this.onLeave,
+    this.importIssues = const [],
   });
 
   final PlanBuilderController controller;
   final Future<void> Function() onCreate;
   final Future<void> Function() onLeave;
+  final List<PlanImportIssue> importIssues;
 
   @override
   Widget build(BuildContext context) {
@@ -672,6 +738,21 @@ class _ReviewStep extends StatelessWidget {
           '${totalExerciseCount(plan) == 1 ? 'exercise' : 'exercises'}',
           style: subtitleTextStyle,
         ),
+        if (importIssues.isNotEmpty) ...[
+          const SizedBox(height: 12),
+          for (final issue in importIssues)
+            ListTile(
+              contentPadding: EdgeInsets.zero,
+              leading: Icon(Icons.info_outline, color: Colors.amber.shade800),
+              title: Text(issue.message),
+              trailing: issue.stepKey == null
+                  ? null
+                  : TextButton(
+                      onPressed: () => _openStepKey(issue.stepKey!),
+                      child: const Text('Fix this'),
+                    ),
+            ),
+        ],
         const SizedBox(height: 12),
         for (final day in plan.days) _reviewDay(context, day, issues),
         if (issues.isNotEmpty) ...[

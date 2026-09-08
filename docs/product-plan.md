@@ -8,7 +8,7 @@ Locked product, data, UX, and architecture for v1. The running app implements sl
 
 Locked decisions:
 
-- Get a plan in by **JSON import** and by **create/edit in the app**.
+- Get a plan in by **plan package / JSON import** and by **create/edit in the app**.
 - Rate difficulty **1–5 per exercise** (not once for the whole day).
 - Single local user. **Offline is the normal mode.** No account. HTTP sync is opt-in at compile time (`--dart-define=API_BASE_URL=…`) and is off in the normal binary.
 - A **plan** is the prescription. A **session** is what happened on a date.
@@ -149,7 +149,7 @@ Rest is **not** stored. The rest stopwatch is UI-only in v1.
 
 ### Import JSON (v1)
 
-`assets/json/plan.json` is valid. Trailing-comma files throw `PlanImportException` with a readable message. Canonical shape:
+`assets/json/plan.json` is valid. Canonical shape:
 
 ```json
 {
@@ -203,6 +203,21 @@ Mapping:
 - optional `"goals"` → `goalIds`; optional `"description"`
 - optional `"target-areas"` on an exercise → `targetAreaIds` (otherwise catalog auto-fill)
 - `days` (count) is informational; trust the array length
+- optional `"media"` on an exercise: `{ "role": "bundled"|"file"|"url", "id", "path", "kind", "url" }`
+
+### Plan packages
+
+Shareable unit is a zip named `{title}.gymplan` (`.zip` and legacy `.json` still import):
+
+```
+manifest.json     # formatVersion, createdByApp, createdAt, planUid
+plan.json         # v1 shape plus media refs
+media/{id}.gif    # user files only; bundled catalog assets are ids
+```
+
+- **Import** is best-effort: salvage days and media, collect issues, save a **draft** (`PlanSource.imported`), open **Create plan**. Banner: **Import didn’t go as planned.** Only unreadable bytes stay on Welcome/Plans with a snackbar. Duplicate titles always create a new draft.
+- **Export** (plan overflow): Full package (structure + user media; bundled as ids) or Lite JSON. Never includes Month logs. Oversize user files (8 MB) are skipped with a warning. JPEGs drop EXIF.
+- Later, not in this slice: plan/day covers, freeze URLs into the zip, beginner templates as packages, update-in-place via `planUid`.
 
 ### Progress rules (month)
 
@@ -289,8 +304,8 @@ Starting while another session is `inProgress`:
 | Welcome | First-run fork: beginner template, import, or create | `welcome_page.dart` |
 | Starter plans | Pick a bundled beginner program | `starter_plans_page.dart` |
 | Plans home | List plans; continue session; Today card; Import / New / Beginner; Month tab | `plans_home_page.dart` |
-| Import preview | Show parsed days/blocks; confirm save | `import_preview_page.dart` |
-| Plan preview | Info day cards (chips, estimate, optional rotating stills); rename; add/delete days; delete-plan overflow (sessions stay) | `plan_page.dart` |
+| Import | Pick `.gymplan` / `.zip` / `.json`; salvage into Create plan | `plan_import_flow.dart` |
+| Plan preview | Info day cards (chips, estimate, optional rotating stills); rename; add/delete days; export-plan and delete-plan overflow (sessions stay) | `plan_page.dart` |
 | Day preview | Block list + Start | `day_preview_page.dart` |
 | Day editor | One day’s title, summary, blocks; same cards as Create plan; optional SVG/gallery media; target areas | `day_editor_page.dart` + `day_step_body.dart` |
 | Create plan | Vertical stepper: details, one step per day, Review. Auto-saves a draft | `plan_builder_page.dart` |
@@ -309,11 +324,9 @@ There is **no** all-in-one post-create plan editor. Creation uses the stepper. A
 
 **Plans home.** App bar “Plans” (or “Exercises” / “Month” on those tabs). Continue banner above the body when `inProgress` exists. **Today** card with the next active-plan day and a Start CTA. List of plan titles + day count; drafts show **Draft** / **Resume** / **Delete**. Bottom row: Import | New, plus **Beginner** when at least one plan exists. Empty list: **Start with a beginner plan** instead of that third button. Bottom nav: Plans, Exercises, Month.
 
-**Import preview.** File name, plan title, expandable days (block summaries: `3×12 kang squat + leg extension`). Former `common-plan` sections are listed as converted days. Primary: Save plan. Secondary: Cancel.
+**Create plan.** Vertical stepper: Plan details (name, description, goals), one step per day (exercises, supersets, target areas), Review & create. Auto-save status in the app bar. Import lands here as a draft, with a banner when something did not parse cleanly. **Finish plan** stays disabled until required validation passes. **Add another day** is in the Review column and opens the new day step. **EXIT FOR NOW** keeps the draft.
 
-**Create plan.** Vertical stepper: Plan details (name, description, goals), one step per day (exercises, supersets, target areas), Review & create. Auto-save status in the app bar. **Finish plan** stays disabled until required validation passes. **Add another day** is in the Review column and opens the new day step.
-
-**Plan preview.** Info cards (no cycling photos). Title, optional focus, target-area chips, `~N min` estimate, volume; rotating catalog/stored stills only when a movement has real media. See [plan-day-cards.md](plan-day-cards.md). App bar: title, edit icon **renames** the plan, add-day icon, overflow **Delete plan** (confirm: “Workouts already logged stay on Month.”; sessions stay, per Step 2). Add day from the app bar / FAB. Card tap opens Day preview. Day cards can delete that day.
+**Plan preview.** Info cards (no cycling photos). Title, optional focus, target-area chips, `~N min` estimate, volume; rotating catalog/stored stills only when a movement has real media. See [plan-day-cards.md](plan-day-cards.md). App bar: title, edit icon **renames** the plan, add-day icon, overflow **Export plan** (full `.gymplan` or lite JSON) and **Delete plan** (confirm: “Workouts already logged stay on Month.”; sessions stay, per Step 2). Add day from the app bar / FAB. Card tap opens Day preview. Day cards can delete that day.
 
 **Day preview.** Keep alternating summary rows (SVG, names × reps or duration, set/round badge). **Edit day** opens the day editor. Bottom: Start workout.
 
@@ -395,11 +408,13 @@ Auto-start rest, target weight field, required photos, accounts, suggested next 
 | `lib/data/isar_plan_repository.dart` | Isar adapter |
 | `lib/data/isar_session_repository.dart` | Isar adapter |
 | `lib/data/memory_*_repository.dart` | Web / test stand-ins |
-| `lib/data/json_plan_importer.dart` | Parse and map JSON → domain `WorkoutPlan` |
+| `lib/data/json_plan_importer.dart` | Parse and salvage JSON → domain `WorkoutPlan` |
+| `lib/data/plan_package_importer.dart` | Zip/JSON bytes → draft + issues |
+| `lib/data/plan_package_exporter.dart` | Plan → `.gymplan` or lite JSON |
 | `lib/features/workout/workout_controller.dart` | Live session state; log set; rest clock; rate |
 | `lib/domain/progress_service.dart` | Pure Dart month fold of the rules in Step 2 |
 | `lib/data/sync/sync_service.dart` | Optional HTTP last-write-wins when `API_BASE_URL` is set |
-| `file_picker` | Pick `.json` from the device |
+| `file_picker` | Pick `.gymplan` / `.zip` / `.json`; desktop export save |
 
 ### App start
 

@@ -1,7 +1,6 @@
 import 'dart:io';
 
 import 'package:flutter/material.dart';
-import 'package:flutter/services.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:get/get.dart';
 import 'package:gym_app/common/app_routes.dart';
@@ -70,8 +69,7 @@ void main() {
     await settle(tester);
   }
 
-  testWidgets('picker cancel, picker errors, and preview cancel do not save',
-      (tester) async {
+  testWidgets('picker cancel and picker errors do not save', (tester) async {
     final env = await bootstrap(tester);
     await launch(tester);
 
@@ -79,7 +77,7 @@ void main() {
     await tester.pump();
     await settle(tester);
 
-    expect(find.text('Import preview'), findsNothing);
+    expect(find.text('Create plan'), findsNothing);
     expect(find.text('Import a plan'), findsOneWidget);
     expect(Get.currentRoute, AppRoutes.welcome);
     expect(await db(tester, env.plans.count), 0);
@@ -95,7 +93,7 @@ void main() {
       find.text('Could not read that file. Try another JSON file.'),
       findsOneWidget,
     );
-    expect(find.text('Import preview'), findsNothing);
+    expect(find.text('Create plan'), findsNothing);
     expect(Get.currentRoute, AppRoutes.welcome);
     expect(await db(tester, env.plans.count), 0);
 
@@ -105,28 +103,6 @@ void main() {
     await settle(tester);
 
     expect(find.textContaining('Could not open a file:'), findsOneWidget);
-    expect(Get.currentRoute, AppRoutes.welcome);
-    expect(await db(tester, env.plans.count), 0);
-
-    final json = await tester.runAsync(
-      () => rootBundle.loadString('assets/json/plan.json'),
-    );
-    env.picker
-      ..error = null
-      ..file = PickedPlanFile(fileName: 'plan.json', contents: json!);
-
-    await tester.tap(find.text('Import a plan'));
-    await tester.pump();
-    await settle(tester);
-
-    expect(find.text('Import preview'), findsOneWidget);
-    final cancel = find.widgetWithText(OutlinedButton, 'Cancel');
-    await tester.ensureVisible(cancel);
-    await tester.tap(cancel);
-    await tester.pump();
-    await tester.pump(const Duration(milliseconds: 400));
-
-    expect(find.text('Import a plan'), findsOneWidget);
     expect(Get.currentRoute, AppRoutes.welcome);
     expect(await db(tester, env.plans.count), 0);
   });
