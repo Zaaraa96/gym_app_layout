@@ -19,9 +19,14 @@ void main() {
       await gym.pickJsonFromDownloads('valid-plan.json');
       await gym.expectVisible('Import preview');
       expect($('plan 1'), findsOneWidget);
+      expect($('Former common sections'), findsOneWidget);
+      expect($('abs'), findsWidgets);
+      expect($('corrective'), findsWidgets);
       await gym.tapText('Save plan');
-      await gym.expectVisible('plan 1');
+      await gym.expectPlanPreview('plan 1');
       expect($('day 1- 4sar'), findsOneWidget);
+      expect($('abs'), findsOneWidget);
+      expect($('corrective'), findsOneWidget);
     },
   );
 }

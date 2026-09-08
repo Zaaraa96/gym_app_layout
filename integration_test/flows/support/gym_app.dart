@@ -212,13 +212,15 @@ class GymApp {
     await tapText("Start today's workout");
   }
 
-  Future<void> confirmCommonsOff() async {
+  /// Live logger is a snapshot; there is no Include-today sheet.
+  Future<void> awaitLiveLogger() async {
     await $('Log what you did on this set.').waitUntilVisible();
+    expect($('Include today'), findsNothing);
   }
 
-  Future<void> startTodayLeavingCommonsOff() async {
+  Future<void> startTodaysWorkoutFromHome() async {
     await startTodaysWorkout();
-    await confirmCommonsOff();
+    await awaitLiveLogger();
   }
 
   Future<void> tapLogSet() async {
@@ -238,16 +240,51 @@ class GymApp {
   }
 
   /// Prefer rating when the 1–5 row is on screen so extras are not logged.
-  Future<void> finishLiveWorkout({int difficulty = 3}) async {
+  ///
+  /// [expectSupersetAlternate] / [expectTimedWork] cover Day 1 of Beginner
+  /// full body (Glute bridge + Bird dog, then timed Plank).
+  Future<void> finishLiveWorkout({
+    int difficulty = 3,
+    bool expectSupersetAlternate = false,
+    bool expectTimedWork = false,
+  }) async {
+    var sawAlternate = false;
+    var sawTimed = false;
     final deadline = DateTime.now().add(const Duration(minutes: 4));
     while (DateTime.now().isBefore(deadline)) {
       await $.pump(const Duration(milliseconds: 250));
-      if ($('Workout complete').exists) return;
+      if ($('Workout complete').exists) {
+        if (expectSupersetAlternate) {
+          expect(
+            sawAlternate,
+            isTrue,
+            reason: 'Did not see Glute bridge set 1 alternate to Bird dog',
+          );
+        }
+        if (expectTimedWork) {
+          expect(sawTimed, isTrue, reason: 'Did not see timed Plank / Log time');
+        }
+        return;
+      }
       if ($(Key('rate-$difficulty')).exists) {
         await _tap($(Key('rate-$difficulty')), settle: SettlePolicy.trySettle);
         continue;
       }
+      if (expectSupersetAlternate &&
+          !sawAlternate &&
+          $('Glute bridge  ·  set 1 of 3').exists &&
+          $('Log set').exists) {
+        await tapLogSet();
+        await expectVisible('Bird dog  ·  set 1 of 3');
+        sawAlternate = true;
+        continue;
+      }
       if ($('Log time').exists) {
+        if (expectTimedWork && !sawTimed) {
+          expect($('Start timer'), findsOneWidget);
+          expect($('Plank'), findsWidgets);
+        }
+        sawTimed = true;
         await tapLogTime();
         continue;
       }
@@ -297,6 +334,7 @@ class GymApp {
     );
     await pumpQuiet(const Duration(milliseconds: 600));
     await expectVisible('Create plan');
+    await expectVisible('Plan details');
     if (title.isNotEmpty) {
       await $(const Key('plan-name-field')).enterText(title);
     }
@@ -306,25 +344,50 @@ class GymApp {
     await tapKey('continue-plan-details');
   }
 
+  Future<void> commitExerciseEditor() async {
+    await tapKey('exercise-editor-commit');
+  }
+
+  Future<void> addExerciseInBuilder(String name) async {
+    await tapText('Add exercise');
+    await enterAddExerciseTitle(name);
+    await commitExerciseEditor();
+  }
+
+  Future<void> openReviewStep() async {
+    await tapKey('step-review');
+    await expectVisible('CREATE PLAN');
+  }
+
+  Future<void> expectCreatePlanDisabled() async {
+    await expectVisible('CREATE PLAN');
+    final create = $.tester.widget<FilledButton>(
+      find.byKey(const Key('create-plan')),
+    );
+    expect(create.onPressed, isNull);
+  }
+
+  Future<void> expectStartWorkoutDisabled() async {
+    await expectVisible('Start workout');
+    final start = $.tester.widget<ElevatedButton>(
+      find.widgetWithText(ElevatedButton, 'Start workout'),
+    );
+    expect(start.onPressed, isNull);
+  }
+
+  Future<void> expectPlanPreview(String title) async {
+    await expectVisible('Add day');
+    expect($(title), findsWidgets);
+  }
+
   Future<void> addNamedExercise(String name) async {
     await tapText('Edit day');
     await expectVisible('No exercises yet. Add the first movement.');
     await tapText('Add exercise');
-    await $('Add exercise').waitUntilVisible();
-    await $(const Key('exercise-name-0')).enterText(name);
-    await tapText('ADD EXERCISE');
+    await enterAddExerciseTitle(name);
+    await commitExerciseEditor();
     await tapText('Save');
     await expectVisible('Start workout');
-  }
-
-  Future<void> addEmptyCommonSection(String title) async {
-    await tapText('Add section');
-    await $(TextFormField).enterText(title);
-    await tapText('Save section');
-    await pumpQuiet();
-    if ($('No exercises yet. Add the first movement.').exists) {
-      await back();
-    }
   }
 
   Future<void> endAndDiscard() async {

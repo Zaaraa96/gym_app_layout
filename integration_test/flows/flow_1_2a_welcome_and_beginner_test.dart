@@ -19,11 +19,13 @@ void main() {
       expect($('Today: Day 1 — Squat and push'), findsOneWidget);
       expect($("Start today's workout"), findsOneWidget);
       expect($('Beginner'), findsOneWidget);
+      // Three training days plus abs and mobility as extra days.
+      expect($('5 days'), findsOneWidget);
 
       await gym.openStartersFromHome();
       await gym.useStarterFullBody();
       expect($(GymApp.fullBodyTitle), findsOneWidget);
-      expect($('3 days'), findsOneWidget);
+      expect($('5 days'), findsOneWidget);
 
       await gym.openPlan(GymApp.fullBodyTitle);
       await gym.deleteOpenPlan();
