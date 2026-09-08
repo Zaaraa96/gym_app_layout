@@ -26,23 +26,20 @@ Future<void> startPlanImport(
       return;
     case PlanImportFailed(:final message):
       _showError(context, message);
-    case PlanImportParsed(:final fileName, :final plan):
+    case PlanImportParsed(
+          :final fileName,
+          :final plan,
+          :final convertedCommonSectionTitles
+        ):
       ScaffoldMessenger.of(context).clearSnackBars();
-      if (ports != null) {
-        await Get.to(
-          () => ImportPreviewPage(
-            fileName: fileName,
-            plan: plan,
-            ports: ports,
-          ),
-          routeName: AppRoutes.import,
-        );
-      } else {
-        await Get.toNamed(
-          AppRoutes.import,
-          arguments: ImportPreviewArgs(fileName: fileName, plan: plan),
-        );
-      }
+      await Get.toNamed(
+        AppRoutes.import,
+        arguments: ImportPreviewArgs(
+          fileName: fileName,
+          plan: plan,
+          convertedCommonSectionTitles: convertedCommonSectionTitles,
+        ),
+      );
   }
 }
 

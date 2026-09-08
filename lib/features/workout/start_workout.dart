@@ -15,7 +15,7 @@ Future<void> openLiveSession(String sessionId, AppPorts ports) async {
   );
 }
 
-/// Start or resume a day. Asks about commons and an existing live session.
+/// Start or resume a day. Asks about an existing live session.
 Future<void> startWorkout({
   required BuildContext context,
   required WorkoutPlan plan,
@@ -27,7 +27,6 @@ Future<void> startWorkout({
     plan: plan,
     planDayId: day.dayId,
     onConflict: (existing) => _askConflict(context, existing, day),
-    onCommons: (_) => _askCommons(context, plan),
   );
   if (!context.mounted) return;
 
@@ -39,7 +38,7 @@ Future<void> startWorkout({
     case StartSessionEmpty():
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(
-          content: Text('Turn on a section or add an exercise first.'),
+          content: Text('Add an exercise first.'),
         ),
       );
   }
@@ -84,69 +83,4 @@ Future<LiveSessionChoice> _askConflict(
   };
 }
 
-Future<List<String>?> _askCommons(BuildContext context, WorkoutPlan plan) {
-  if (!context.mounted) return Future<List<String>?>.value();
-  return showDialog<List<String>>(
-    context: context,
-    builder: (context) => _IncludeCommonsDialog(plan: plan),
-  );
-}
-
 enum _ConflictAction { resume, abandon }
-
-class _IncludeCommonsDialog extends StatefulWidget {
-  const _IncludeCommonsDialog({required this.plan});
-
-  final WorkoutPlan plan;
-
-  @override
-  State<_IncludeCommonsDialog> createState() => _IncludeCommonsDialogState();
-}
-
-class _IncludeCommonsDialogState extends State<_IncludeCommonsDialog> {
-  late final Set<String> _on = {};
-
-  @override
-  Widget build(BuildContext context) {
-    final plan = widget.plan;
-    return AlertDialog(
-      title: const Text('Include today'),
-      content: SingleChildScrollView(
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          crossAxisAlignment: CrossAxisAlignment.stretch,
-          children: [
-            const Text('These extras are off unless you turn them on.'),
-            for (final section in plan.commonSections)
-              SwitchListTile(
-                key: Key('include-section-${section.sectionId}'),
-                contentPadding: EdgeInsets.zero,
-                title: Text(section.title),
-                value: _on.contains(section.sectionId),
-                onChanged: (value) {
-                  setState(() {
-                    if (value) {
-                      _on.add(section.sectionId);
-                    } else {
-                      _on.remove(section.sectionId);
-                    }
-                  });
-                },
-              ),
-          ],
-        ),
-      ),
-      actions: [
-        TextButton(
-          onPressed: () => Navigator.pop(context),
-          child: const Text('Cancel'),
-        ),
-        FilledButton(
-          key: const Key('confirm-include'),
-          onPressed: () => Navigator.pop(context, _on.toList()),
-          child: const Text('Start'),
-        ),
-      ],
-    );
-  }
-}

@@ -276,4 +276,11 @@ void main() {
     expect(source.contains('Get.put'), isFalse);
     expect(source.contains('HttpRemotePlanDataSource'), isFalse);
   });
+
+  test('Isar PlanStatus fallback is active so pre-field rows stay startable', () {
+    final source = File('lib/data/isar/workout_plan.g.dart').readAsStringSync();
+    expect(source.contains('0: PlanStatus.active'), isTrue);
+    expect(source.contains('??\n          PlanStatus.active'), isTrue);
+    expect(source.contains('0: PlanStatus.draft'), isFalse);
+  });
 }

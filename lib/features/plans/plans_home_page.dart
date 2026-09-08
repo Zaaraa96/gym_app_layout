@@ -268,9 +268,49 @@ class _PlansHomePageState extends State<PlansHomePage> {
   }
 
   Widget _planTile(WorkoutPlan plan) {
+    if (plan.isDraft) {
+      return ListTile(
+        key: Key('draft-tile-${plan.uuid}'),
+        contentPadding: EdgeInsets.zero,
+        title: Row(
+          children: [
+            Flexible(
+              child: AppText(plan.displayTitle, style: dataTextStyle),
+            ),
+            const SizedBox(width: 8),
+            Chip(
+              key: Key('draft-badge-${plan.uuid}'),
+              label: const Text('Draft'),
+              visualDensity: VisualDensity.compact,
+            ),
+          ],
+        ),
+        subtitle: AppText(
+          '${plan.days.length} '
+          '${plan.days.length == 1 ? 'day' : 'days'}',
+          style: subtitleTextStyle,
+        ),
+        trailing: Row(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            TextButton(
+              key: Key('resume-draft-${plan.uuid}'),
+              onPressed: () => _resumeDraft(plan),
+              child: const Text('Resume'),
+            ),
+            TextButton(
+              key: Key('delete-draft-${plan.uuid}'),
+              onPressed: () => _deleteDraft(plan),
+              child: const Text('Delete'),
+            ),
+          ],
+        ),
+        onTap: () => _resumeDraft(plan),
+      );
+    }
     return ListTile(
       contentPadding: EdgeInsets.zero,
-      title: AppText(plan.title, style: dataTextStyle),
+      title: AppText(plan.displayTitle, style: dataTextStyle),
       subtitle: AppText(
         '${plan.days.length} '
         '${plan.days.length == 1 ? 'day' : 'days'}',
@@ -282,5 +322,34 @@ class _PlansHomePageState extends State<PlansHomePage> {
         arguments: plan.uuid,
       ),
     );
+  }
+
+  void _resumeDraft(WorkoutPlan plan) {
+    Get.toNamed(AppRoutes.newPlan, arguments: plan.uuid);
+  }
+
+  Future<void> _deleteDraft(WorkoutPlan plan) async {
+    final confirmed = await showDialog<bool>(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: const Text('Delete this draft?'),
+        content: Text(
+          '“${plan.displayTitle}” will be removed. This cannot be undone.',
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context, false),
+            child: const Text('Cancel'),
+          ),
+          FilledButton(
+            key: const Key('confirm-delete-draft'),
+            onPressed: () => Navigator.pop(context, true),
+            child: const Text('Delete'),
+          ),
+        ],
+      ),
+    );
+    if (confirmed != true) return;
+    await _plans.delete(plan.id);
   }
 }

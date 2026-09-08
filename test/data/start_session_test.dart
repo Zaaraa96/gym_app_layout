@@ -15,13 +15,12 @@ void main() {
     start = StartSession(lifecycle, sessions);
   });
 
-  test('starts a day with no live session and no commons', () async {
+  test('starts a day with no live session', () async {
     final plan = _plan();
     final result = await start.run(
       plan: plan,
       planDayId: 'day-1',
       onConflict: (_) async => fail('no conflict'),
-      onCommons: (_) async => fail('no commons'),
     );
     expect(result, isA<StartSessionOpened>());
     final session = (result as StartSessionOpened).session;
@@ -42,7 +41,6 @@ void main() {
         asked = true;
         return LiveSessionChoice.cancel;
       },
-      onCommons: (_) async => fail('no commons'),
     );
     expect(asked, isFalse);
     expect(result, isA<StartSessionOpened>());
@@ -59,7 +57,6 @@ void main() {
         expect(live.uuid, existing.uuid);
         return LiveSessionChoice.resumeExisting;
       },
-      onCommons: (_) async => fail('should not ask commons'),
     );
     expect((result as StartSessionOpened).session.uuid, existing.uuid);
     expect((await sessions.inProgress())?.uuid, existing.uuid);
@@ -72,7 +69,6 @@ void main() {
       plan: plan,
       planDayId: 'day-2',
       onConflict: (_) async => LiveSessionChoice.cancel,
-      onCommons: (_) async => fail('should not ask commons'),
     );
     expect(result, isA<StartSessionCancelled>());
     expect((await sessions.inProgress())?.uuid, existing.uuid);
@@ -86,7 +82,6 @@ void main() {
       plan: plan,
       planDayId: 'day-2',
       onConflict: (_) async => LiveSessionChoice.abandonAndStart,
-      onCommons: (_) async => fail('no commons'),
     );
     expect(result, isA<StartSessionOpened>());
     final opened = (result as StartSessionOpened).session;
@@ -96,66 +91,31 @@ void main() {
     expect((await sessions.inProgress())?.uuid, opened.uuid);
   });
 
-  test('commons cancel does not start', () async {
-    final plan = _plan(commons: true);
+  test('empty day is empty, not a session', () async {
+    final plan = _emptyDay();
     final result = await start.run(
       plan: plan,
       planDayId: 'day-1',
       onConflict: (_) async => fail('no conflict'),
-      onCommons: (_) async => null,
-    );
-    expect(result, isA<StartSessionCancelled>());
-    expect(await sessions.inProgress(), isNull);
-  });
-
-  test('included commons are copied into the new session', () async {
-    final plan = _plan(commons: true);
-    final result = await start.run(
-      plan: plan,
-      planDayId: 'day-1',
-      onConflict: (_) async => fail('no conflict'),
-      onCommons: (sections) async {
-        expect(sections.single.sectionId, 'sec-abs');
-        return ['sec-abs'];
-      },
-    );
-    final session = (result as StartSessionOpened).session;
-    expect(
-      session.exerciseLogs.map((log) => log.exerciseTitle),
-      ['squat', 'plank'],
-    );
-    expect(session.includedCommonSectionIds, ['sec-abs']);
-  });
-
-  test('empty day with commons off is empty, not a session', () async {
-    final plan = _emptyDayWithCommons();
-    final result = await start.run(
-      plan: plan,
-      planDayId: 'day-1',
-      onConflict: (_) async => fail('no conflict'),
-      onCommons: (_) async => const <String>[],
     );
     expect(result, isA<StartSessionEmpty>());
     expect(await sessions.inProgress(), isNull);
   });
 
-  test('empty day starts when a common section is turned on', () async {
-    final plan = _emptyDayWithCommons();
+  test('drafts cannot start a workout', () async {
+    final plan = _plan()..status = PlanStatus.draft;
     final result = await start.run(
       plan: plan,
       planDayId: 'day-1',
       onConflict: (_) async => fail('no conflict'),
-      onCommons: (_) async => ['sec-abs'],
     );
-    final session = (result as StartSessionOpened).session;
-    expect(session.exerciseLogs.single.exerciseTitle, 'plank');
-    expect(session.exerciseLogs.single.fromCommonSection, isTrue);
+    expect(result, isA<StartSessionEmpty>());
+    expect(await sessions.inProgress(), isNull);
   });
 }
 
 WorkoutPlan _plan({
   List<String> dayTitles = const ['Day 1'],
-  bool commons = false,
 }) {
   final now = DateTime.utc(2026, 8, 1);
   return WorkoutPlan.create(
@@ -185,31 +145,10 @@ WorkoutPlan _plan({
           ],
         ),
     ],
-    commonSections: [
-      if (commons)
-        CommonSection.create(
-          sectionId: 'sec-abs',
-          title: 'abs',
-          blocks: [
-            ExerciseBlock.create(
-              blockId: 'block-abs',
-              kind: BlockKind.single,
-              exercises: [
-                ExercisePrescription.create(
-                  prescriptionId: 'p-plank',
-                  title: 'plank',
-                  prescribedSets: 1,
-                  prescribedDurationSeconds: 30,
-                ),
-              ],
-            ),
-          ],
-        ),
-    ],
   );
 }
 
-WorkoutPlan _emptyDayWithCommons() {
+WorkoutPlan _emptyDay() {
   final now = DateTime.utc(2026, 8, 1);
   return WorkoutPlan.create(
     uuid: 'plan-empty',
@@ -218,25 +157,5 @@ WorkoutPlan _emptyDayWithCommons() {
     createdAt: now,
     updatedAt: now,
     days: [PlanDay.create(dayId: 'day-1', title: 'Empty')],
-    commonSections: [
-      CommonSection.create(
-        sectionId: 'sec-abs',
-        title: 'abs',
-        blocks: [
-          ExerciseBlock.create(
-            blockId: 'block-abs',
-            kind: BlockKind.single,
-            exercises: [
-              ExercisePrescription.create(
-                prescriptionId: 'p-plank',
-                title: 'plank',
-                prescribedSets: 1,
-                prescribedDurationSeconds: 30,
-              ),
-            ],
-          ),
-        ],
-      ),
-    ],
   );
 }

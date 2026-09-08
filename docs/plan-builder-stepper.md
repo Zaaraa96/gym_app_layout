@@ -235,7 +235,7 @@ Remote sync DTOs need the same additive fields and lifecycle state. Coordinate s
 Names may be adapted to project conventions:
 
 ```dart
-enum PlanStatus { draft, active }
+enum PlanStatus { active, draft }
 
 class WorkoutPlan {
   String title;
@@ -254,7 +254,7 @@ class ExercisePrescription {
 }
 ```
 
-Keep `PlanSource` (`created` / `imported`) separate from `PlanStatus`; they describe different concerns.
+Keep `PlanSource` (`created` / `imported`) separate from `PlanStatus`; they describe different concerns. Put `active` first so a missing Isar byte on older rows stays startable.
 
 ## Implementation map
 

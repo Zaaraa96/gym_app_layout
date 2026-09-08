@@ -176,74 +176,6 @@ class _PlanPageState extends State<PlanPage> {
     await _openEditor(day);
   }
 
-  Future<void> _addSection() async {
-    final plan = _plan;
-    if (plan == null) return;
-    final titleController = TextEditingController();
-    final created = await showDialog<bool>(
-      context: context,
-      builder: (context) => AlertDialog(
-        title: const Text('Add common section'),
-        content: AppTextField(
-          label: 'section title',
-          hint: 'abs, corrective…',
-          controller: titleController,
-          autofocus: true,
-        ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(context, false),
-            child: const Text('Cancel'),
-          ),
-          FilledButton(
-            onPressed: () => Navigator.pop(context, true),
-            child: const Text('Save section'),
-          ),
-        ],
-      ),
-    );
-    final title = titleController.text.trim().isEmpty
-        ? 'Section ${plan.commonSections.length + 1}'
-        : titleController.text.trim();
-    titleController.dispose();
-    if (created != true) return;
-    final section = CommonSection.create(
-      sectionId: newId(),
-      title: title,
-    );
-    plan.commonSections = [...plan.commonSections, section];
-    await _save(plan);
-    await _openSectionEditor(section);
-  }
-
-  Future<void> _deleteSection(CommonSection section) async {
-    final plan = _plan;
-    if (plan == null) return;
-    final confirmed = await showDialog<bool>(
-      context: context,
-      builder: (context) => AlertDialog(
-        title: const Text('Delete this section?'),
-        content: Text('"${section.title}" and its exercises will be removed.'),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(context, false),
-            child: const Text('Cancel'),
-          ),
-          FilledButton(
-            onPressed: () => Navigator.pop(context, true),
-            child: const Text('Delete'),
-          ),
-        ],
-      ),
-    );
-    if (confirmed != true) return;
-    plan.commonSections = [
-      for (final item in plan.commonSections)
-        if (item.sectionId != section.sectionId) item,
-    ];
-    await _save(plan);
-  }
-
   Future<void> _deleteDay(PlanDay day) async {
     final plan = _plan;
     if (plan == null) return;
@@ -322,18 +254,6 @@ class _PlanPageState extends State<PlanPage> {
     await _load();
   }
 
-  Future<void> _openSectionEditor(CommonSection section) async {
-    await Get.to(
-      () => DayEditorPage(
-        planId: widget.planId,
-        sectionId: section.sectionId,
-        ports: widget.ports,
-      ),
-      routeName: AppRoutes.editSection,
-    );
-    await _load();
-  }
-
   @override
   Widget build(BuildContext context) {
     final plan = _plan;
@@ -344,7 +264,7 @@ class _PlanPageState extends State<PlanPage> {
           onPressed: _goBack,
         ),
         title: Text(
-          plan?.title ?? 'Plan',
+          plan?.displayTitle ?? 'Plan',
           style: titleTextStyle,
           overflow: TextOverflow.ellipsis,
         ),
@@ -398,7 +318,6 @@ class _PlanPageState extends State<PlanPage> {
     return ListView(
       padding: const EdgeInsets.fromLTRB(20, 12, 20, 88),
       children: [
-        _commonSections(context, plan),
         if (plan.days.isEmpty)
           Padding(
             padding: const EdgeInsets.symmetric(vertical: 24),
@@ -427,42 +346,6 @@ class _PlanPageState extends State<PlanPage> {
               onOpen: () => _openDay(plan.days[index]),
               onDelete: () => _deleteDay(plan.days[index]),
             ),
-      ],
-    );
-  }
-
-  Widget _commonSections(BuildContext context, WorkoutPlan plan) {
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.stretch,
-      children: [
-        const AppText('Common sections', style: dataTextStyle),
-        Align(
-          alignment: Alignment.centerLeft,
-          child: TextButton(
-            onPressed: _addSection,
-            child: const Text('Add section'),
-          ),
-        ),
-        if (plan.commonSections.isEmpty)
-          const AppText(
-            'Optional extras like abs. Include them when you start a day.',
-            style: subtitleTextStyle,
-          )
-        else
-          Wrap(
-            spacing: 8,
-            runSpacing: 8,
-            children: [
-              for (final section in plan.commonSections)
-                InputChip(
-                  key: Key('common-section-${section.sectionId}'),
-                  label: Text(section.title),
-                  onPressed: () => _openSectionEditor(section),
-                  onDeleted: () => _deleteSection(section),
-                  deleteButtonTooltipMessage: 'Delete section',
-                ),
-            ],
-          ),
       ],
     );
   }

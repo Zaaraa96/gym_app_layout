@@ -61,9 +61,10 @@ void main() {
     final loadedPlan = planFromIsar((await isar.workoutPlans.get(plan.id))!);
     expect(loadedPlan.title, 'plan 1');
     expect(loadedPlan.source, PlanSource.imported);
-    expect(loadedPlan.days, hasLength(1));
+    expect(loadedPlan.status, PlanStatus.active);
+    expect(loadedPlan.days, hasLength(2));
 
-    final day = loadedPlan.days.single;
+    final day = loadedPlan.days.first;
     expect(day.dayId, 'day-1');
     expect(day.title, 'day 1- 4sar');
     expect(day.blocks, hasLength(2));
@@ -75,8 +76,8 @@ void main() {
     expect(day.blocks[1].kind, BlockKind.single);
     expect(day.blocks[1].svgPath, 'assets/image/upper-body.svg');
 
-    final abs = loadedPlan.commonSections.single;
-    expect(abs.sectionId, 'sec-abs');
+    final abs = loadedPlan.days.last;
+    expect(abs.dayId, 'sec-abs');
     expect(abs.title, 'abs');
     expect(abs.blocks.single.exercises.single.prescribedDurationSeconds, 30);
     expect(abs.blocks.single.exercises.single.prescribedReps, isNull);
@@ -180,10 +181,8 @@ WorkoutPlan _samplePlan(DateTime now) {
           ),
         ],
       ),
-    ],
-    commonSections: [
-      CommonSection.create(
-        sectionId: 'sec-abs',
+      PlanDay.create(
+        dayId: 'sec-abs',
         title: 'abs',
         blocks: [
           ExerciseBlock.create(

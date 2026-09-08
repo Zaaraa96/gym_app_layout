@@ -20,10 +20,15 @@ final class PlanImportFailed extends PlanImportOutcome {
 }
 
 final class PlanImportParsed extends PlanImportOutcome {
-  const PlanImportParsed({required this.fileName, required this.plan});
+  const PlanImportParsed({
+    required this.fileName,
+    required this.plan,
+    this.convertedCommonSectionTitles = const [],
+  });
 
   final String fileName;
   final WorkoutPlan plan;
+  final List<String> convertedCommonSectionTitles;
 }
 
 /// Pick JSON → validate → save. Widgets call one method and render.
@@ -56,9 +61,11 @@ class PlanImport {
     if (picked == null) return const PlanImportCancelled();
 
     try {
+      final imported = importer.importDetailed(picked.contents);
       return PlanImportParsed(
         fileName: picked.fileName,
-        plan: importer.import(picked.contents),
+        plan: imported.plan,
+        convertedCommonSectionTitles: imported.convertedCommonSectionTitles,
       );
     } on PlanImportException catch (error) {
       return PlanImportFailed(error.message);

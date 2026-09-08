@@ -2,119 +2,91 @@ import 'dart:io';
 
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
-import 'package:get/get.dart';
-import 'package:gym_app/common/app_routes.dart';
+import 'package:gym_app/data/isar_plan_repository.dart';
 import 'package:gym_app/data/isar_service.dart';
+import 'package:gym_app/data/memory_plan_repository.dart';
 import 'package:gym_app/domain/models/models.dart';
-import 'package:gym_app/domain/plan_repository.dart';
-import 'package:gym_app/main.dart';
+import 'package:gym_app/features/plans/plan_builder_controller.dart';
+import 'package:gym_app/features/plans/plan_builder_page.dart';
 
 import '../helpers/isar_core.dart';
+import '../helpers/ports.dart';
 
-/// Saving a new plan must write a [WorkoutPlan] and open it for day-by-day editing.
 void main() {
-  Directory? tempDir;
-  var instanceSeq = 0;
-
-  setUpAll(() async {
+  test('openNew persists an untitled draft in Isar', () async {
     await ensureIsarCore();
-    tempDir = await Directory.systemTemp.createTemp('gym_app_add_plan_');
+    final dir = await Directory.systemTemp.createTemp('gym_app_add_plan_isar_');
+    final service = await IsarService.init(
+      directory: dir.path,
+      name: 'addPlanIsar',
+    );
+    final plans = IsarPlanRepository(service.isar);
+    addTearDown(() async {
+      await service.close(deleteFromDisk: true);
+      if (dir.existsSync()) dir.deleteSync(recursive: true);
+    });
+
+    final controller = await PlanBuilderController.openNew(plans);
+    final stored = await plans.all();
+    expect(stored, hasLength(1));
+    expect(stored.single.status, PlanStatus.draft);
+    expect(stored.single.title, isEmpty);
+    expect(stored.single.displayTitle, untitledPlanTitle);
+    controller.dispose();
   });
 
-  tearDown(() async {
-    if (Get.isRegistered<IsarService>()) {
-      await IsarService.to.close(deleteFromDisk: true);
-    }
-    Get.reset();
-  });
+  testWidgets('builder writes a draft immediately and keeps an empty name invalid',
+      (tester) async {
+    tester.view.physicalSize = const Size(800, 1400);
+    tester.view.devicePixelRatio = 1;
+    addTearDown(tester.view.resetPhysicalSize);
 
-  tearDownAll(() async {
-    final dir = tempDir;
-    if (dir != null && dir.existsSync()) {
-      await dir.delete(recursive: true);
-    }
-  });
-
-  Future<T> db<T>(WidgetTester tester, Future<T> Function() body) async =>
-      (await tester.runAsync(body)) as T;
-
-  Future<PlanRepository> bootstrap(WidgetTester tester) async {
-    await tester.pumpWidget(const SizedBox.shrink());
-    await tester.pump();
-
-    instanceSeq += 1;
-    final service = await db(
-      tester,
-      () => IsarService.init(
-        directory: tempDir!.path,
-        name: 'addPlan$instanceSeq',
+    final plans = MemoryPlanRepository();
+    await tester.pumpWidget(
+      MaterialApp(
+        home: PlanBuilderPage(ports: testPorts(plans: plans)),
       ),
     );
-    Get.put<IsarService>(service, permanent: true);
-    putSessions(service.isar);
-    return putPlans(service.isar);
-  }
-
-  Future<void> settle(WidgetTester tester) => settleApp(tester);
-
-  Future<void> launch(WidgetTester tester, String route) async {
-    await tester.pumpWidget(MyApp(initialRoute: route));
-    await tester.pump(const Duration(milliseconds: 100));
-    await settle(tester);
-  }
-
-  testWidgets('save writes the plan and opens the plans home', (tester) async {
-    final plans = await bootstrap(tester);
-    await launch(tester, AppRoutes.newPlan);
-
-    await tester.enterText(find.byType(TextFormField).first, '  Push  ');
-    await tester.enterText(find.byType(TextFormField).at(1), 'chest and triceps');
-    await tester.tap(find.text('save'));
     await tester.pump();
-    await settle(tester);
+    await tester.pump(const Duration(milliseconds: 50));
 
-    expect(Get.currentRoute, AppRoutes.plan);
-    expect(find.text('Push'), findsWidgets);
-    expect(find.text('Day 1'), findsOneWidget);
-    expect(find.text('chest and triceps'), findsWidgets);
+    expect(find.text('Create plan'), findsOneWidget);
+    expect(find.byKey(const Key('plan-builder-stepper')), findsOneWidget);
+    expect((await plans.all()).single.status, PlanStatus.draft);
+    expect((await plans.all()).single.title, isEmpty);
 
-    final stored = await db(tester, plans.all);
-    expect(stored, hasLength(1));
-    expect(stored.single.title, 'Push');
-    expect(stored.single.source, PlanSource.created);
-    expect(stored.single.days.single.summary, 'chest and triceps');
-    final now = DateTime.now().toUtc();
-    expect(
-      stored.single.createdAt.toUtc().difference(now).abs(),
-      lessThan(const Duration(seconds: 5)),
-    );
-    expect(
-      stored.single.updatedAt.toUtc().difference(now).abs(),
-      lessThan(const Duration(seconds: 5)),
-    );
+    await tester.ensureVisible(find.byKey(const Key('continue-plan-details')));
+    await tester.tap(find.byKey(const Key('continue-plan-details')));
+    await tester.pump();
+    expect(find.byKey(const Key('plan-name-field')), findsOneWidget);
+    expect((await plans.all()).single.status, PlanStatus.draft);
   });
 
-  testWidgets('save without a title stays on the form', (tester) async {
-    await bootstrap(tester);
-    await launch(tester, AppRoutes.newPlan);
-
-    await tester.tap(find.text('save'));
-    await tester.pump();
-
-    expect(find.text('Add a title before saving'), findsOneWidget);
-    expect(Get.currentRoute, AppRoutes.newPlan);
-  });
-
-  testWidgets('whitespace-only title is treated as empty', (tester) async {
-    await bootstrap(tester);
-    await launch(tester, AppRoutes.newPlan);
-
-    await tester.enterText(find.byType(TextFormField).first, '   ');
-    await tester.tap(find.text('save'));
-    await tester.pump();
-
-    expect(find.text('Add a title before saving'), findsOneWidget);
-    expect(Get.currentRoute, AppRoutes.newPlan);
-    expect(await db(tester, Get.find<PlanRepository>().all), isEmpty);
+  test('flush trims the plan name and activate writes an active plan', () async {
+    final plans = MemoryPlanRepository();
+    final controller = await PlanBuilderController.openNew(plans);
+    controller.setTitle('  Push  ');
+    final dayId = controller.plan.days.single.dayId;
+    controller.setDayBlocks(dayId, [
+      ExerciseBlock.create(
+        blockId: 'b1',
+        kind: BlockKind.single,
+        exercises: [
+          ExercisePrescription.create(
+            prescriptionId: 'p1',
+            title: 'squat',
+            prescribedSets: 3,
+            prescribedReps: 10,
+          ),
+        ],
+      ),
+    ]);
+    expect(await controller.activate(), isTrue);
+    await controller.flush();
+    final stored = (await plans.all()).single;
+    expect(stored.title, 'Push');
+    expect(stored.status, PlanStatus.active);
+    expect(stored.days.single.blocks, isNotEmpty);
+    controller.dispose();
   });
 }
