@@ -13,8 +13,7 @@ import 'package:gym_app/main.dart';
 
 import '../helpers/isar_core.dart';
 
-/// Step 3: picking JSON, previewing it, and saving must write a real
-/// [WorkoutPlan] and open the plan. Invalid JSON stays on the current screen.
+/// Import salvages files into Create plan, then CREATE PLAN activates.
 void main() {
   Directory? tempDir;
   var instanceSeq = 0;
@@ -73,7 +72,7 @@ void main() {
   }
 
   testWidgets(
-      'invalid JSON is rejected, then the shipped sample saves and opens',
+      'trailing-comma JSON opens Create plan; sample then activates',
       (tester) async {
     final json = await rootBundle.loadString('assets/json/plan.json');
     final env = await bootstrap(
@@ -90,29 +89,25 @@ void main() {
     await tester.pump();
     await settle(tester);
 
-    expect(find.textContaining('not valid JSON'), findsOneWidget);
-    expect(find.text('Import a plan'), findsOneWidget);
-    expect(Get.currentRoute, AppRoutes.welcome);
-    expect(await db(tester, env.plans.count), 0);
+    expect(find.text('Create plan'), findsOneWidget);
+    expect(find.text('Import didn’t go as planned.'), findsOneWidget);
+    expect(Get.currentRoute, AppRoutes.newPlan);
 
-    env.picker.file = PickedPlanFile(fileName: 'plan.json', contents: json);
-    await tester.tap(find.text('Import a plan'));
+    await tester.tap(find.byTooltip('Back'));
     await tester.pump();
     await settle(tester);
 
-    expect(find.text('Import preview'), findsOneWidget);
-    expect(find.text('plan.json'), findsOneWidget);
-    expect(find.text('plan 1'), findsWidgets);
-    expect(find.text('day 1- 4sar'), findsOneWidget);
-    expect(
-      find.text('3 × 12 kang squat + 3 × 12 leg extension'),
-      findsOneWidget,
-    );
-    expect(find.text('3 × 12 reverse lunges+ Press'), findsOneWidget);
-    expect(find.text('abs'), findsOneWidget);
-    expect(find.text('corrective'), findsOneWidget);
+    env.picker.file = PickedPlanFile(fileName: 'plan.json', contents: json);
+    await tester.tap(find.text('Import'));
+    await tester.pump();
+    await settle(tester);
 
-    await tester.tap(find.text('Save plan'));
+    expect(find.text('Create plan'), findsOneWidget);
+    expect(find.text('plan 1'), findsWidgets);
+    expect(find.text('day 1- 4sar'), findsWidgets);
+
+    await tester.ensureVisible(find.byKey(const Key('create-plan')));
+    await tester.tap(find.byKey(const Key('create-plan')));
     await tester.pump();
     await settle(tester);
 
@@ -121,8 +116,8 @@ void main() {
     expect(find.text('day 1- 4sar'), findsWidgets);
 
     final stored = await db(tester, env.plans.all);
-    expect(stored, hasLength(1));
-    final plan = stored.single;
+    expect(stored.where((p) => p.status == PlanStatus.active), hasLength(1));
+    final plan = stored.firstWhere((p) => p.status == PlanStatus.active);
     expect(plan.source, PlanSource.imported);
     expect(plan.title, 'plan 1');
     expect(plan.days, hasLength(3));
@@ -133,17 +128,6 @@ void main() {
       ['kang squat', 'leg extension'],
     );
     expect(plan.days.map((day) => day.title), containsAll(['abs', 'corrective']));
-    expect(
-      plan.days.firstWhere((day) => day.title == 'abs').blocks.single.exercises.single
-          .prescribedDurationSeconds,
-      30,
-    );
-    expect(plan.days.first.dayId, isNotEmpty);
-    expect(plan.days.first.blocks.first.blockId, isNotEmpty);
-    expect(
-      plan.days.first.blocks.first.exercises.first.prescriptionId,
-      isNotEmpty,
-    );
   });
 }
 

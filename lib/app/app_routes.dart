@@ -12,7 +12,7 @@ import '../features/plans/day_editor_page.dart';
 import '../features/plans/day_preview_page.dart';
 import '../features/plans/exercise_media_picker.dart';
 import '../features/plans/exercise_media_picker_sheet.dart';
-import '../features/plans/import_preview_page.dart';
+import '../features/plans/plan_builder_page.dart';
 import '../features/plans/plan_import_picker.dart';
 import '../features/plans/plan_page.dart';
 import '../features/plans/plans_home_page.dart';
@@ -49,23 +49,15 @@ List<GetPage<dynamic>> appPages() => [
         page: () => StarterPlansPage(ports: resolveAppPorts()),
       ),
       GetPage(
-        name: AppRoutes.import,
+        name: AppRoutes.newPlan,
         page: () {
-          final args = Get.arguments as ImportPreviewArgs;
-          return ImportPreviewPage(
-            fileName: args.fileName,
-            plan: args.plan,
-            convertedCommonSectionTitles: args.convertedCommonSectionTitles,
+          final args = PlanBuilderArgs.from(Get.arguments);
+          return AddNewPlanPage(
             ports: resolveAppPorts(),
+            planId: args.planId,
+            importIssues: args.importIssues,
           );
         },
-      ),
-      GetPage(
-        name: AppRoutes.newPlan,
-        page: () => AddNewPlanPage(
-          ports: resolveAppPorts(),
-          planId: Get.arguments is String ? Get.arguments as String : null,
-        ),
       ),
       GetPage(
         name: AppRoutes.plan,

@@ -77,7 +77,7 @@ Match `docs/user-journey.md` plus the locked UX in `docs/product-plan.md` Step 3
 - Welcome only when plan count is 0; three actions; later launches go to Plans
 - Same beginner title twice reuses the stored plan; populated Plans shows **Beginner** (empty home shows **Start with a beginner plan**)
 - Blank created plan: empty Day 1; Start disabled until a block exists
-- Invalid JSON: readable error; valid `assets/json/plan.json` preview then save
+- Invalid JSON still opens Create plan with an issues banner; valid `assets/json/plan.json` opens Create plan then CREATE PLAN
 - Bottom nav on the home shell only
 - Plan overflow **Delete plan**; confirm copy says logged workouts stay on Month; sessions remain
 - In-progress conflict: Resume / Abandon and start / Cancel

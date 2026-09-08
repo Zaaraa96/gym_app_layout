@@ -270,7 +270,7 @@ Primary areas expected to change:
 - `lib/features/plans/exercise_block_dialog.dart`
 - `lib/features/plans/plans_home_page.dart`
 - `lib/features/plans/plan_page.dart`
-- `lib/features/plans/import_preview_page.dart`
+- `lib/features/plans/plan_import_flow.dart`
 - `lib/features/workout/start_workout.dart`
 - `lib/domain/start_session.dart`
 - `lib/domain/session_lifecycle.dart`

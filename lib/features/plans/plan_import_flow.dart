@@ -2,17 +2,15 @@ import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 
 import '../../common/app_routes.dart';
-import '../../data/app_ports.dart';
 import '../../data/plan_import.dart';
-import 'import_preview_page.dart';
+import 'plan_builder_page.dart';
 
-/// Pick a JSON file, parse it, and open the import preview.
+/// Pick a plan package or JSON, salvage it, and open Create plan as a draft.
 ///
-/// Cancel leaves the current screen. Parse errors stay here with a snackbar.
+/// Cancel leaves the current screen. Unreadable files stay here with a snackbar.
 Future<void> startPlanImport(
   BuildContext context, {
   required PlanImport import,
-  AppPorts? ports,
 }) async {
   if (context.mounted) {
     ScaffoldMessenger.of(context).clearSnackBars();
@@ -25,24 +23,19 @@ Future<void> startPlanImport(
     case PlanImportCancelled():
       return;
     case PlanImportFailed(:final message):
-      _showError(context, message);
-    case PlanImportParsed(
-          :final fileName,
-          :final plan,
-          :final convertedCommonSectionTitles
-        ):
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text(message)),
+      );
+    case PlanImportParsed(:final plan, :final issues):
       ScaffoldMessenger.of(context).clearSnackBars();
+      await import.save(plan);
+      if (!context.mounted) return;
       await Get.toNamed(
-        AppRoutes.import,
-        arguments: ImportPreviewArgs(
-          fileName: fileName,
-          plan: plan,
-          convertedCommonSectionTitles: convertedCommonSectionTitles,
+        AppRoutes.newPlan,
+        arguments: PlanBuilderArgs(
+          planId: plan.uuid,
+          importIssues: issues,
         ),
       );
   }
-}
-
-void _showError(BuildContext context, String message) {
-  ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(message)));
 }

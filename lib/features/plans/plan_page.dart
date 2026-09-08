@@ -8,6 +8,7 @@ import '../../common/widgets/app_load_error.dart';
 import '../../common/widgets/app_text.dart';
 import '../../common/widgets/app_text_field.dart';
 import '../../data/app_ports.dart';
+import '../../data/plan_export.dart';
 import '../../domain/models/models.dart';
 import '../../domain/new_id.dart';
 import '../../domain/plan_repository.dart';
@@ -204,6 +205,56 @@ class _PlanPageState extends State<PlanPage> {
     await _save(plan);
   }
 
+  Future<void> _exportPlan() async {
+    final plan = _plan;
+    if (plan == null) return;
+    final choice = await showDialog<String>(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: const Text('Export plan'),
+        content: const Text(
+          'Full includes your photos, GIFs, and short videos. '
+          'Lite is JSON only. Workouts on Month stay on this device.',
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context),
+            child: const Text('Cancel'),
+          ),
+          TextButton(
+            key: const Key('export-lite'),
+            onPressed: () => Navigator.pop(context, 'lite'),
+            child: const Text('Lite'),
+          ),
+          FilledButton(
+            key: const Key('export-full'),
+            onPressed: () => Navigator.pop(context, 'full'),
+            child: const Text('Full package'),
+          ),
+        ],
+      ),
+    );
+    if (choice == null || !mounted) return;
+    final outcome = await widget.ports.planExport.export(
+      plan,
+      lite: choice == 'lite',
+    );
+    if (!mounted) return;
+    switch (outcome) {
+      case PlanExportCancelled():
+        return;
+      case PlanExportFailed(:final message):
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text(message)),
+        );
+      case PlanExportShared(:final warnings):
+        final text = warnings.isEmpty
+            ? 'Plan exported.'
+            : warnings.join(' ');
+        ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(text)));
+    }
+  }
+
   Future<void> _deletePlan() async {
     final plan = _plan;
     if (plan == null) return;
@@ -286,8 +337,14 @@ class _PlanPageState extends State<PlanPage> {
             enabled: plan != null,
             onSelected: (value) {
               if (value == 'delete') _deletePlan();
+              if (value == 'export') _exportPlan();
             },
             itemBuilder: (context) => const [
+              PopupMenuItem(
+                key: Key('export-plan'),
+                value: 'export',
+                child: Text('Export plan'),
+              ),
               PopupMenuItem(
                 key: Key('delete-plan'),
                 value: 'delete',
