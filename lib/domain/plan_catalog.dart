@@ -48,10 +48,81 @@ const targetAreas = <TargetArea>[
   TargetArea(id: 'hamstrings', label: 'Hamstrings'),
   TargetArea(id: 'calves', label: 'Calves'),
   TargetArea(id: 'abs', label: 'Abs'),
+  TargetArea(id: 'obliques', label: 'Obliques'),
   TargetArea(id: 'core', label: 'Core'),
   TargetArea(id: 'hips', label: 'Hips'),
+  TargetArea(id: 'hip-flexors', label: 'Hip flexors'),
   TargetArea(id: 'full-body', label: 'Full body'),
 ];
+
+/// Coarse region filters on the Exercises page. An exercise can have several.
+class CatalogRegion {
+  const CatalogRegion({required this.id, required this.label});
+
+  final String id;
+  final String label;
+}
+
+const catalogRegions = <CatalogRegion>[
+  CatalogRegion(id: 'abs', label: 'Abs'),
+  CatalogRegion(id: 'upper', label: 'Upper'),
+  CatalogRegion(id: 'lower', label: 'Lower'),
+  CatalogRegion(id: 'cardio', label: 'Cardio'),
+];
+
+const catalogRegionIds = <String>['abs', 'upper', 'lower', 'cardio'];
+
+final _regionById = {for (final region in catalogRegions) region.id: region};
+
+CatalogRegion? catalogRegionById(String id) => _regionById[id];
+
+String catalogRegionLabel(String id) => catalogRegionById(id)?.label ?? id;
+
+const _muscleToRegions = <String, List<String>>{
+  'chest': ['upper'],
+  'triceps': ['upper'],
+  'biceps': ['upper'],
+  'front-shoulders': ['upper'],
+  'side-shoulders': ['upper'],
+  'rear-shoulders': ['upper'],
+  'upper-traps': ['upper'],
+  'forearms': ['upper'],
+  'lats': ['upper'],
+  'upper-back': ['upper'],
+  'quads': ['lower'],
+  'glutes': ['lower'],
+  'hamstrings': ['lower'],
+  'calves': ['lower'],
+  'hips': ['lower'],
+  'hip-flexors': ['lower'],
+  'abs': ['abs'],
+  'obliques': ['abs'],
+  'core': ['abs'],
+  'full-body': ['cardio'],
+};
+
+/// Keeps catalog/display order and drops unknown or duplicate region ids.
+List<String> canonicalizeRegionIds(Iterable<String> ids) {
+  final seen = <String>{};
+  final result = <String>[];
+  for (final region in catalogRegions) {
+    for (final id in ids) {
+      if (id == region.id && seen.add(id)) {
+        result.add(id);
+      }
+    }
+  }
+  return result;
+}
+
+/// Default regions from muscle tags. Hybrids can add extra regions on top.
+List<String> defaultRegionIdsFor(Iterable<String> targetAreaIds) {
+  final regions = <String>{};
+  for (final id in canonicalizeTargetAreaIds(targetAreaIds)) {
+    regions.addAll(_muscleToRegions[id] ?? const []);
+  }
+  return canonicalizeRegionIds(regions);
+}
 
 final _goalById = {for (final goal in planGoals) goal.id: goal};
 final _areaById = {for (final area in targetAreas) area.id: area};

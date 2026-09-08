@@ -90,5 +90,13 @@ void main() {
       canonicalizeGoalIds(['mobility', 'mystery', 'build-strength']),
       ['build-strength', 'mobility'],
     );
+    expect(
+      canonicalizeRegionIds(['cardio', 'nope', 'abs', 'abs']),
+      ['abs', 'cardio'],
+    );
+    expect(
+      defaultRegionIdsFor(['chest', 'abs', 'quads']),
+      ['abs', 'upper', 'lower'],
+    );
   });
 }

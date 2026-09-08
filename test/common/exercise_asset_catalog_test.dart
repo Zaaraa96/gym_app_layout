@@ -136,4 +136,15 @@ void main() {
     );
     expect(muscle.first.goalIds, contains('build-muscle'));
   });
+
+  test('catalogExerciseFromAsset copies tags, gif, and default prescription', () {
+    final plank = bundledExerciseAssets.firstWhere((e) => e.id == 'plank');
+    final mapped = catalogExerciseFromAsset(plank);
+    expect(mapped.id, 'plank');
+    expect(mapped.origin, CatalogOrigin.bundled);
+    expect(mapped.gifPath, plank.gifPath);
+    expect(mapped.targetAreaIds, plank.targetAreaIds);
+    expect(mapped.regionIds, plank.regionIds);
+    expect(mapped.prescriptionType, PrescriptionType.timed);
+  });
 }
