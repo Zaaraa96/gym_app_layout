@@ -240,7 +240,7 @@ Reviewed against Step 1–2 and the screens already in the app. Locked decisions
 
 ### Navigation
 
-**Bottom bar is the home shell only** (Plans | Month). Nested screens (import, plan, day, live, editors) have no bar; back returns toward home.
+**Bottom bar is the home shell only** (Plans | Exercises | Month). Nested screens (import, plan, day, live, editors) have no bar; back returns toward home.
 
 Skip Welcome whenever `WorkoutPlan` count > 0. No extra local flag.
 
@@ -307,7 +307,7 @@ There is **no** all-in-one post-create plan editor. Creation uses the stepper. A
 
 **Welcome.** Centered Lottie, title, subtitle, three full-width actions: Start with a beginner plan | Import a plan | Create a plan. Returning users never see this once any plan exists.
 
-**Plans home.** App bar “Plans” (or “Month” on that tab). Continue banner above the body when `inProgress` exists. **Today** card with the next active-plan day and a Start CTA. List of plan titles + day count; drafts show **Draft** / **Resume** / **Delete**. Bottom row: Import | New, plus **Beginner** when at least one plan exists. Empty list: **Start with a beginner plan** instead of that third button. Bottom nav: Plans, Month.
+**Plans home.** App bar “Plans” (or “Exercises” / “Month” on those tabs). Continue banner above the body when `inProgress` exists. **Today** card with the next active-plan day and a Start CTA. List of plan titles + day count; drafts show **Draft** / **Resume** / **Delete**. Bottom row: Import | New, plus **Beginner** when at least one plan exists. Empty list: **Start with a beginner plan** instead of that third button. Bottom nav: Plans, Exercises, Month.
 
 **Import preview.** File name, plan title, expandable days (block summaries: `3×12 kang squat + leg extension`). Former `common-plan` sections are listed as converted days. Primary: Save plan. Secondary: Cancel.
 
@@ -452,7 +452,7 @@ lib/
     progress/               # month tab, session log
 ```
 
-Routes: `/`, `/home`, `/starters`, `/import`, `/new-plan`, `/plan`, `/day`, `/edit-day`, `/session`, `/day-log`, `/session-log`. Month is a tab on `/home`. Live workout is `/session`. Plan and session arguments are **uuids**, not Isar row ids. `/new-plan` takes an optional uuid to resume a draft.
+Routes: `/`, `/home`, `/starters`, `/import`, `/new-plan`, `/plan`, `/day`, `/edit-day`, `/catalog-exercise`, `/edit-catalog-exercise`, `/session`, `/day-log`, `/session-log`. Month and Exercises are tabs on `/home`. Live workout is `/session`. Plan and session arguments are **uuids**, not Isar row ids. `/new-plan` takes an optional uuid to resume a draft.
 
 ---
 

@@ -269,6 +269,11 @@ class GymApp {
     await $(const Key('month-calendar')).waitUntilVisible();
   }
 
+  Future<void> openExercisesTab() async {
+    await _tap(find.byIcon(Icons.directions_run_outlined), settle: SettlePolicy.trySettle);
+    await $(const Key('exercises-tab')).waitUntilVisible();
+  }
+
   Future<void> openPlansTab() async {
     await _tap(find.byIcon(Icons.fitness_center_outlined), settle: SettlePolicy.trySettle);
   }

@@ -13,12 +13,13 @@ import '../../domain/models/workout_plan.dart';
 import '../../domain/models/workout_session.dart';
 import '../../domain/plan_repository.dart';
 import '../../domain/session_repository.dart';
+import '../catalog/exercises_tab.dart';
 import '../progress/month_tab.dart';
 import '../workout/start_workout.dart';
 import 'plan_import_flow.dart';
 import '../../domain/today_suggestion.dart';
 
-/// Landing screen for returning users: today, the plan list, Plans | Month.
+/// Landing screen for returning users: today, the plan list, Plans | Exercises | Month.
 class PlansHomePage extends StatefulWidget {
   const PlansHomePage({super.key, required this.ports});
 
@@ -91,19 +92,45 @@ class _PlansHomePageState extends State<PlansHomePage> {
     _load();
   }
 
+  static const _plansTab = 0;
+  static const _exercisesTab = 1;
+  static const _monthTab = 2;
+
+  String get _title {
+    switch (_tab) {
+      case _plansTab:
+        return 'Plans';
+      case _exercisesTab:
+        return 'Exercises';
+      case _monthTab:
+        return 'Month';
+      default:
+        return 'Plans';
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     return AppScaffold(
       appbar: AppBar(
-        title: AppText(_tab == 0 ? 'Plans' : 'Month', style: titleTextStyle),
+        title: AppText(_title, style: titleTextStyle),
       ),
       body: IndexedStack(
         index: _tab,
         children: [
-          _plansTab(),
+          _plansTabBody(),
+          ExercisesTab(ports: widget.ports),
           MonthTab(ports: widget.ports),
         ],
       ),
+      floatingActionButton: _tab == _exercisesTab
+          ? FloatingActionButton(
+              key: const Key('add-catalog-exercise'),
+              tooltip: 'Add exercise',
+              onPressed: () => Get.toNamed(AppRoutes.editCatalogExercise),
+              child: const Icon(Icons.add),
+            )
+          : null,
       bottomNavigationBar: NavigationBar(
         selectedIndex: _tab,
         onDestinationSelected: (index) => setState(() => _tab = index),
@@ -112,6 +139,11 @@ class _PlansHomePageState extends State<PlansHomePage> {
             icon: Icon(Icons.fitness_center_outlined),
             selectedIcon: Icon(Icons.fitness_center),
             label: 'Plans',
+          ),
+          NavigationDestination(
+            icon: Icon(Icons.directions_run_outlined),
+            selectedIcon: Icon(Icons.directions_run),
+            label: 'Exercises',
           ),
           NavigationDestination(
             icon: Icon(Icons.calendar_month_outlined),
@@ -123,7 +155,7 @@ class _PlansHomePageState extends State<PlansHomePage> {
     );
   }
 
-  Widget _plansTab() {
+  Widget _plansTabBody() {
     if (_loading && _items.isEmpty) {
       return const Center(child: CircularProgressIndicator());
     }

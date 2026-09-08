@@ -8,9 +8,11 @@ import '../common/app_theme.dart';
 import '../common/widgets/app_load_error.dart';
 import '../common/widgets/app_scaffold.dart';
 import '../data/app_ports.dart';
+import '../data/isar_catalog_repository.dart';
 import '../data/isar_plan_repository.dart';
 import '../data/isar_service.dart';
 import '../data/isar_session_repository.dart';
+import '../data/memory_catalog_repository.dart';
 import '../data/memory_plan_repository.dart';
 import '../data/memory_session_repository.dart';
 import '../data/remote/http_remote_plan_data_source.dart';
@@ -18,6 +20,7 @@ import '../data/remote/http_remote_session_data_source.dart';
 import '../data/remote/remote_plan_data_source.dart';
 import '../data/remote/remote_session_data_source.dart';
 import '../data/sync/sync_service.dart';
+import '../domain/catalog_repository.dart';
 import '../domain/plan_repository.dart';
 import '../domain/session_lifecycle.dart';
 import '../domain/session_repository.dart';
@@ -29,11 +32,13 @@ import 'app_routes.dart';
 Future<String> bootApp() async {
   late final PlanRepository plans;
   late final SessionRepository sessions;
+  late final CatalogRepository catalog;
   if (kIsWeb) {
     // Isar 3.1 refuses to open on web (`openIsar` throws). Keep the same
     // repository interfaces so the UI does not change.
     plans = Get.put<PlanRepository>(MemoryPlanRepository());
     sessions = Get.put<SessionRepository>(MemorySessionRepository());
+    catalog = Get.put<CatalogRepository>(MemoryCatalogRepository());
   } else {
     final isarService = Get.put(await IsarService.init());
     plans = Get.put<PlanRepository>(
@@ -41,6 +46,9 @@ Future<String> bootApp() async {
     );
     sessions = Get.put<SessionRepository>(
       IsarSessionRepository(isarService.isar),
+    );
+    catalog = Get.put<CatalogRepository>(
+      IsarCatalogRepository(isarService.isar),
     );
   }
   Get.put(SessionLifecycle(sessions));
@@ -50,6 +58,7 @@ Future<String> bootApp() async {
     AppPorts(
       plans: plans,
       sessions: sessions,
+      catalog: catalog,
       lifecycle: Get.find<SessionLifecycle>(),
       picker: picker,
     ),

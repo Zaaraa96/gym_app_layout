@@ -2,6 +2,7 @@ import 'package:get/get.dart';
 import 'package:isar/isar.dart';
 import 'package:path_provider/path_provider.dart';
 
+import 'isar/user_catalog_exercise.dart';
 import 'isar/workout_plan.dart';
 import 'isar/workout_session.dart';
 
@@ -17,6 +18,7 @@ class IsarService extends GetxService {
   static final schemas = [
     WorkoutPlanSchema,
     WorkoutSessionSchema,
+    UserCatalogExerciseSchema,
   ];
 
   static Future<IsarService> init({

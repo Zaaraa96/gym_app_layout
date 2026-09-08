@@ -13,6 +13,10 @@ abstract final class AppRoutes {
   static const starters = '/starters';
   /// Live workout. Month stays a tab on [home], not its own route.
   static const session = '/session';
+  /// Read-only catalog movement. Argument is the catalog id.
+  static const catalogExercise = '/catalog-exercise';
+  /// Add or edit a user-created catalog movement. Argument is an optional id.
+  static const editCatalogExercise = '/edit-catalog-exercise';
   /// Read-only list of sessions on one calendar day.
   static const dayLog = '/day-log';
   /// Read-only log of one session from the month calendar.

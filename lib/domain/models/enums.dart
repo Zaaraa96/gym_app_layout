@@ -20,6 +20,9 @@ enum ExerciseEditorMode { single, superset }
 /// Exactly one of reps or duration is stored on a prescription.
 enum PrescriptionType { reps, timed }
 
+/// Whether a catalog movement shipped with the app or was created locally.
+enum CatalogOrigin { bundled, user }
+
 /// Lifecycle of a [WorkoutSession]. At most one [inProgress] session exists.
 enum SessionStatus { inProgress, completed, abandoned }
 

@@ -4,9 +4,12 @@ import 'package:get/get.dart';
 import '../common/app_routes.dart';
 import '../common/app_theme.dart';
 import '../data/app_ports.dart';
+import '../domain/catalog_repository.dart';
 import '../domain/plan_repository.dart';
 import '../domain/session_lifecycle.dart';
 import '../domain/session_repository.dart';
+import '../features/catalog/catalog_exercise_detail_page.dart';
+import '../features/catalog/catalog_exercise_editor_page.dart';
 import '../features/plans/add_plan_page.dart';
 import '../features/plans/day_editor_page.dart';
 import '../features/plans/day_preview_page.dart';
@@ -25,6 +28,9 @@ AppPorts resolveAppPorts() {
   return AppPorts(
     plans: Get.find<PlanRepository>(),
     sessions: Get.find<SessionRepository>(),
+    catalog: Get.isRegistered<CatalogRepository>()
+        ? Get.find<CatalogRepository>()
+        : null,
     lifecycle: Get.isRegistered<SessionLifecycle>()
         ? Get.find<SessionLifecycle>()
         : null,
@@ -43,6 +49,20 @@ List<GetPage<dynamic>> appPages() => [
       GetPage(
         name: AppRoutes.home,
         page: () => PlansHomePage(ports: resolveAppPorts()),
+      ),
+      GetPage(
+        name: AppRoutes.catalogExercise,
+        page: () => CatalogExerciseDetailPage(
+          exerciseId: Get.arguments as String,
+          ports: resolveAppPorts(),
+        ),
+      ),
+      GetPage(
+        name: AppRoutes.editCatalogExercise,
+        page: () => CatalogExerciseEditorPage(
+          ports: resolveAppPorts(),
+          exerciseId: Get.arguments is String ? Get.arguments as String : null,
+        ),
       ),
       GetPage(
         name: AppRoutes.starters,
