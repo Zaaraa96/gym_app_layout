@@ -133,9 +133,11 @@ void main() {
       expect(Get.currentRoute, AppRoutes.plan);
       expect(find.text('day 1- 4sar'), findsOneWidget);
       expect(find.text('legs'), findsOneWidget);
+      expect(find.byKey(const Key('day-card-chip-quads')), findsOneWidget);
+      expect(find.text('3 exercises'), findsOneWidget);
       expect(
         find.text('3 × 12 kang squat + 3 × 12 leg extension'),
-        findsOneWidget,
+        findsNothing,
       );
 
       await tester.tap(find.byKey(const Key('day-card-day-1')));

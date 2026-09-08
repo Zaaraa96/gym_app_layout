@@ -234,7 +234,7 @@ Drop `SinglePlanModel` / `SingleDayPlanModel` / `SingleExerciseWithRound` / `Exe
 
 ## Step 3 — UX design
 
-Keep Material 3, deep purple seed, photo day cards, Lottie welcome. No new visual language before code. Full Figma is optional; this screen map is enough to build.
+Keep Material 3, deep purple seed, Lottie welcome. Plan preview uses info day cards (optional rotating exercise stills), not the old photo backgrounds. No new visual language before code. Full Figma is optional; this screen map is enough to build.
 
 Reviewed against Step 1–2 and the screens already in the app. Locked decisions below replace the earlier “FAB or…”, “local flag or…”, and “completed or abandoned” forks.
 
@@ -256,7 +256,7 @@ Home shell
   │     ├─ Continue banner → Live workout (resume)
   │     ├─ Today card → Start → Live workout (active plans only)
   │     ├─ Draft row → Resume builder / Delete
-  │     ├─ Plan preview (photo day cards)
+  │     ├─ Plan preview (info day cards)
   │     │     ├─ Rename / delete plan (overflow; sessions stay)
   │     │     ├─ Add / delete day
   │     │     └─ Day preview → Start → Live workout
@@ -290,7 +290,7 @@ Starting while another session is `inProgress`:
 | Starter plans | Pick a bundled beginner program | `starter_plans_page.dart` |
 | Plans home | List plans; continue session; Today card; Import / New / Beginner; Month tab | `plans_home_page.dart` |
 | Import preview | Show parsed days/blocks; confirm save | `import_preview_page.dart` |
-| Plan preview | Photo day cards; rename; add/delete days; delete-plan overflow (sessions stay) | `plan_page.dart` |
+| Plan preview | Info day cards (chips, estimate, optional rotating stills); rename; add/delete days; delete-plan overflow (sessions stay) | `plan_page.dart` |
 | Day preview | Block list + Start | `day_preview_page.dart` |
 | Day editor | One day’s title, summary, blocks; same cards as Create plan; optional SVG/gallery media; target areas | `day_editor_page.dart` + `day_step_body.dart` |
 | Create plan | Vertical stepper: details, one step per day, Review. Auto-saves a draft | `plan_builder_page.dart` |
@@ -313,7 +313,7 @@ There is **no** all-in-one post-create plan editor. Creation uses the stepper. A
 
 **Create plan.** Vertical stepper: Plan details (name, description, goals), one step per day (exercises, supersets, target areas), Review & create. Auto-save status in the app bar. **Finish plan** stays disabled until required validation passes. **Add another day** is in the Review column and opens the new day step.
 
-**Plan preview.** Photo cards (keep `assets/image/0–2.png`). App bar: title, edit icon **renames** the plan, add-day icon, overflow **Delete plan** (confirm: “Workouts already logged stay on Month.”; sessions stay, per Step 2). Add day from the app bar / FAB. Card tap opens Day preview. Day cards can delete that day.
+**Plan preview.** Info cards (no cycling photos). Title, optional focus, target-area chips, `~N min` estimate, volume; rotating catalog/stored stills only when a movement has real media. See [plan-day-cards.md](plan-day-cards.md). App bar: title, edit icon **renames** the plan, add-day icon, overflow **Delete plan** (confirm: “Workouts already logged stay on Month.”; sessions stay, per Step 2). Add day from the app bar / FAB. Card tap opens Day preview. Day cards can delete that day.
 
 **Day preview.** Keep alternating summary rows (SVG, names × reps or duration, set/round badge). **Edit day** opens the day editor. Bottom: Start workout.
 
@@ -359,7 +359,7 @@ Persist every logged set immediately. App-bar back and system back leave the ses
 
 ### Out of v1 UI
 
-Auto-start rest, target weight field, required photos, accounts, suggested next load, reordering days, duplicating days, prefill weight from last session.
+Auto-start rest, target weight field, required photos, accounts, suggested next load, reordering days, duplicating days, prefill weight from last session, body-map day-card fills (idea C — [plan-day-cards.md](plan-day-cards.md)).
 
 ---
 
@@ -371,7 +371,7 @@ Auto-start rest, target weight field, required photos, accounts, suggested next 
 - GetX `GetMaterialApp` named routes (`lib/app/app_routes.dart`)
 - Isar **3.1.x** + `isar_flutter_libs` + `isar_generator` (no Isar 4)
 - Shared widgets: `AppScaffold`, `AppText`, `AppElevatedButton`, `AppTextField`
-- Lottie welcome, SVG icons, day photo assets
+- Lottie welcome, SVG icons, bundled exercise stills
 - `path_provider` for the Isar directory
 - Domain types and repository **interfaces** stay Isar-free. Pages do not import `isar_*_repository.dart`. `kIsWeb` belongs at composition (`bootApp` / adapters), not in pages.
 
