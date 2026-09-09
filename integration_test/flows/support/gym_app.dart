@@ -601,22 +601,56 @@ class GymApp {
   }
 
   Future<bool> _selectDocumentsUiFile(String fileName) async {
-    Future<AndroidGetNativeViewsResponse> snapshot() =>
-        $.platform.android.getNativeViews(null);
+    Future<AndroidGetNativeViewsResponse?> snapshot() async {
+      try {
+        return await $.platform.android
+            .getNativeViews(null)
+            .timeout(const Duration(seconds: 8));
+      } catch (_) {
+        return null;
+      }
+    }
+
+    Future<bool> importLanded() async {
+      await pumpQuiet(const Duration(milliseconds: 400));
+      return $('Create plan').exists ||
+          $(const Key('import-issues-banner')).exists;
+    }
+
+    Future<bool> pickerGoneOrImported(String name) async {
+      if (await importLanded()) return true;
+      return !await _pickerShows(name);
+    }
+
+    // Direct text tap first — coordinate taps can enter DocumentsUI action mode.
+    if (await _nativeTapSelector(
+      AndroidSelector(textContains: fileName),
+      timeout: const Duration(seconds: 3),
+    )) {
+      await pumpQuiet(const Duration(milliseconds: 800));
+      if (await pickerGoneOrImported(fileName)) return true;
+    }
+    if (await nativeTapText(fileName, timeout: const Duration(seconds: 2))) {
+      await pumpQuiet(const Duration(milliseconds: 800));
+      if (await pickerGoneOrImported(fileName)) return true;
+    }
 
     Future<void> tapCellFor(AndroidNativeView label) async {
       final next = await snapshot();
+      if (next == null) return;
       final cell = _cellContainingLabel(next, label) ?? label;
       await _tapAtScreen(cell, next);
     }
 
     Future<void> tapLabelCenter(AndroidNativeView label) async {
       final next = await snapshot();
+      if (next == null) return;
       await _tapAtScreen(label, next);
     }
 
     Future<void> tapIcon(AndroidNativeView label) async {
       final next = await snapshot();
+      if (next == null) return;
       final size = _screenSize(next);
       await _tapAtScreenPoint(
         x: (label.visibleBounds.minX - 48) / size.width,
@@ -624,32 +658,48 @@ class GymApp {
       );
     }
 
-    var labels = _exactLabels(await snapshot(), fileName);
+    final firstTree = await snapshot();
+    if (firstTree == null) {
+      // DocumentsUI likely already dismissed; give Create plan a moment.
+      await pumpQuiet(const Duration(seconds: 1));
+      return await importLanded() || !await _pickerShows(fileName);
+    }
+
+    var labels = _exactLabels(firstTree, fileName);
+    if (labels.isEmpty) {
+      labels = _matchingLabels(firstTree, fileName);
+    }
     for (final label in labels) {
       try {
         await tapCellFor(label);
       } catch (_) {}
       await pumpQuiet(const Duration(milliseconds: 500));
-      if (!await _pickerShows(fileName)) return true;
+      if (await pickerGoneOrImported(fileName)) return true;
       try {
         await tapLabelCenter(label);
       } catch (_) {}
       await pumpQuiet(const Duration(milliseconds: 500));
-      if (!await _pickerShows(fileName)) return true;
+      if (await pickerGoneOrImported(fileName)) return true;
       try {
         await tapIcon(label);
       } catch (_) {}
       await pumpQuiet(const Duration(milliseconds: 500));
-      if (!await _pickerShows(fileName)) return true;
+      if (await pickerGoneOrImported(fileName)) return true;
     }
 
-    labels = _exactLabels(await snapshot(), fileName);
-    if (labels.isNotEmpty) {
-      try {
-        await tapCellFor(labels.last);
-      } catch (_) {}
-      await pumpQuiet(const Duration(milliseconds: 500));
-      if (!await _pickerShows(fileName)) return true;
+    final lastTree = await snapshot();
+    if (lastTree != null) {
+      labels = _exactLabels(lastTree, fileName);
+      if (labels.isEmpty) {
+        labels = _matchingLabels(lastTree, fileName);
+      }
+      if (labels.isNotEmpty) {
+        try {
+          await tapCellFor(labels.last);
+        } catch (_) {}
+        await pumpQuiet(const Duration(milliseconds: 500));
+        if (await pickerGoneOrImported(fileName)) return true;
+      }
     }
 
     for (final desc in ['Open', 'Select', 'Done', 'OK']) {
@@ -658,8 +708,8 @@ class GymApp {
     for (final text in ['SELECT', 'Select', 'Open']) {
       await nativeTapText(text, timeout: const Duration(milliseconds: 500));
     }
-    await pumpQuiet(const Duration(milliseconds: 500));
-    return !await _pickerShows(fileName);
+    await pumpQuiet(const Duration(milliseconds: 800));
+    return await pickerGoneOrImported(fileName);
   }
 
   Future<bool> _nativeTapDescription(String description) async {
@@ -678,9 +728,12 @@ class GymApp {
 
   Future<bool> _treeHasFile(String fileName) async {
     try {
-      final snapshot = await $.platform.android.getNativeViews(null);
+      final snapshot = await $.platform.android
+          .getNativeViews(null)
+          .timeout(const Duration(seconds: 8));
       return _treeHasFileIn(snapshot.roots, fileName);
     } catch (_) {
+      // Timed out or crashed mid-transition — treat as not showing.
       return false;
     }
   }
@@ -709,6 +762,30 @@ class GymApp {
       if (package == _appPackage) return;
       if (nativeFileLabelIsExact(view.text, fileName) ||
           nativeFileLabelIsExact(view.contentDescription, fileName)) {
+        labels.add(view);
+      }
+      for (final child in view.children) {
+        collect(child, package);
+      }
+    }
+
+    for (final root in tree.roots) {
+      collect(root, null);
+    }
+    labels.sort((a, b) => a.visibleCenter.y.compareTo(b.visibleCenter.y));
+    return labels;
+  }
+
+  List<AndroidNativeView> _matchingLabels(
+    AndroidGetNativeViewsResponse tree,
+    String fileName,
+  ) {
+    final labels = <AndroidNativeView>[];
+    void collect(AndroidNativeView view, String? owner) {
+      final package = view.applicationPackage ?? owner;
+      if (package == _appPackage) return;
+      if (nativeFileLabelMatches(view.text, fileName) ||
+          nativeFileLabelMatches(view.contentDescription, fileName)) {
         labels.add(view);
       }
       for (final child in view.children) {
