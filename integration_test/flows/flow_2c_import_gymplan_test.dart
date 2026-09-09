@@ -4,7 +4,7 @@ import 'support/gym_app.dart';
 
 void main() {
   gymPatrolTest(
-    '2c: native picker salvages broken JSON then Finish plan on plan.json',
+    '2c gymplan: native picker opens a package as a Create plan draft',
     ($, gym) async {
       await gym.waitForWelcome();
 
@@ -12,13 +12,7 @@ void main() {
         'Import a plan',
         settle: SettlePolicy.noSettle,
       );
-      await gym.pickFileFromDownloads('broken.json');
-      await gym.expectVisible('Create plan');
-      await gym.expectImportIssuesBanner();
-      await gym.back();
-
-      await gym.tapText('Import', settle: SettlePolicy.noSettle);
-      await gym.pickFileFromDownloads('valid-plan.json');
+      await gym.pickFileFromDownloads('valid-plan.gymplan');
       await gym.expectVisible('Create plan');
       expect($('plan 1'), findsWidgets);
       expect($('day 1- 4sar'), findsWidgets);

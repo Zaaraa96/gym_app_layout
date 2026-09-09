@@ -45,11 +45,15 @@ Never `pumpAndSettle` on Welcome: the Lottie animation does not stop.
 
 ## Device data
 
-Import tests need JSON on the emulator. From the repo root:
+Import tests need JSON and a `.gymplan` package on the emulator. From the repo
+root:
 
 ```bash
 dart run tool/push_patrol_import_files.dart
 ```
+
+That copies `valid-plan.json`, `broken.json`, and a generated
+`valid-plan.gymplan` into Downloads.
 
 Windows PowerShell cannot run `./tool/push-patrol-import-files.sh` — it treats
 `.sh` as a document and asks which app should open it. Use the `dart run`

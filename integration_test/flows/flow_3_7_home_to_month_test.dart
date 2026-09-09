@@ -5,18 +5,26 @@ import 'support/gym_app.dart';
 
 void main() {
   gymPatrolTest(
-    '3-7: home, day, live (6c and 6d), snapshot edit, then Month',
+    '3-7: home, extra days, live (superset + timed), snapshot edit, then Month',
     ($, gym) async {
       await gym.installFullBodyFromWelcome();
       expect($(const Key('continue-banner')), findsNothing);
       expect($('Import'), findsOneWidget);
       expect($('New'), findsOneWidget);
       expect($(const Key('open-starters')), findsOneWidget);
+      expect($('Exercises'), findsOneWidget);
+      expect($('Month'), findsOneWidget);
+      expect($('5 days'), findsOneWidget);
 
       await gym.openPlan(GymApp.fullBodyTitle);
       expect($(GymApp.day1Title), findsOneWidget);
       expect($('abs'), findsOneWidget);
       expect($('mobility'), findsOneWidget);
+
+      await gym.openDayByTitle('abs');
+      expect($('Edit day'), findsOneWidget);
+      expect($('Start workout'), findsOneWidget);
+      await gym.back();
 
       await gym.openDayByTitle(GymApp.day1Title);
       expect($('Edit day'), findsOneWidget);
@@ -26,7 +34,7 @@ void main() {
       await gym.back();
       await gym.back();
 
-      await gym.startTodayLeavingCommonsOff();
+      await gym.startTodaysWorkoutFromHome();
       expect($('Bodyweight squat  ·  set 1 of 3'), findsOneWidget);
 
       await gym.tapLogSet();
@@ -44,13 +52,13 @@ void main() {
       await gym.tapText('Edit day');
       await gym.tapKey('add-exercise');
       await gym.enterAddExerciseTitle('Ghost raise');
-      await gym.tapText('ADD EXERCISE');
-      await gym.tapText('Save');
+      await gym.commitExerciseEditor();
+      await gym.tapKey('save-day');
       await gym.back();
       await gym.back();
 
       await gym.tapText('Continue workout');
-      await gym.expectVisible('Log what you did on this set.');
+      await gym.awaitLiveLogger();
       expect($('Ghost raise'), findsNothing);
       expect($('Bodyweight squat'), findsWidgets);
 
@@ -68,7 +76,10 @@ void main() {
       await gym.tapKey('resume-existing');
       expect($('Bodyweight squat'), findsWidgets);
 
-      await gym.finishLiveWorkout();
+      await gym.finishLiveWorkout(
+        expectSupersetAlternate: true,
+        expectTimedWork: true,
+      );
       expect($('Workout complete'), findsOneWidget);
       expect($('Nice work. What you logged is saved.'), findsOneWidget);
       await gym.tapDone();
