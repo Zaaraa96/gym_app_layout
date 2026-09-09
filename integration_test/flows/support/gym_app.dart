@@ -447,11 +447,16 @@ class GymApp {
   }
 
   Future<bool> dismissPermissionIfAny() async {
-    if (await $.platform.mobile.isPermissionDialogVisible(
-      timeout: const Duration(seconds: 2),
-    )) {
-      await $.platform.mobile.grantPermissionWhenInUse();
-      return true;
+    try {
+      if (await $.platform.mobile.isPermissionDialogVisible(
+        timeout: const Duration(seconds: 2),
+      )) {
+        await $.platform.mobile.grantPermissionWhenInUse();
+        return true;
+      }
+    } catch (_) {
+      // Native automator can time out while DocumentsUI is coming up; SAF
+      // import does not need the storage sheet on modern Android.
     }
     return false;
   }
@@ -479,8 +484,10 @@ class GymApp {
       pickJsonFromDownloads(fileName);
 
   Future<void> pickJsonFromDownloads(String fileName) async {
+    // Give DocumentsUI time to replace the app window before native calls.
+    await Future<void>.delayed(const Duration(milliseconds: 800));
     await dismissPermissionIfAny();
-    await Future<void>.delayed(const Duration(milliseconds: 500));
+    await Future<void>.delayed(const Duration(milliseconds: 400));
     var found = await _waitForNativeFile(fileName);
     if (!found) {
       await _openDownloadsRoot();
