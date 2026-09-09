@@ -446,12 +446,14 @@ class GymApp {
     await pumpQuiet(const Duration(seconds: 1));
   }
 
-  Future<void> dismissPermissionIfAny() async {
+  Future<bool> dismissPermissionIfAny() async {
     if (await $.platform.mobile.isPermissionDialogVisible(
       timeout: const Duration(seconds: 2),
     )) {
       await $.platform.mobile.grantPermissionWhenInUse();
+      return true;
     }
+    return false;
   }
 
   Future<bool> nativeTapText(
@@ -477,24 +479,22 @@ class GymApp {
       pickJsonFromDownloads(fileName);
 
   Future<void> pickJsonFromDownloads(String fileName) async {
-    await dismissPermissionIfAny();
-    await nativeTapText('Allow', timeout: const Duration(milliseconds: 800));
+    final asked = await dismissPermissionIfAny();
+    // grantPermissionWhenInUse covers the system sheet. Only tap Allow when
+    // that path did not run — otherwise Patrol logs a failing native tap.
+    if (!asked) {
+      await nativeTapText('Allow', timeout: const Duration(milliseconds: 500));
+    }
     await Future<void>.delayed(const Duration(milliseconds: 500));
     var found = await _waitForNativeFile(fileName);
     if (!found) {
-      await nativeTapText(
-        'Show roots',
-        timeout: const Duration(milliseconds: 800),
-      );
-      if (!await nativeTapText(
-        'Downloads',
-        timeout: const Duration(milliseconds: 800),
-      )) {
-        await nativeTapText(
-          'Download',
-          timeout: const Duration(milliseconds: 800),
-        );
-      }
+      await _openDownloadsRoot();
+      found = await _waitForNativeFile(fileName);
+    }
+    if (!found) {
+      // Unknown extensions (`.gymplan`) can be missing from the MediaStore
+      // Downloads collection; browse the filesystem Download folder instead.
+      await _openDeviceDownloadFolder();
       found = await _waitForNativeFile(fileName);
     }
     if (!found) {
@@ -512,18 +512,65 @@ class GymApp {
     await pumpQuiet(const Duration(milliseconds: 800));
   }
 
-  Future<bool> _waitForNativeFile(String fileName) async {
-    try {
-      await $.platform.android.waitUntilVisible(
-        AndroidSelector(text: fileName),
-        timeout: const Duration(seconds: 8),
+  Future<void> _openDownloadsRoot() async {
+    await nativeTapText(
+      'Show roots',
+      timeout: const Duration(milliseconds: 800),
+    );
+    if (!await nativeTapText(
+      'Downloads',
+      timeout: const Duration(milliseconds: 800),
+    )) {
+      await nativeTapText(
+        'Download',
+        timeout: const Duration(milliseconds: 800),
       );
-      return true;
-    } catch (_) {}
-    final deadline = DateTime.now().add(const Duration(seconds: 5));
+    }
+  }
+
+  Future<void> _openDeviceDownloadFolder() async {
+    await nativeTapText(
+      'Show roots',
+      timeout: const Duration(milliseconds: 800),
+    );
+    // AVD drawer labels vary by system image.
+    for (final root in [
+      'sdk_gphone64_x86_64',
+      'sdk_gphone_x86_64',
+      'Emulated',
+      'Android SDK built for x86_64',
+      'Files',
+      'Documents',
+    ]) {
+      if (await nativeTapText(root, timeout: const Duration(milliseconds: 600))) {
+        break;
+      }
+    }
+    if (!await nativeTapText(
+      'Download',
+      timeout: const Duration(milliseconds: 800),
+    )) {
+      await nativeTapText(
+        'Downloads',
+        timeout: const Duration(milliseconds: 800),
+      );
+    }
+  }
+
+  Future<bool> _waitForNativeFile(String fileName) async {
+    // Prefer the accessibility tree: DocumentsUI rarely exposes the bare
+    // filename as exact UiAutomator text once size/type/wrap is attached.
+    final deadline = DateTime.now().add(const Duration(seconds: 10));
     while (DateTime.now().isBefore(deadline)) {
       if (await _treeHasFile(fileName)) return true;
-      await Future<void>.delayed(const Duration(milliseconds: 300));
+      try {
+        await $.platform.android.waitUntilVisible(
+          AndroidSelector(text: fileName),
+          timeout: const Duration(milliseconds: 400),
+        );
+        return true;
+      } catch (_) {}
+      await Future<void>.delayed(const Duration(milliseconds: 250));
     }
     return await _treeHasFile(fileName);
   }

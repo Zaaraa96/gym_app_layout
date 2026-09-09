@@ -23,4 +23,19 @@ void main() {
     expect(nativeFileLabelIsExact('invalid-plan.json', 'plan.json'), isFalse);
     expect(nativeFileLabelIsExact('plan.json 1 KB', 'plan.json'), isFalse);
   });
+
+  test('DocumentsUI may wrap a long .gymplan name onto two lines', () {
+    expect(
+      nativeFileLabelMatches('valid-plan.\ngymplan', 'valid-plan.gymplan'),
+      isTrue,
+    );
+    expect(
+      nativeFileLabelMatches('pack.gymplan\nZIP archive', 'pack.gymplan'),
+      isTrue,
+    );
+    expect(
+      nativeFileLabelIsExact('pack.\ngymplan', 'pack.gymplan'),
+      isTrue,
+    );
+  });
 }

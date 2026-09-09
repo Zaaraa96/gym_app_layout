@@ -30,7 +30,7 @@ uses the vertical stepper and auto-saves a **Draft**. Import salvages
 | `flow_1_2a_welcome_and_beginner_test.dart` | §1 Welcome, §2a beginner full body (5 days), same-title reuse, delete plan |
 | `flow_2b_create_from_scratch_test.dart` | §2b stepper: untitled draft, Resume, Finish plan disabled until a block, Add another day, start, discard |
 | `flow_2c_import_json_test.dart` | §2c native picker (`broken.json` then `valid-plan.json`); Create plan draft + Finish plan |
-| `flow_2c_import_gymplan_test.dart` | §2c `.gymplan` package → Create plan draft + Finish plan |
+| `flow_2c_import_gymplan_test.dart` | §2c `.gymplan` package (`pack.gymplan`) → Create plan draft + Finish plan |
 | `flow_3_exercises_catalog_test.dart` | §3 Exercises tab: search, region filter, bundled detail, add form |
 | `flow_3_7_home_to_month_test.dart` | §3–7 on full body: home (Plans / Exercises / Month), extra days, live, superset + timed plank, snapshot edit, Month |
 | `flow_4_export_plan_test.dart` | §4 overflow **Export plan** (Full package / Lite), then Cancel |

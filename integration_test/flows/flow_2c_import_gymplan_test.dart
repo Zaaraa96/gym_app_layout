@@ -12,7 +12,9 @@ void main() {
         'Import a plan',
         settle: SettlePolicy.noSettle,
       );
-      await gym.pickFileFromDownloads('valid-plan.gymplan');
+      // Short name: DocumentsUI wraps longer *.gymplan labels and MediaStore
+      // often hides unknown extensions until the push script indexes them.
+      await gym.pickFileFromDownloads('pack.gymplan');
       await gym.expectVisible('Create plan');
       expect($('plan 1'), findsWidgets);
       expect($('day 1- 4sar'), findsWidgets);

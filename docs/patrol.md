@@ -53,7 +53,8 @@ dart run tool/push_patrol_import_files.dart
 ```
 
 That copies `valid-plan.json`, `broken.json`, and a generated
-`valid-plan.gymplan` into Downloads.
+`pack.gymplan` into Downloads (MediaStore-indexed so DocumentsUI lists
+unknown `.gymplan` extensions).
 
 Windows PowerShell cannot run `./tool/push-patrol-import-files.sh` — it treats
 `.sh` as a document and asks which app should open it. Use the `dart run`
