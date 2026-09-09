@@ -17,7 +17,7 @@ const gymPatrolConfig = PatrolTesterConfig(
   visibleTimeout: Duration(seconds: 20),
 );
 
-const gymPatrolTimeout = Timeout(Duration(minutes: 6));
+const gymPatrolTimeout = Timeout(Duration(minutes: 10));
 
 void gymPatrolTest(
   String description,
@@ -492,8 +492,8 @@ class GymApp {
       found = await _waitForNativeFile(fileName);
     }
     if (!found) {
-      // Unknown extensions (`.gymplan`) can be missing from the MediaStore
-      // Downloads collection; browse the filesystem Download folder instead.
+      // Unknown extensions can be missing from the MediaStore Downloads
+      // collection; browse the filesystem Download folder instead.
       await _openDeviceDownloadFolder();
       found = await _waitForNativeFile(fileName);
     }
@@ -512,11 +512,44 @@ class GymApp {
     await pumpQuiet(const Duration(milliseconds: 800));
   }
 
-  Future<void> _openDownloadsRoot() async {
-    await nativeTapText(
+  Future<bool> _nativeTapSelector(
+    AndroidSelector selector, {
+    Duration timeout = const Duration(milliseconds: 800),
+  }) async {
+    try {
+      await $.platform.android.tap(selector, timeout: timeout);
+      return true;
+    } catch (_) {
+      return false;
+    }
+  }
+
+  Future<void> _openDrawer() async {
+    if (await nativeTapText(
       'Show roots',
-      timeout: const Duration(milliseconds: 800),
-    );
+      timeout: const Duration(milliseconds: 600),
+    )) {
+      return;
+    }
+    // API 34 DocumentsUI often exposes the hamburger only as a description
+    // or toolbar home control, not as visible text.
+    for (final selector in [
+      AndroidSelector(contentDescription: 'Show roots'),
+      AndroidSelector(contentDescriptionContains: 'roots'),
+      AndroidSelector(contentDescriptionContains: 'Navigation'),
+      AndroidSelector(contentDescriptionContains: 'drawer'),
+      AndroidSelector(resourceName: 'android:id/home'),
+      AndroidSelector(
+        resourceName: 'com.google.android.documentsui:id/toolbar',
+      ),
+      AndroidSelector(resourceName: 'com.android.documentsui:id/toolbar'),
+    ]) {
+      if (await _nativeTapSelector(selector)) return;
+    }
+  }
+
+  Future<void> _openDownloadsRoot() async {
+    await _openDrawer();
     if (!await nativeTapText(
       'Downloads',
       timeout: const Duration(milliseconds: 800),
@@ -529,10 +562,7 @@ class GymApp {
   }
 
   Future<void> _openDeviceDownloadFolder() async {
-    await nativeTapText(
-      'Show roots',
-      timeout: const Duration(milliseconds: 800),
-    );
+    await _openDrawer();
     // AVD drawer labels vary by system image.
     for (final root in [
       'sdk_gphone64_x86_64',
@@ -558,19 +588,12 @@ class GymApp {
   }
 
   Future<bool> _waitForNativeFile(String fileName) async {
-    // Prefer the accessibility tree: DocumentsUI rarely exposes the bare
-    // filename as exact UiAutomator text once size/type/wrap is attached.
-    final deadline = DateTime.now().add(const Duration(seconds: 10));
+    // Tree-only: exact UiAutomator text waits are slow when they fail and
+    // DocumentsUI often attaches size/type to the label.
+    final deadline = DateTime.now().add(const Duration(seconds: 8));
     while (DateTime.now().isBefore(deadline)) {
       if (await _treeHasFile(fileName)) return true;
-      try {
-        await $.platform.android.waitUntilVisible(
-          AndroidSelector(text: fileName),
-          timeout: const Duration(milliseconds: 400),
-        );
-        return true;
-      } catch (_) {}
-      await Future<void>.delayed(const Duration(milliseconds: 250));
+      await Future<void>.delayed(const Duration(milliseconds: 300));
     }
     return await _treeHasFile(fileName);
   }

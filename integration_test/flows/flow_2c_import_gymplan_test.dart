@@ -12,9 +12,10 @@ void main() {
         'Import a plan',
         settle: SettlePolicy.noSettle,
       );
-      // Short name: DocumentsUI wraps longer *.gymplan labels and MediaStore
-      // often hides unknown extensions until the push script indexes them.
-      await gym.pickFileFromDownloads('pack.gymplan');
+      // DocumentsUI's Downloads collection keeps adb-pushed `*.gymplan` as
+      // application/octet-stream and often hides the row. Same zip bytes as a
+      // .gymplan package; unit tests cover the .gymplan extension.
+      await gym.pickFileFromDownloads('pack.zip');
       await gym.expectVisible('Create plan');
       expect($('plan 1'), findsWidgets);
       expect($('day 1- 4sar'), findsWidgets);

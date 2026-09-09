@@ -56,5 +56,5 @@ copy_fixture "$ROOT/tool/fixtures/invalid-plan.json" broken.json
 
 # Prefer the Dart helper for .gymplan + MediaStore indexing.
 echo "Pushed valid-plan.json and broken.json to device Downloads"
-echo "Note: without dart, pack.gymplan is not generated. Use: dart run tool/push_patrol_import_files.dart" >&2
+echo "Note: without dart, pack.zip is not generated. Use: dart run tool/push_patrol_import_files.dart" >&2
 adb shell ls -l /sdcard/Download /storage/emulated/0/Download /data/local/tmp/*.json 2>/dev/null || true

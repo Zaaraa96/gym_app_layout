@@ -15,7 +15,7 @@ import 'package:archive/archive.dart';
 Future<void> main(List<String> args) async {
   if (args.contains('-h') || args.contains('--help')) {
     stdout.writeln(
-      'Push valid-plan.json, broken.json, and pack.gymplan to the '
+      'Push valid-plan.json, broken.json, and pack.zip to the '
       'device Downloads folder.\n'
       '\n'
       'Usage (repo root):\n'
@@ -73,12 +73,14 @@ Future<void> main(List<String> args) async {
   ], silent: true);
 
   // Drop old overlapping / long names. `plan.json` is a suffix of
-  // `invalid-plan.json` (DocumentsUI wrap). `valid-plan.gymplan` wraps and is
-  // often missing from MediaStore Downloads until indexed as application/zip.
+  // `invalid-plan.json` (DocumentsUI wrap). Unknown `*.gymplan` stays
+  // application/octet-stream after adb push and often never appears in
+  // DocumentsUI Downloads — Patrol uses pack.zip (same package bytes).
   for (final stale in [
     'plan.json',
     'invalid-plan.json',
     'valid-plan.gymplan',
+    'pack.gymplan',
   ]) {
     await adb(
       adbPath,
@@ -108,12 +110,11 @@ Future<void> main(List<String> args) async {
     mimeType: 'application/json',
   );
   final gymplan = await writeGymplanFixture(root);
-  // `.gymplan` is a zip; register as application/zip so DocumentsUI Downloads
-  // lists it (MediaScanner skips unknown extensions on many AVDs).
+  // Same zip layout as a .gymplan export; `.zip` is MediaStore-visible.
   await copyFixture(
     adbPath,
     gymplan,
-    'pack.gymplan',
+    'pack.zip',
     mimeType: 'application/zip',
   );
 
@@ -135,7 +136,7 @@ Future<void> main(List<String> args) async {
   );
 
   stdout.writeln(
-    'Pushed valid-plan.json, broken.json, and pack.gymplan to device Downloads',
+    'Pushed valid-plan.json, broken.json, and pack.zip to device Downloads',
   );
   await adb(adbPath, [
     'shell',
@@ -145,7 +146,7 @@ Future<void> main(List<String> args) async {
     '/storage/emulated/0/Download',
     '/data/local/tmp/valid-plan.json',
     '/data/local/tmp/broken.json',
-    '/data/local/tmp/pack.gymplan',
+    '/data/local/tmp/pack.zip',
   ], ignoreFailure: true);
 }
 
@@ -161,7 +162,7 @@ Future<File> writeGymplanFixture(Directory root) async {
     ..addFile(ArchiveFile('plan.json', planJson.length, planJson))
     ..addFile(ArchiveFile('manifest.json', manifest.length, manifest));
   final zip = ZipEncoder().encode(archive);
-  final out = File('${Directory.systemTemp.path}/pack.gymplan');
+  final out = File('${Directory.systemTemp.path}/pack.zip');
   await out.writeAsBytes(zip, flush: true);
   return out;
 }
