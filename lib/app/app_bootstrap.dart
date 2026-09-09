@@ -119,6 +119,7 @@ class _AppBootstrapState extends State<AppBootstrap> {
         : ThemeMode.system;
     return MaterialApp(
       title: 'My Awesome Gym App',
+      debugShowCheckedModeBanner: false,
       theme: lightTheme,
       darkTheme: darkTheme,
       themeMode: themeMode,

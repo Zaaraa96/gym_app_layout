@@ -20,7 +20,10 @@ class WelcomePage extends StatelessWidget {
   Widget build(BuildContext context) {
     return AppScaffold(
       appbar: AppBar(
-        actions: const [ThemeModeButton()],
+        title: const Text(''),
+        actions: const [
+          ThemeModeButton(),
+        ],
       ),
       body: Center(
         child: SingleChildScrollView(

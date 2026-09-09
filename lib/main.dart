@@ -10,7 +10,7 @@ export 'app/app_routes.dart';
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
   // Load appearance before the first frame so launch is not a theme flash.
-  Get.put(await ThemeController.load());
+  Get.put(await ThemeController.load(), permanent: true);
   // First frame must not wait on Isar. The Linux view and Android night
   // launch theme are black until Flutter paints.
   runApp(const AppBootstrap());

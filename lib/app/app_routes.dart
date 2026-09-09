@@ -139,32 +139,32 @@ class MyApp extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final themeController = Get.isRegistered<ThemeController>()
-        ? Get.find<ThemeController>()
-        : null;
-    Widget app(ThemeMode themeMode) {
-      return GetMaterialApp(
-        title: 'My Awesome Gym App',
-        theme: lightTheme,
-        darkTheme: darkTheme,
-        themeMode: themeMode,
-        initialRoute: initialRoute,
-        builder: (context, child) {
-          final galleryPicker = Get.isRegistered<ExerciseGalleryPicker>()
-              ? Get.find<ExerciseGalleryPicker>()
-              : ImagePickerExerciseGalleryPicker();
-          return ExerciseGalleryPickerScope(
-            picker: galleryPicker,
-            child: child ?? const SizedBox.shrink(),
-          );
-        },
-        getPages: appPages(),
-      );
+    if (!Get.isRegistered<ThemeController>()) {
+      return _materialApp(ThemeMode.system);
     }
+    return Obx(
+      () => _materialApp(Get.find<ThemeController>().mode.value),
+    );
+  }
 
-    if (themeController == null) {
-      return app(ThemeMode.system);
-    }
-    return Obx(() => app(themeController.mode.value));
+  Widget _materialApp(ThemeMode themeMode) {
+    return GetMaterialApp(
+      title: 'My Awesome Gym App',
+      debugShowCheckedModeBanner: false,
+      theme: lightTheme,
+      darkTheme: darkTheme,
+      themeMode: themeMode,
+      initialRoute: initialRoute,
+      builder: (context, child) {
+        final galleryPicker = Get.isRegistered<ExerciseGalleryPicker>()
+            ? Get.find<ExerciseGalleryPicker>()
+            : ImagePickerExerciseGalleryPicker();
+        return ExerciseGalleryPickerScope(
+          picker: galleryPicker,
+          child: child ?? const SizedBox.shrink(),
+        );
+      },
+      getPages: appPages(),
+    );
   }
 }
