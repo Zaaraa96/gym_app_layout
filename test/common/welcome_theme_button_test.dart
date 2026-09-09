@@ -2,7 +2,6 @@ import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:get/get.dart';
 import 'package:gym_app/common/theme_controller.dart';
-import 'package:gym_app/common/widgets/theme_mode_button.dart';
 import 'package:gym_app/data/memory_plan_repository.dart';
 import 'package:gym_app/data/memory_session_repository.dart';
 import 'package:gym_app/domain/plan_repository.dart';
