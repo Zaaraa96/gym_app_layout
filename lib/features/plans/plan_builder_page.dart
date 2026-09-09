@@ -119,11 +119,9 @@ class _PlanBuilderPageState extends State<PlanBuilderPage>
         return;
       }
       _bind(controller);
-      final problems = widget.importIssues.where(_isImportProblem).toList();
-      if (problems.isEmpty && widget.planId != null) {
-        final last = controller.steps.length - 1;
-        if (last >= 0) controller.openStep(last);
-      }
+      // Resume and import both keep firstIncompleteStepIndex from openExisting
+      // (Plan details when the name is empty; Review when the draft is ready).
+      // Do not force the last step — that hid plan-name-field after Resume.
       setState(() {
         _controller = controller;
         _loadError = null;
