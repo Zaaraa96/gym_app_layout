@@ -5,6 +5,7 @@ import 'package:http/http.dart' as http;
 
 import '../common/app_routes.dart';
 import '../common/app_theme.dart';
+import '../common/theme_controller.dart';
 import '../common/widgets/app_load_error.dart';
 import '../common/widgets/app_scaffold.dart';
 import '../data/app_ports.dart';
@@ -113,9 +114,14 @@ class _AppBootstrapState extends State<AppBootstrap> {
     if (route != null) {
       return MyApp(initialRoute: route);
     }
+    final themeMode = Get.isRegistered<ThemeController>()
+        ? Get.find<ThemeController>().mode.value
+        : ThemeMode.system;
     return MaterialApp(
       title: 'My Awesome Gym App',
-      theme: appTheme,
+      theme: lightTheme,
+      darkTheme: darkTheme,
+      themeMode: themeMode,
       home: AppScaffold(
         body: _error == null
             ? const Center(

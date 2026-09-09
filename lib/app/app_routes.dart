@@ -3,6 +3,7 @@ import 'package:get/get.dart';
 
 import '../common/app_routes.dart';
 import '../common/app_theme.dart';
+import '../common/theme_controller.dart';
 import '../data/app_ports.dart';
 import '../domain/catalog_repository.dart';
 import '../domain/plan_repository.dart';
@@ -138,20 +139,32 @@ class MyApp extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return GetMaterialApp(
-      title: 'My Awesome Gym App',
-      theme: appTheme,
-      initialRoute: initialRoute,
-      builder: (context, child) {
-        final galleryPicker = Get.isRegistered<ExerciseGalleryPicker>()
-            ? Get.find<ExerciseGalleryPicker>()
-            : ImagePickerExerciseGalleryPicker();
-        return ExerciseGalleryPickerScope(
-          picker: galleryPicker,
-          child: child ?? const SizedBox.shrink(),
-        );
-      },
-      getPages: appPages(),
-    );
+    final themeController = Get.isRegistered<ThemeController>()
+        ? Get.find<ThemeController>()
+        : null;
+    Widget app(ThemeMode themeMode) {
+      return GetMaterialApp(
+        title: 'My Awesome Gym App',
+        theme: lightTheme,
+        darkTheme: darkTheme,
+        themeMode: themeMode,
+        initialRoute: initialRoute,
+        builder: (context, child) {
+          final galleryPicker = Get.isRegistered<ExerciseGalleryPicker>()
+              ? Get.find<ExerciseGalleryPicker>()
+              : ImagePickerExerciseGalleryPicker();
+          return ExerciseGalleryPickerScope(
+            picker: galleryPicker,
+            child: child ?? const SizedBox.shrink(),
+          );
+        },
+        getPages: appPages(),
+      );
+    }
+
+    if (themeController == null) {
+      return app(ThemeMode.system);
+    }
+    return Obx(() => app(themeController.mode.value));
   }
 }

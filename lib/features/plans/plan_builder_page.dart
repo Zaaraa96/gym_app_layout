@@ -3,6 +3,7 @@ import 'package:flutter/semantics.dart';
 import 'package:get/get.dart';
 
 import '../../common/app_routes.dart';
+import '../../common/app_theme.dart';
 import '../../common/widgets/app_scaffold.dart';
 import '../../common/widgets/app_text.dart';
 import '../../common/widgets/app_text_field.dart';
@@ -349,14 +350,15 @@ class _BuilderBody extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final steps = controller.steps;
+    final scheme = Theme.of(context).colorScheme;
     return Column(
       children: [
         if (importIssues.where(_isImportProblem).isNotEmpty && !hideImportBanner)
           Material(
-            color: Colors.amber.shade50,
+            color: attentionContainer(scheme),
             child: ListTile(
               key: const Key('import-issues-banner'),
-              leading: Icon(Icons.warning_amber, color: Colors.amber.shade800),
+              leading: Icon(Icons.warning_amber, color: onAttention(scheme)),
               title: const Text('Import didn’t go as planned.'),
               subtitle: const Text(
                 'This is a draft. Check each day, fix what’s missing, then create the plan.',
@@ -511,7 +513,7 @@ class _StepCard extends StatelessWidget {
                   color: expanded
                       ? theme.colorScheme.primary
                       : incomplete
-                          ? Colors.amber.shade700
+                          ? attentionColor(theme.colorScheme)
                           : theme.colorScheme.outlineVariant,
                 ),
               ),
@@ -525,7 +527,7 @@ class _StepCard extends StatelessWidget {
                       subtitle,
                       style: TextStyle(
                         color: incomplete
-                            ? Colors.amber.shade800
+                            ? onAttention(theme.colorScheme)
                             : theme.colorScheme.onSurfaceVariant,
                       ),
                     ),
@@ -538,7 +540,8 @@ class _StepCard extends StatelessWidget {
                             child: Chip(
                               visualDensity: VisualDensity.compact,
                               label: const Text('Needs attention'),
-                              backgroundColor: Colors.amber.shade50,
+                              backgroundColor:
+                                  attentionContainer(theme.colorScheme),
                             ),
                           ),
                         Icon(
@@ -589,8 +592,10 @@ class _StepGlyph extends StatelessWidget {
         child = Text(number, style: const TextStyle(fontWeight: FontWeight.bold));
         semantics = 'Current step $number';
       case BuilderStepVisual.incomplete:
-        background = Colors.amber.shade700;
-        foreground = Colors.white;
+        background = attentionColor(theme.colorScheme);
+        foreground = theme.colorScheme.brightness == Brightness.dark
+            ? theme.colorScheme.onTertiary
+            : Colors.white;
         child = const Icon(Icons.priority_high, size: 18);
         semantics = 'Incomplete';
       case BuilderStepVisual.untouched:
@@ -743,7 +748,7 @@ class _ReviewStep extends StatelessWidget {
           for (final issue in importIssues)
             ListTile(
               contentPadding: EdgeInsets.zero,
-              leading: Icon(Icons.info_outline, color: Colors.amber.shade800),
+              leading: Icon(Icons.info_outline, color: onAttention(theme.colorScheme)),
               title: Text(issue.message),
               trailing: issue.stepKey == null
                   ? null
@@ -758,10 +763,10 @@ class _ReviewStep extends StatelessWidget {
         if (issues.isNotEmpty) ...[
           const SizedBox(height: 8),
           Material(
-            color: Colors.amber.shade50,
+            color: attentionContainer(theme.colorScheme),
             borderRadius: BorderRadius.circular(12),
             child: ListTile(
-              leading: Icon(Icons.warning_amber, color: Colors.amber.shade800),
+              leading: Icon(Icons.warning_amber, color: onAttention(theme.colorScheme)),
               title: Text(
                 issues.length == 1
                     ? '1 item still needs attention. ${issues.first.message}'
@@ -822,7 +827,9 @@ class _ReviewStep extends StatelessWidget {
       child: ListTile(
         leading: Icon(
           complete ? Icons.check_circle : Icons.error_outline,
-          color: complete ? Colors.green : Colors.amber.shade800,
+          color: complete
+              ? Colors.green
+              : onAttention(Theme.of(context).colorScheme),
         ),
         title: Text(day.title),
         subtitle: Column(
