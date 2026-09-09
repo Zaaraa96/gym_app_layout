@@ -479,12 +479,7 @@ class GymApp {
       pickJsonFromDownloads(fileName);
 
   Future<void> pickJsonFromDownloads(String fileName) async {
-    final asked = await dismissPermissionIfAny();
-    // grantPermissionWhenInUse covers the system sheet. Only tap Allow when
-    // that path did not run — otherwise Patrol logs a failing native tap.
-    if (!asked) {
-      await nativeTapText('Allow', timeout: const Duration(milliseconds: 500));
-    }
+    await dismissPermissionIfAny();
     await Future<void>.delayed(const Duration(milliseconds: 500));
     var found = await _waitForNativeFile(fileName);
     if (!found) {
