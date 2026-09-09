@@ -7,12 +7,16 @@
 // Do not run tool/push-patrol-import-files.sh from Windows PowerShell — Windows
 // treats .sh as a document and asks which app should open it.
 
+import 'dart:convert';
 import 'dart:io';
+
+import 'package:archive/archive.dart';
 
 Future<void> main(List<String> args) async {
   if (args.contains('-h') || args.contains('--help')) {
     stdout.writeln(
-      'Push valid-plan.json and broken.json to the device Downloads folder.\n'
+      'Push valid-plan.json, broken.json, and valid-plan.gymplan to the '
+      'device Downloads folder.\n'
       '\n'
       'Usage (repo root):\n'
       '  dart run tool/push_patrol_import_files.dart\n'
@@ -89,6 +93,8 @@ Future<void> main(List<String> args) async {
     File('${root.path}/tool/fixtures/invalid-plan.json'),
     'broken.json',
   );
+  final gymplan = await writeGymplanFixture(root);
+  await copyFixture(adbPath, gymplan, 'valid-plan.gymplan');
 
   // API 29+ ignores MEDIA_SCANNER_SCAN_FILE for many providers. Mount scan
   // makes Downloads list the files in DocumentsUI on the AVD.
@@ -107,7 +113,9 @@ Future<void> main(List<String> args) async {
     silent: true,
   );
 
-  stdout.writeln('Pushed valid-plan.json and broken.json to device Downloads');
+  stdout.writeln(
+    'Pushed valid-plan.json, broken.json, and valid-plan.gymplan to device Downloads',
+  );
   await adb(adbPath, [
     'shell',
     'ls',
@@ -116,7 +124,25 @@ Future<void> main(List<String> args) async {
     '/storage/emulated/0/Download',
     '/data/local/tmp/valid-plan.json',
     '/data/local/tmp/broken.json',
+    '/data/local/tmp/valid-plan.gymplan',
   ], ignoreFailure: true);
+}
+
+Future<File> writeGymplanFixture(Directory root) async {
+  final planJson = await File('${root.path}/assets/json/plan.json').readAsBytes();
+  final manifest = utf8.encode(
+    jsonEncode({
+      'formatVersion': 1,
+      'createdByApp': 'gym_app',
+    }),
+  );
+  final archive = Archive()
+    ..addFile(ArchiveFile('plan.json', planJson.length, planJson))
+    ..addFile(ArchiveFile('manifest.json', manifest.length, manifest));
+  final zip = ZipEncoder().encode(archive);
+  final out = File('${Directory.systemTemp.path}/valid-plan.gymplan');
+  await out.writeAsBytes(zip, flush: true);
+  return out;
 }
 
 Future<void> copyFixture(String adbPath, File src, String name) async {

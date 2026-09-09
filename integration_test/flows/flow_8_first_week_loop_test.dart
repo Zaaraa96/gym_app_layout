@@ -8,7 +8,7 @@ void main() {
     '8: Welcome → full body → log Day 1 → next day on home → Month',
     ($, gym) async {
       await gym.installFullBodyFromWelcome();
-      await gym.startTodayLeavingCommonsOff();
+      await gym.startTodaysWorkoutFromHome();
       await gym.finishLiveWorkout();
       await gym.tapDone();
 

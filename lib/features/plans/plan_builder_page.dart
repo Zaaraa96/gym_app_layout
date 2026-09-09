@@ -12,6 +12,7 @@ import '../../domain/models/models.dart';
 import '../../domain/plan_catalog.dart';
 import '../../domain/plan_import_issue.dart';
 import '../../domain/plan_validation.dart';
+import 'day_card_summary.dart';
 import 'day_step_body.dart';
 import 'exercise_asset_catalog.dart' as catalog;
 import 'exercise_editor_page.dart';
@@ -822,7 +823,10 @@ class _ReviewStep extends StatelessWidget {
   ) {
     final dayIssues = [for (final issue in issues) if (issue.stepKey == day.dayId) issue];
     final complete = dayIssues.isEmpty && day.blocks.isNotEmpty;
-    final areas = uniqueTargetAreaIdsForDay(day);
+    // final areas = uniqueTargetAreaIdsForDay(day);
+    final chips = dayCardVisibleTargetAreaIds(day, max: 2);
+    final extra = dayCardHiddenTargetAreaCount(day, max: 2);
+    final theme = Theme.of(context);
     return Card(
       child: ListTile(
         leading: Icon(
@@ -842,17 +846,60 @@ class _ReviewStep extends StatelessWidget {
                       ? 'No exercises added'
                       : dayIssues.first.message),
             ),
-            if (areas.isNotEmpty)
+            if (chips.isNotEmpty)
               Padding(
-                padding: const EdgeInsets.only(top: 6),
+                padding: const EdgeInsets.only(bottom: 8, top: 8),
                 child: Wrap(
                   spacing: 6,
+                  runSpacing: 6,
                   children: [
-                    for (final id in areas)
-                      Chip(label: Text(targetAreaLabel(id))),
+                    for (final id in chips)
+                      Chip(
+                        key: Key('day-card-chip-$id'),
+                        label: Text(targetAreaLabel(id)),
+                        visualDensity: VisualDensity.compact,
+                        materialTapTargetSize:
+                        MaterialTapTargetSize.shrinkWrap,
+                        padding: EdgeInsets.zero,
+                        labelPadding: const EdgeInsets.symmetric(
+                          horizontal: 4,
+                        ),
+                        side: BorderSide.none,
+                        backgroundColor:
+                        theme.colorScheme.primaryContainer,
+                        labelStyle: theme.textTheme.labelMedium
+                            ?.copyWith(
+                          color: theme.colorScheme.onPrimaryContainer,
+                        ),
+                      ),
+                    if (extra > 0)
+                      Chip(
+                        key: const Key('day-card-more-targets'),
+                        label: Text('+$extra'),
+                        visualDensity: VisualDensity.compact,
+                        materialTapTargetSize:
+                        MaterialTapTargetSize.shrinkWrap,
+                        padding: EdgeInsets.zero,
+                        labelPadding: const EdgeInsets.symmetric(
+                          horizontal: 8,
+                        ),
+                        side: BorderSide.none,
+                      ),
                   ],
                 ),
               ),
+            // if (chips.isNotEmpty)
+            //   Padding(
+            //     padding: const EdgeInsets.only(top: 6),
+            //     child: Wrap(
+            //       spacing: 6,
+            //       children: [
+            //         for (final id in chips)
+            //
+            //           Chip(label: Text(targetAreaLabel(id))),
+            //       ],
+            //     ),
+            //   ),
           ],
         ),
         trailing: complete
