@@ -4,6 +4,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:gym_app/app/app_bootstrap.dart';
+import 'package:gym_app/features/plans/documents_ui_row_tap.dart';
 import 'package:gym_app/features/plans/native_file_label.dart';
 import 'package:patrol/patrol.dart';
 
@@ -542,18 +543,24 @@ class GymApp {
       final size = _screenSize(next);
       if (row != null) {
         final bounds = row.visibleBounds;
-        await _tapAtScreenPoint(
-          x: ((bounds.minX + bounds.maxX) / 2) / size.width,
-          y: ((bounds.minY + bounds.maxY) / 2) / size.height,
+        final tap = documentsUiRowMiddleTap(
+          rowMinX: bounds.minX,
+          rowMinY: bounds.minY,
+          rowMaxX: bounds.maxX,
+          rowMaxY: bounds.maxY,
+          screenWidth: size.width,
+          screenHeight: size.height,
         );
+        await _tapAtScreenPoint(x: tap.x, y: tap.y);
         return;
       }
       // No row frame: still aim at the horizontal middle of the list at the
       // filename's vertical band (title text), not the left icon.
-      await _tapAtScreenPoint(
-        x: 0.5,
-        y: label.visibleCenter.y / size.height,
+      final tap = documentsUiLabelBandTap(
+        labelCenterY: label.visibleCenter.y,
+        screenHeight: size.height,
       );
+      await _tapAtScreenPoint(x: tap.x, y: tap.y);
     }
 
     var labels = _exactLabels(await snapshot(), fileName);
