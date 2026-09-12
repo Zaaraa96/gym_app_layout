@@ -81,7 +81,7 @@ Match `docs/user-journey.md` plus the locked UX in `docs/product-plan.md` Step 3
 - Bottom nav on the home shell only
 - Plan overflow **Delete plan**; confirm copy says logged workouts stay on Month; sessions remain
 - In-progress conflict: Resume / Abandon and start / Cancel
-- Live: session is a snapshot; supersets alternate; rest is manual and not saved; rate 1–5 after prescribed sets; all rated → complete; Finish vs Discard
+- Live: session is a snapshot; supersets alternate; rest auto-starts after save (I'm ready); soft rate Easy→Brutal or Skip; all finished → done beat → complete; Finish vs Discard
 - Month: dots ignore abandoned; trends per `exerciseTitleKey`
 
 ## Bugs

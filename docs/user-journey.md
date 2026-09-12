@@ -93,21 +93,21 @@ Same flow from the Today card or from day preview.
 
 ## 6. Live workout
 
-Copied from the plan at start. Later plan edits do not change this session. App-bar back leaves the session **in progress** (Continue banner on home).
+Copied from the plan at start. Later plan edits do not change this session. App-bar back leaves the session **in progress** (Continue banner on home). Reassurance: **Leaving keeps this workout — Continue on Plans.**
 
-1. Header names the **active** exercise and set: `{title}  ·  set 1 of 3` (or `set N  ·  extra` after prescribed sets). Copy: **Log what you did on this set.**
+1. Quiet progress: **`N of M · ~T left`**. Header: **Your turn: {title}** (and **then {partner}** on supersets), set index, catalog GIF/still when matched.
 2. Log the active exercise:
-   - Rep work: optional **Weight (kg)** (`empty = bodyweight`), **Reps** (prefilled), **Log set**.
+   - Rep work: optional **Weight (kg)** with ± steppers (`Bodyweight is fine — leave weight blank.`), **Reps** with ±, **Save set**. Copy: **Done with this set? Save it.**
    - Timed work: countdown, **Start timer**, then **Log time** (or log without starting; that stores the prescribed time).
 3. **This block** lists partners with `3 × 10 · 0/3`. On a **superset**, prescribed sets alternate. Rating is blocked until both have their prescribed sets.
-4. **Start rest** / **Reset rest** (stopwatch only; not saved). Rest does not auto-start.
-5. After prescribed sets, extras can still be logged, then rate **1–5** inline (**How hard was that? 1 easy · 5 hard**). Rating completes that exercise (★n) and moves on.
-6. When every exercise is rated, the session completes automatically.
+4. After **Save set** / **Log time**, rest **auto-starts** and takes over (big clock, **Breathe.** / **Next: …**, **I'm ready**). Weight/reps stay hidden until rest ends.
+5. After prescribed sets, extras can still be logged, then soft rate **Easy → Brutal** (**How did that feel?**) or **Skip for now**. Rating or skip completes that exercise and moves on.
+6. When every exercise is finished, a short **session done** beat (quote from the last rating), then the session completes.
 7. **End** (not back) opens:
    - **Finish workout** — keep a partial log (`completed`)
    - **Discard workout** — abandoned; hidden on the month view
    - **Keep going**
-8. After finish: **Workout complete** / **Nice work. What you logged is saved.** then **Done** (pops back to the screen that opened live).
+8. After finish: **Workout complete** / **Nice work.** plus a concrete line (e.g. **3 sets of Kang squat saved**), then **Done** (pops back to the screen that opened live).
 9. On Plans: **Continue workout** is gone. If they already trained today, the card is **Next up** with **Start next day**.
 
 ## 7. Month tab
