@@ -49,7 +49,7 @@ Done with this set? Save it.
 
 - No competing rest strip in work mode.
 - Steppers: weight ±2.5 kg (empty + starts at 2.5); reps ±1 (floor 1). Fields stay editable.
-- Media: catalog GIF when title matches; else still; else no media chrome.
+- Media: catalog still when title matches (form GIF stays on Exercises detail); else no media chrome.
 
 ### Rest (takes over after Save set / Log time)
 
