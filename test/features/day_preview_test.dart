@@ -161,8 +161,8 @@ void main() {
       await settle(tester);
 
       expect(find.text('kang squat'), findsWidgets);
-      expect(find.text('Log what you did on this set.'), findsOneWidget);
-      expect(find.text('Log set'), findsOneWidget);
+      expect(find.text('Done with this set? Save it.'), findsOneWidget);
+      expect(find.text('Save set'), findsOneWidget);
     },
   );
 
@@ -257,8 +257,9 @@ void main() {
     await tester.pump();
     await settle(tester);
 
-    expect(find.text('squat  ·  set 1 of 2'), findsOneWidget);
-    expect(find.text('Log set'), findsOneWidget);
+    expect(find.text('Your turn: squat'), findsOneWidget);
+    expect(find.text('set 1 of 2'), findsOneWidget);
+    expect(find.text('Save set'), findsOneWidget);
   });
 
   testWidgets('abandon and start this day closes the live session', (
@@ -298,7 +299,7 @@ void main() {
     await settle(tester);
 
     expect(find.text('A workout is already in progress'), findsNothing);
-    expect(find.text('Log set'), findsOneWidget);
+    expect(find.text('Save set'), findsOneWidget);
     expect(find.textContaining('push up'), findsWidgets);
     final abandoned = await db(tester, () => sessions.byId(live.id));
     expect(abandoned!.status, SessionStatus.abandoned);
@@ -335,8 +336,9 @@ void main() {
       await settle(tester);
 
       expect(find.text('A workout is already in progress'), findsNothing);
-      expect(find.text('squat  ·  set 1 of 2'), findsOneWidget);
-      expect(find.text('Log set'), findsOneWidget);
+      expect(find.text('Your turn: squat'), findsOneWidget);
+      expect(find.text('set 1 of 2'), findsOneWidget);
+      expect(find.text('Save set'), findsOneWidget);
       final live = await db(tester, () => sessions.inProgress());
       expect(live!.planDayId, 'day-a');
     },
@@ -378,7 +380,7 @@ void main() {
     await settle(tester);
 
     expect(find.text('A workout is already in progress'), findsNothing);
-    expect(find.text('Log set'), findsNothing);
+    expect(find.text('Save set'), findsNothing);
     expect(find.text('Start workout'), findsOneWidget);
     final stillLive = await db(tester, () => sessions.inProgress());
     expect(stillLive!.id, live.id);
