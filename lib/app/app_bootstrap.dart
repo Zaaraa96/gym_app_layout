@@ -99,6 +99,13 @@ class _AppBootstrapState extends State<AppBootstrap> {
       });
     }
     try {
+      // Appearance belongs in composition, not main.dart. Load before Isar so
+      // the themed loader matches a saved light/dark preference.
+      if (!Get.isRegistered<ThemeController>()) {
+        Get.put(await ThemeController.load(), permanent: true);
+        if (!mounted || generation != _generation) return;
+        setState(() {});
+      }
       final route = await widget.boot();
       if (!mounted || generation != _generation) return;
       setState(() => _route = route);
