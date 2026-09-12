@@ -296,6 +296,97 @@ void main() {
     expect((await plans.byUuid(plan.uuid))!.days.single.blocks, isEmpty);
   });
 
+  testWidgets('resuming an untitled draft opens Plan details', (tester) async {
+    tester.view.physicalSize = const Size(800, 1400);
+    tester.view.devicePixelRatio = 1;
+    addTearDown(tester.view.resetPhysicalSize);
+
+    final plans = MemoryPlanRepository();
+    final now = DateTime.utc(2026, 9, 7);
+    final draft = WorkoutPlan.create(
+      title: '',
+      source: PlanSource.created,
+      status: PlanStatus.draft,
+      createdAt: now,
+      updatedAt: now,
+      days: [PlanDay.create(dayId: 'day-1', title: 'Day 1')],
+    );
+    await plans.save(draft);
+
+    await tester.pumpWidget(
+      MaterialApp(
+        home: PlanBuilderPage(
+          ports: testPorts(plans: plans),
+          planId: draft.uuid,
+        ),
+      ),
+    );
+    await tester.pump();
+    await tester.pump(const Duration(milliseconds: 50));
+
+    expect(find.text('Create plan'), findsOneWidget);
+    expect(find.text('Plan details'), findsOneWidget);
+    expect(find.byKey(const Key('plan-name-field')), findsOneWidget);
+    expect(find.text('Finish plan'), findsNothing);
+
+    await tester.enterText(find.byKey(const Key('plan-name-field')), 'Scratch week');
+    await tester.pump();
+    expect(find.text('Scratch week'), findsOneWidget);
+  });
+
+  testWidgets('opening a ready imported draft lands on Finish plan', (tester) async {
+    tester.view.physicalSize = const Size(800, 1400);
+    tester.view.devicePixelRatio = 1;
+    addTearDown(tester.view.resetPhysicalSize);
+
+    final plans = MemoryPlanRepository();
+    final now = DateTime.utc(2026, 9, 7);
+    final draft = WorkoutPlan.create(
+      title: 'Ready import',
+      source: PlanSource.imported,
+      status: PlanStatus.draft,
+      createdAt: now,
+      updatedAt: now,
+      days: [
+        PlanDay.create(
+          dayId: 'day-1',
+          title: 'Day 1',
+          blocks: [
+            ExerciseBlock.create(
+              blockId: 'b1',
+              kind: BlockKind.single,
+              exercises: [
+                ExercisePrescription.create(
+                  prescriptionId: 'p1',
+                  title: 'squat',
+                  prescribedSets: 3,
+                  prescribedReps: 10,
+                  targetAreaIds: const ['quads'],
+                ),
+              ],
+            ),
+          ],
+        ),
+      ],
+    );
+    await plans.save(draft);
+
+    await tester.pumpWidget(
+      MaterialApp(
+        home: PlanBuilderPage(
+          ports: testPorts(plans: plans),
+          planId: draft.uuid,
+        ),
+      ),
+    );
+    await tester.pump();
+    await tester.pump(const Duration(milliseconds: 50));
+
+    expect(find.text('Finish plan'), findsOneWidget);
+    expect(find.byKey(const Key('create-plan')), findsOneWidget);
+    expect(find.byKey(const Key('plan-name-field')), findsNothing);
+  });
+
   testWidgets('Plans lists drafts with Resume and Delete', (tester) async {
     final plans = MemoryPlanRepository();
     final sessions = MemorySessionRepository();
