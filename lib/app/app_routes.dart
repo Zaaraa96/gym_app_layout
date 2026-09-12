@@ -3,6 +3,7 @@ import 'package:get/get.dart';
 
 import '../common/app_routes.dart';
 import '../common/app_theme.dart';
+import '../common/theme_controller.dart';
 import '../data/app_ports.dart';
 import '../domain/catalog_repository.dart';
 import '../domain/plan_repository.dart';
@@ -138,9 +139,21 @@ class MyApp extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    if (!Get.isRegistered<ThemeController>()) {
+      return _materialApp(ThemeMode.system);
+    }
+    return Obx(
+      () => _materialApp(Get.find<ThemeController>().mode.value),
+    );
+  }
+
+  Widget _materialApp(ThemeMode themeMode) {
     return GetMaterialApp(
       title: 'My Awesome Gym App',
-      theme: appTheme,
+      debugShowCheckedModeBanner: false,
+      theme: lightTheme,
+      darkTheme: darkTheme,
+      themeMode: themeMode,
       initialRoute: initialRoute,
       builder: (context, child) {
         final galleryPicker = Get.isRegistered<ExerciseGalleryPicker>()

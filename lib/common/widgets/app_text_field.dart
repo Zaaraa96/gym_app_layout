@@ -1,5 +1,4 @@
 import 'package:flutter/material.dart';
-import 'package:gym_app/common/app_theme.dart';
 
 class AppTextField extends StatelessWidget {
   AppTextField({
@@ -55,7 +54,7 @@ class AppTextField extends StatelessWidget {
           focusedBorder: border.copyWith(
             borderSide: border.borderSide.copyWith(
               width: 1.3,
-              color: appTheme.colorScheme.primary,
+              color: Theme.of(context).colorScheme.primary,
             ),
           ),
           enabledBorder: border,

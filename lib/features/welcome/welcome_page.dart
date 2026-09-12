@@ -6,6 +6,7 @@ import '../../common/app_routes.dart';
 import '../../common/widgets/app_elevated_button.dart';
 import '../../common/widgets/app_scaffold.dart';
 import '../../common/widgets/app_text.dart';
+import '../../common/widgets/theme_mode_button.dart';
 import '../../data/app_ports.dart';
 import '../plans/plan_import_flow.dart';
 
@@ -18,6 +19,12 @@ class WelcomePage extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return AppScaffold(
+      appbar: AppBar(
+        title: const Text(''),
+        actions: const [
+          ThemeModeButton(),
+        ],
+      ),
       body: Center(
         child: SingleChildScrollView(
           child: Column(

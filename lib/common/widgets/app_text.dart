@@ -1,7 +1,11 @@
-
 import 'package:flutter/material.dart';
 
-import '../app_theme.dart';
+/// Shared text styles. Colors resolve from the active [Theme] inside [AppText].
+const titleTextStyle = TextStyle(fontWeight: FontWeight.w900, fontSize: 20);
+
+const subtitleTextStyle = TextStyle(fontWeight: FontWeight.w200);
+
+const dataTextStyle = TextStyle(fontSize: 16, fontWeight: FontWeight.w500);
 
 class AppText extends StatelessWidget {
   final String data;
@@ -11,12 +15,27 @@ class AppText extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-
-    return Text(data,style: style, textAlign: textAlign,);
+    return Text(
+      data,
+      style: resolveAppTextStyle(context, style),
+      textAlign: textAlign,
+    );
   }
 }
 
-TextStyle titleTextStyle = TextStyle(color: appTheme.primaryColor, fontWeight: FontWeight.w900, fontSize: 20);
-const subtitleTextStyle = TextStyle(color: Colors.black54, fontWeight: FontWeight.w200);
+/// Fills missing colors on shared styles so light and dark themes stay readable.
+TextStyle? resolveAppTextStyle(BuildContext context, TextStyle? style) {
+  if (style == null) return null;
+  if (style.color != null) return style;
 
-const dataTextStyle = TextStyle(color: Colors.black, fontSize:  16,fontWeight: FontWeight.w500);
+  final scheme = Theme.of(context).colorScheme;
+  final Color color;
+  if (style.fontWeight == FontWeight.w900) {
+    color = scheme.primary;
+  } else if (style.fontWeight == FontWeight.w200) {
+    color = scheme.onSurfaceVariant;
+  } else {
+    color = scheme.onSurface;
+  }
+  return style.copyWith(color: color);
+}

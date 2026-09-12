@@ -42,11 +42,11 @@ Welcome (/)  →  Beginner plans / Create plan (import or new)
 
 ## Architecture
 
-- **UI:** Flutter Material 3, seed color `Colors.deepPurple`.
+- **UI:** Flutter Material 3, seed color `Colors.deepPurple`, with light / dark / system theme (toggle on Welcome and Plans).
 - **Navigation:** GetX named routes. Plan and session ids on routes are **uuids**.
 - **Domain:** `lib/domain` — models, repository interfaces, start/progress rules. No Isar imports.
 - **Data:** Isar 3 adapters, JSON importer, in-memory stand-ins for web/tests, optional HTTP remotes.
-- **Composition:** `lib/app/app_bootstrap.dart` opens storage and picks Welcome vs Plans. `kIsWeb` stays here, not in pages.
+- **Composition:** `lib/app/app_bootstrap.dart` opens storage and picks Welcome vs Plans. `kIsWeb` stays here, not in pages. Appearance preference loads in `main.dart` before the first frame.
 
 ```
 lib/

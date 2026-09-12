@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/semantics.dart';
 
+import '../../common/app_theme.dart';
 import '../../common/exercise_asset_catalog.dart';
 import '../../common/widgets/app_text_field.dart';
 import '../../domain/exercise_editor_draft.dart';
@@ -551,7 +552,7 @@ class _ExerciseEditorPageState extends State<ExerciseEditorPage> {
                   _banner!,
                   style: TextStyle(
                     color: _banner!.startsWith('This superset')
-                        ? Colors.amber.shade800
+                        ? onAttention(theme.colorScheme)
                         : theme.colorScheme.error,
                   ),
                 ),
@@ -583,7 +584,7 @@ class _ExerciseEditorPageState extends State<ExerciseEditorPage> {
                     'This superset has different set counts. Choose rounds '
                     'to apply to every movement.',
                     style: theme.textTheme.bodyMedium?.copyWith(
-                      color: Colors.amber.shade800,
+                      color: onAttention(theme.colorScheme),
                     ),
                   ),
                 ),

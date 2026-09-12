@@ -380,7 +380,7 @@ Auto-start rest, target weight field, required photos, accounts, suggested next 
 
 ### Keep
 
-- Flutter Material 3 theme (`lib/common/app_theme.dart`)
+- Flutter Material 3 theme (`lib/common/app_theme.dart`) with light / dark / system (`ThemeController`)
 - GetX `GetMaterialApp` named routes (`lib/app/app_routes.dart`)
 - Isar **3.1.x** + `isar_flutter_libs` + `isar_generator` (no Isar 4)
 - Shared widgets: `AppScaffold`, `AppText`, `AppElevatedButton`, `AppTextField`
