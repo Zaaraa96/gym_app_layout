@@ -469,9 +469,10 @@ class GymApp {
     }
   }
 
-  /// DocumentsUI / SAF: the filename TextView is visible and "tappable" but
-  /// not the click target. ACTION_OPEN_DOCUMENT only finishes when the list
-  /// row (or the icon to the left of the title) is clicked. Success is the
+  /// DocumentsUI / SAF: the filename TextView is visible but not the open
+  /// target. ACTION_OPEN_DOCUMENT finishes when the list row is opened with a
+  /// tap in the middle of the row (title band). Tapping the left icon enters
+  /// multi-select ("1 selected") instead of returning a URI. Success is the
   /// picker closing, not UiAutomator reporting a tap.
   Future<void> pickFileFromDownloads(String fileName) =>
       pickJsonFromDownloads(fileName);
@@ -532,22 +533,25 @@ class GymApp {
     Future<AndroidGetNativeViewsResponse> snapshot() =>
         $.platform.android.getNativeViews(null);
 
-    Future<void> tapCellFor(AndroidNativeView label) async {
+    /// Open the file by tapping the geometric middle of its list row.
+    /// Never tap left of the title — that hits the icon and enters
+    /// DocumentsUI selection mode.
+    Future<void> tapRowMiddle(AndroidNativeView label) async {
       final next = await snapshot();
-      final cell = _cellContainingLabel(next, label) ?? label;
-      await _tapAtScreen(cell, next);
-    }
-
-    Future<void> tapLabelCenter(AndroidNativeView label) async {
-      final next = await snapshot();
-      await _tapAtScreen(label, next);
-    }
-
-    Future<void> tapIcon(AndroidNativeView label) async {
-      final next = await snapshot();
+      final row = _rowContainingLabel(next, label);
       final size = _screenSize(next);
+      if (row != null) {
+        final bounds = row.visibleBounds;
+        await _tapAtScreenPoint(
+          x: ((bounds.minX + bounds.maxX) / 2) / size.width,
+          y: ((bounds.minY + bounds.maxY) / 2) / size.height,
+        );
+        return;
+      }
+      // No row frame: still aim at the horizontal middle of the list at the
+      // filename's vertical band (title text), not the left icon.
       await _tapAtScreenPoint(
-        x: (label.visibleBounds.minX - 48) / size.width,
+        x: 0.5,
         y: label.visibleCenter.y / size.height,
       );
     }
@@ -555,17 +559,7 @@ class GymApp {
     var labels = _exactLabels(await snapshot(), fileName);
     for (final label in labels) {
       try {
-        await tapCellFor(label);
-      } catch (_) {}
-      await pumpQuiet(const Duration(milliseconds: 500));
-      if (!await _pickerShows(fileName)) return true;
-      try {
-        await tapLabelCenter(label);
-      } catch (_) {}
-      await pumpQuiet(const Duration(milliseconds: 500));
-      if (!await _pickerShows(fileName)) return true;
-      try {
-        await tapIcon(label);
+        await tapRowMiddle(label);
       } catch (_) {}
       await pumpQuiet(const Duration(milliseconds: 500));
       if (!await _pickerShows(fileName)) return true;
@@ -574,12 +568,13 @@ class GymApp {
     labels = _exactLabels(await snapshot(), fileName);
     if (labels.isNotEmpty) {
       try {
-        await tapCellFor(labels.last);
+        await tapRowMiddle(labels.last);
       } catch (_) {}
       await pumpQuiet(const Duration(milliseconds: 500));
       if (!await _pickerShows(fileName)) return true;
     }
 
+    // Last resort if a prior tap already entered selection mode.
     for (final desc in ['Open', 'Select', 'Done', 'OK']) {
       await _nativeTapDescription(desc);
     }
@@ -651,19 +646,30 @@ class GymApp {
     return labels;
   }
 
-  AndroidNativeView? _cellContainingLabel(
+  /// Prefer DocumentsUI `item_root` / clickable list rows over nested title
+  /// wrappers so the tap lands in the middle of the row, not on chrome.
+  AndroidNativeView? _rowContainingLabel(
     AndroidGetNativeViewsResponse tree,
     AndroidNativeView label,
   ) {
+    final itemRoots = <AndroidNativeView>[];
+    final clickableRows = <AndroidNativeView>[];
     final cells = <AndroidNativeView>[];
     final screen = _screenSize(tree);
     final screenArea = screen.width * screen.height;
     void collect(AndroidNativeView view) {
       if (_boundsContain(view.visibleBounds, label.visibleBounds) &&
-          _isCellSize(view) &&
           _area(view) > _area(label) + 1 &&
-          _area(view) < screenArea * 0.35) {
-        cells.add(view);
+          _area(view) < screenArea * 0.5) {
+        final isItemRoot =
+            view.resourceName?.endsWith('id/item_root') ?? false;
+        if (isItemRoot) {
+          itemRoots.add(view);
+        } else if (view.isClickable && _isCellSize(view)) {
+          clickableRows.add(view);
+        } else if (_isCellSize(view)) {
+          cells.add(view);
+        }
       }
       for (final child in view.children) {
         collect(child);
@@ -673,9 +679,17 @@ class GymApp {
     for (final root in tree.roots) {
       collect(root);
     }
+    if (itemRoots.isNotEmpty) {
+      itemRoots.sort(_byArea);
+      return itemRoots.first;
+    }
+    if (clickableRows.isNotEmpty) {
+      clickableRows.sort(_byArea);
+      return clickableRows.last;
+    }
     if (cells.isEmpty) return null;
     cells.sort(_byArea);
-    return cells.first;
+    return cells.last;
   }
 
   bool _boundsContain(Rectangle outer, Rectangle inner) {
@@ -716,17 +730,6 @@ class GymApp {
       walk(root);
     }
     return (width: maxX <= 0 ? 1 : maxX, height: maxY <= 0 ? 1 : maxY);
-  }
-
-  Future<void> _tapAtScreen(
-    AndroidNativeView target,
-    AndroidGetNativeViewsResponse tree,
-  ) {
-    final size = _screenSize(tree);
-    return _tapAtScreenPoint(
-      x: target.visibleCenter.x / size.width,
-      y: target.visibleCenter.y / size.height,
-    );
   }
 
   Future<void> _tapAtScreenPoint({required double x, required double y}) {
