@@ -53,7 +53,10 @@ dart run tool/push_patrol_import_files.dart
 ```
 
 That copies `valid-plan.json`, `broken.json`, and a generated
-`valid-plan.gymplan` into Downloads.
+`pack.zip` (same zip layout as a `.gymplan` export) into Downloads.
+Unknown `*.gymplan` names stay `application/octet-stream` after `adb push`
+and DocumentsUI often hides them; Patrol therefore uses `.zip` for the
+package path. Unit tests still cover `.gymplan` import by name.
 
 Windows PowerShell cannot run `./tool/push-patrol-import-files.sh` — it treats
 `.sh` as a document and asks which app should open it. Use the `dart run`

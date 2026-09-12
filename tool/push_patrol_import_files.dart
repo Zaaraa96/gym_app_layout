@@ -15,7 +15,7 @@ import 'package:archive/archive.dart';
 Future<void> main(List<String> args) async {
   if (args.contains('-h') || args.contains('--help')) {
     stdout.writeln(
-      'Push valid-plan.json, broken.json, and valid-plan.gymplan to the '
+      'Push valid-plan.json, broken.json, and pack.zip to the '
       'device Downloads folder.\n'
       '\n'
       'Usage (repo root):\n'
@@ -72,12 +72,26 @@ Future<void> main(List<String> args) async {
     '/data/local/tmp',
   ], silent: true);
 
-  // Drop the old overlapping names (`plan.json` is a suffix of
-  // `invalid-plan.json`, which DocumentsUI can wrap onto its own line).
-  for (final stale in ['plan.json', 'invalid-plan.json']) {
+  // Drop old overlapping / long names. `plan.json` is a suffix of
+  // `invalid-plan.json` (DocumentsUI wrap). Unknown `*.gymplan` stays
+  // application/octet-stream after adb push and often never appears in
+  // DocumentsUI Downloads — Patrol uses pack.zip (same package bytes).
+  for (final stale in [
+    'plan.json',
+    'invalid-plan.json',
+    'valid-plan.gymplan',
+    'pack.gymplan',
+  ]) {
     await adb(
       adbPath,
-      ['shell', 'rm', '-f', '/sdcard/Download/$stale', '/storage/emulated/0/Download/$stale', '/data/local/tmp/$stale'],
+      [
+        'shell',
+        'rm',
+        '-f',
+        '/sdcard/Download/$stale',
+        '/storage/emulated/0/Download/$stale',
+        '/data/local/tmp/$stale',
+      ],
       ignoreFailure: true,
       silent: true,
     );
@@ -87,14 +101,22 @@ Future<void> main(List<String> args) async {
     adbPath,
     File('${root.path}/assets/json/plan.json'),
     'valid-plan.json',
+    mimeType: 'application/json',
   );
   await copyFixture(
     adbPath,
     File('${root.path}/tool/fixtures/invalid-plan.json'),
     'broken.json',
+    mimeType: 'application/json',
   );
   final gymplan = await writeGymplanFixture(root);
-  await copyFixture(adbPath, gymplan, 'valid-plan.gymplan');
+  // Same zip layout as a .gymplan export; `.zip` is MediaStore-visible.
+  await copyFixture(
+    adbPath,
+    gymplan,
+    'pack.zip',
+    mimeType: 'application/zip',
+  );
 
   // API 29+ ignores MEDIA_SCANNER_SCAN_FILE for many providers. Mount scan
   // makes Downloads list the files in DocumentsUI on the AVD.
@@ -114,7 +136,7 @@ Future<void> main(List<String> args) async {
   );
 
   stdout.writeln(
-    'Pushed valid-plan.json, broken.json, and valid-plan.gymplan to device Downloads',
+    'Pushed valid-plan.json, broken.json, and pack.zip to device Downloads',
   );
   await adb(adbPath, [
     'shell',
@@ -124,7 +146,7 @@ Future<void> main(List<String> args) async {
     '/storage/emulated/0/Download',
     '/data/local/tmp/valid-plan.json',
     '/data/local/tmp/broken.json',
-    '/data/local/tmp/valid-plan.gymplan',
+    '/data/local/tmp/pack.zip',
   ], ignoreFailure: true);
 }
 
@@ -140,12 +162,17 @@ Future<File> writeGymplanFixture(Directory root) async {
     ..addFile(ArchiveFile('plan.json', planJson.length, planJson))
     ..addFile(ArchiveFile('manifest.json', manifest.length, manifest));
   final zip = ZipEncoder().encode(archive);
-  final out = File('${Directory.systemTemp.path}/valid-plan.gymplan');
+  final out = File('${Directory.systemTemp.path}/pack.zip');
   await out.writeAsBytes(zip, flush: true);
   return out;
 }
 
-Future<void> copyFixture(String adbPath, File src, String name) async {
+Future<void> copyFixture(
+  String adbPath,
+  File src,
+  String name, {
+  String? mimeType,
+}) async {
   if (!src.existsSync()) {
     stderr.writeln('Missing fixture: ${src.path}');
     exit(1);
@@ -195,6 +222,64 @@ Future<void> copyFixture(String adbPath, File src, String name) async {
     ignoreFailure: true,
     silent: true,
   );
+  if (mimeType != null) {
+    await indexDownloadInMediaStore(adbPath, name, mimeType);
+  }
+}
+
+/// Make DocumentsUI's Downloads collection show [name].
+///
+/// Unknown extensions like `.gymplan` are skipped by the media scanner, so the
+/// native picker never lists them after a plain `adb push`.
+Future<void> indexDownloadInMediaStore(
+  String adbPath,
+  String name,
+  String mimeType,
+) async {
+  final paths = [
+    '/storage/emulated/0/Download/$name',
+    '/sdcard/Download/$name',
+  ];
+  for (final path in paths) {
+    // Clear any stale row with this display name first.
+    await adb(
+      adbPath,
+      [
+        'shell',
+        'content',
+        'delete',
+        '--uri',
+        'content://media/external/file',
+        '--where',
+        "_display_name='$name'",
+      ],
+      ignoreFailure: true,
+      silent: true,
+    );
+    final inserted = await adb(
+      adbPath,
+      [
+        'shell',
+        'content',
+        'insert',
+        '--uri',
+        'content://media/external/file',
+        '--bind',
+        '_display_name:s:$name',
+        '--bind',
+        '_data:s:$path',
+        '--bind',
+        'mime_type:s:$mimeType',
+        '--bind',
+        'relative_path:s:Download/',
+      ],
+      ignoreFailure: true,
+      silent: true,
+    );
+    if (inserted == 0) {
+      return;
+    }
+  }
 }
 
 Directory findRepoRoot() {
