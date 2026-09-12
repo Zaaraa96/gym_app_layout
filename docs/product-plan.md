@@ -285,7 +285,7 @@ Live workout
   ├─ Progress line + active media + “Your turn”
   ├─ Current block (single, or superset with alternating sets)
   │     ├─ Save set (weight± / reps±) or Log time (duration countdown)
-  │     ├─ Rest takeover (auto-start after save; I'm ready)
+  │     ├─ Rest countdown takeover (auto-start after save; +15s / Skip)
   │     └─ Soft rate Easy→Brutal or Skip after prescribed sets
   ├─ Last finish → short done beat → ended summary
   ├─ Back / system back → leave `inProgress` (reassurance copy)
@@ -358,7 +358,7 @@ Done with this set? Save it.
   [ Save set ]
 ```
 
-Work vs rest are separate modes. **Save set** / **Log time** auto-starts rest. Rest takes over the screen (big clock, breathe / next-up copy, **I'm ready**) and hides the weight/reps form. Details: [live-logger-comfort.md](live-logger-comfort.md).
+Work vs rest are separate modes. **Save set** / **Log time** auto-starts rest. Rest takes over the screen (big clock, breathe / next-up copy, **Skip**) and hides the weight/reps form. Details: [live-logger-comfort.md](live-logger-comfort.md).
 
 A **superset is alternating sets**, not “finish A then B”. Both prescriptions stay visible; **active** is the next exercise in the block that still has unlogged prescribed sets, cycling in prescription order: A1 → B1 → A2 → B2 → … Weight may be empty (`null` = bodyweight). Reps are required for rep work.
 

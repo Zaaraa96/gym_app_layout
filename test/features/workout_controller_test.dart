@@ -38,7 +38,7 @@ void main() {
   });
 
   Future<({SessionRepository sessions, WorkoutController controller})>
-  startController({
+      startController({
     WorkoutPlan? plan,
     List<String> commons = const [],
   }) async {
@@ -201,7 +201,12 @@ void main() {
     expect(c.isResting, isFalse);
     c.startRest();
     expect(c.isResting, isTrue);
-    expect(c.restElapsedSeconds, 0);
+    expect(c.restRemainingSeconds, WorkoutController.defaultRestSeconds);
+    c.addRestSeconds();
+    expect(
+        c.restRemainingSeconds,
+        WorkoutController.defaultRestSeconds +
+            WorkoutController.restBumpSeconds);
     c.endRest();
     expect(c.isResting, isFalse);
 
@@ -434,9 +439,10 @@ void main() {
       final c = started.controller;
       c.startRest();
       expect(c.isResting, isTrue);
+      expect(c.restRemainingSeconds, WorkoutController.defaultRestSeconds);
       c.startRest();
       expect(c.isResting, isTrue);
-      expect(c.restElapsedSeconds, 0);
+      expect(c.restRemainingSeconds, WorkoutController.defaultRestSeconds);
 
       await c.discard();
       await expectLater(

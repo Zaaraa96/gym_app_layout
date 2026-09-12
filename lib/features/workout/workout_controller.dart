@@ -35,8 +35,15 @@ class WorkoutController extends GetxController {
   WorkoutSession? _session;
   int? _activeLogIndex;
 
-  int restElapsedSeconds = 0;
-  Stopwatch? _restWatch;
+  /// Countdown seconds left while resting. 0 when not resting.
+  int restRemainingSeconds = 0;
+
+  /// Default rest length after Save set / Log time.
+  static const int defaultRestSeconds = 60;
+
+  /// Extra rest granted by +15s.
+  static const int restBumpSeconds = 15;
+
   Timer? _restTimer;
 
   /// Remaining seconds for duration work. Negative means overtime.
@@ -154,7 +161,8 @@ class WorkoutController extends GetxController {
     _ensureLive();
     final target = log ?? activeLog;
     if (target == null || !canLogSet(target)) {
-      throw const WorkoutActionException('This exercise cannot take a set yet.');
+      throw const WorkoutActionException(
+          'This exercise cannot take a set yet.');
     }
     if (reps == null || reps < 1) {
       throw const WorkoutActionException('Reps are required.');
@@ -178,13 +186,13 @@ class WorkoutController extends GetxController {
     _ensureLive();
     final target = log ?? activeLog;
     if (target == null || !canLogTime(target)) {
-      throw const WorkoutActionException('This exercise cannot take a time yet.');
+      throw const WorkoutActionException(
+          'This exercise cannot take a time yet.');
     }
     final prescribed = target.prescribedDurationSeconds!;
     final loggingActive = _indexOf(target) == _activeLogIndex;
-    final remaining = loggingActive
-        ? (durationRemainingSeconds ?? prescribed)
-        : prescribed;
+    final remaining =
+        loggingActive ? (durationRemainingSeconds ?? prescribed) : prescribed;
     final seconds = loggingActive && durationTimerStarted
         ? prescribed - remaining
         : prescribed;
@@ -262,17 +270,28 @@ class WorkoutController extends GetxController {
 
   void startRest() {
     if (_restTimer != null) return;
-    _restWatch = Stopwatch()..start();
-    restElapsedSeconds = 0;
-    // Tick silently — the rest clock widget polls elapsed so GetBuilder
-    // does not rebuild every second (that was dropping I'm ready taps).
+    restRemainingSeconds = defaultRestSeconds;
+    // Tick silently — the rest clock widget polls remaining so GetBuilder
+    // does not rebuild every second (that was dropping Skip taps).
     _restTimer = Timer.periodic(const Duration(seconds: 1), (_) {
-      restElapsedSeconds = _restWatch?.elapsed.inSeconds ?? restElapsedSeconds;
+      if (_restTimer == null) return;
+      if (restRemainingSeconds <= 1) {
+        endRest();
+        return;
+      }
+      restRemainingSeconds -= 1;
     });
     update();
   }
 
-  /// Leave rest mode and return to work / rate UI.
+  /// Add time to the rest countdown (no-op when not resting).
+  void addRestSeconds([int seconds = restBumpSeconds]) {
+    if (_restTimer == null) return;
+    if (seconds <= 0) return;
+    restRemainingSeconds += seconds;
+  }
+
+  /// Leave rest mode and return to work / rate UI (Skip).
   void endRest() {
     _resetRestKeepingStopped();
     update();
@@ -366,7 +385,8 @@ class WorkoutController extends GetxController {
     }
     final after = _activeLogIndex;
     if (isPrescribedPhase && after != null) {
-      final next = _nextNeedingPrescribedSets(afterIndex: after, blockId: blockId);
+      final next =
+          _nextNeedingPrescribedSets(afterIndex: after, blockId: blockId);
       _activeLogIndex = next ?? _firstUnfinishedIndex(blockId);
     } else if (activeLog?.isComplete == true) {
       _activeLogIndex = _firstUnfinishedIndex(blockId);
@@ -454,9 +474,7 @@ class WorkoutController extends GetxController {
   void _resetRestKeepingStopped() {
     _restTimer?.cancel();
     _restTimer = null;
-    _restWatch?.stop();
-    _restWatch = null;
-    restElapsedSeconds = 0;
+    restRemainingSeconds = 0;
   }
 
   void _stopDurationTimer() {

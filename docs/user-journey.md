@@ -100,7 +100,7 @@ Copied from the plan at start. Later plan edits do not change this session. App-
    - Rep work: optional **Weight (kg)** with ± steppers (`Bodyweight is fine — leave weight blank.`), **Reps** with ±, **Save set**. Copy: **Done with this set? Save it.**
    - Timed work: countdown, **Start timer**, then **Log time** (or log without starting; that stores the prescribed time).
 3. **This block** lists partners with `3 × 10 · 0/3`. On a **superset**, prescribed sets alternate. Rating is blocked until both have their prescribed sets.
-4. After **Save set** / **Log time**, rest **auto-starts** and takes over (big clock, **Breathe.** / **Next: …**, **I'm ready**). Weight/reps stay hidden until rest ends.
+4. After **Save set** / **Log time**, rest **auto-starts** and takes over (big clock, **Breathe.** / **Next: …**, **Skip**). Weight/reps stay hidden until rest ends.
 5. After prescribed sets, extras can still be logged, then soft rate **Easy → Brutal** (**How did that feel?**) or **Skip for now**. Rating or skip completes that exercise and moves on.
 6. When every exercise is finished, a short **session done** beat (quote from the last rating), then the session completes.
 7. **End** (not back) opens:

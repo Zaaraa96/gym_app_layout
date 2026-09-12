@@ -7,7 +7,6 @@ import '../../common/app_routes.dart';
 import '../../common/exercise_asset_catalog.dart';
 import '../../common/widgets/app_elevated_button.dart';
 import '../../common/widgets/app_load_error.dart';
-import '../../common/widgets/app_scaffold.dart';
 import '../../common/widgets/app_text.dart';
 import '../../common/widgets/app_text_field.dart';
 import '../../data/app_ports.dart';
@@ -18,7 +17,7 @@ import 'live_session_progress.dart';
 import 'live_workout_copy.dart';
 import 'workout_controller.dart';
 
-/// Live logger: work mode, calm rest takeover, soft rate, companion copy.
+/// Live logger: immersive work / countdown rest / rate takeover.
 class LiveWorkoutPage extends StatefulWidget {
   const LiveWorkoutPage({
     super.key,
@@ -248,30 +247,42 @@ class _LiveWorkoutPageState extends State<LiveWorkoutPage> {
             _syncFields(controller.activeLog);
           });
         }
-        return AppScaffold(
-          appbar: AppBar(
-            title: AppText(
-              session?.dayTitleSnapshot ?? 'Workout',
-              style: titleTextStyle,
-            ),
-            actions: [
-              if (controller.isLive && !controller.sessionDoneBeat)
-                TextButton(
-                  key: const Key('end-workout'),
-                  onPressed: _end,
-                  child: const Text('End'),
+
+        final resting = controller.isResting;
+        final scheme = Theme.of(context).colorScheme;
+
+        return Scaffold(
+          backgroundColor: resting ? const Color(0xFF1A1424) : scheme.surface,
+          appBar: resting
+              ? null
+              : AppBar(
+                  title: AppText(
+                    session?.dayTitleSnapshot ?? 'Workout',
+                    style: titleTextStyle,
+                  ),
+                  actions: [
+                    if (controller.isLive && !controller.sessionDoneBeat)
+                      TextButton(
+                        key: const Key('end-workout'),
+                        onPressed: _end,
+                        child: const Text('End'),
+                      ),
+                  ],
                 ),
-            ],
+          body: SafeArea(
+            child: _error != null && session == null
+                ? Padding(
+                    padding: const EdgeInsets.symmetric(horizontal: 20),
+                    child: AppLoadError(message: _error!, onRetry: _load),
+                  )
+                : _loading && session == null
+                    ? const Center(child: CircularProgressIndicator())
+                    : session == null
+                        ? const Center(
+                            child: AppText('This workout is no longer here.'),
+                          )
+                        : _body(context, controller, session),
           ),
-          body: _error != null && session == null
-              ? AppLoadError(message: _error!, onRetry: _load)
-              : _loading && session == null
-                  ? const Center(child: CircularProgressIndicator())
-                  : session == null
-                      ? const Center(
-                          child: AppText('This workout is no longer here.'),
-                        )
-                      : _body(context, controller, session),
         );
       },
     );
@@ -301,11 +312,14 @@ class _LiveWorkoutPageState extends State<LiveWorkoutPage> {
       );
     }
     if (session.exerciseLogs.isEmpty) {
-      return const Center(
-        child: AppText(
-          'Nothing to log. End this workout or go back.',
-          style: subtitleTextStyle,
-          textAlign: TextAlign.center,
+      return const Padding(
+        padding: EdgeInsets.symmetric(horizontal: 20),
+        child: Center(
+          child: AppText(
+            'Nothing to log. End this workout or go back.',
+            style: subtitleTextStyle,
+            textAlign: TextAlign.center,
+          ),
         ),
       );
     }
@@ -315,80 +329,167 @@ class _LiveWorkoutPageState extends State<LiveWorkoutPage> {
     }
 
     final active = controller.activeLog;
-    final progress = liveSessionProgress(session);
-    return ListView(
-      children: [
-        const AppText(
-          LiveWorkoutCopy.leaveReassurance,
-          style: subtitleTextStyle,
+    final showRate = active != null && controller.canRate(active);
+
+    if (showRate) {
+      return _rateMode(controller, session, active);
+    }
+
+    return _workMode(controller, session, active);
+  }
+
+  Widget _leaveHelper(ColorScheme scheme) {
+    return Padding(
+      padding: const EdgeInsets.fromLTRB(20, 8, 20, 0),
+      child: DecoratedBox(
+        decoration: BoxDecoration(
+          color: scheme.secondaryContainer.withValues(alpha: 0.55),
+          borderRadius: BorderRadius.circular(12),
         ),
-        const SizedBox(height: 12),
-        if (progress.line.isNotEmpty) ...[
-          AppText(progress.line, style: subtitleTextStyle),
-          const SizedBox(height: 12),
-        ],
-        if (active != null) ...[
-          Row(
-            crossAxisAlignment: CrossAxisAlignment.start,
+        child: const Padding(
+          padding: EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+          child: AppText(
+            LiveWorkoutCopy.leaveReassurance,
+            style: subtitleTextStyle,
+          ),
+        ),
+      ),
+    );
+  }
+
+  Widget _workMode(
+    WorkoutController controller,
+    WorkoutSession session,
+    ExerciseLog? active,
+  ) {
+    final progress = liveSessionProgress(session);
+    final scheme = Theme.of(context).colorScheme;
+
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      children: [
+        _leaveHelper(scheme),
+        Padding(
+          padding: const EdgeInsets.fromLTRB(20, 12, 20, 0),
+          child: _SegmentedProgress(progress: progress),
+        ),
+        if (progress.line.isNotEmpty)
+          Padding(
+            padding: const EdgeInsets.fromLTRB(20, 8, 20, 0),
+            child: AppText(progress.line, style: subtitleTextStyle),
+          ),
+        Expanded(
+          child: ListView(
+            padding: const EdgeInsets.fromLTRB(20, 12, 20, 16),
             children: [
-              _ActiveMedia(title: active.exerciseTitle),
-              const SizedBox(width: 12),
-              Expanded(child: _header(controller, active)),
+              if (active != null) ...[
+                _HeroMedia(title: active.exerciseTitle, height: 160),
+                const SizedBox(height: 12),
+                _header(controller, active),
+                const SizedBox(height: 16),
+              ],
+              const AppText('This block', style: dataTextStyle),
+              const SizedBox(height: 8),
+              for (final log in controller.currentBlockLogs)
+                _BlockLogTile(
+                  log: log,
+                  active: identical(log, active) ||
+                      log.prescriptionId == active?.prescriptionId,
+                ),
             ],
           ),
-        ],
-        const SizedBox(height: 12),
-        const AppText('This block', style: dataTextStyle),
-        const SizedBox(height: 8),
-        for (final log in controller.currentBlockLogs)
-          _BlockLogTile(
-            log: log,
-            active: identical(log, active) ||
-                log.prescriptionId == active?.prescriptionId,
+        ),
+        if (active != null)
+          Material(
+            elevation: 6,
+            color: scheme.surfaceContainerHighest,
+            child: Padding(
+              padding: const EdgeInsets.fromLTRB(20, 12, 20, 16),
+              child: active.prescribedDurationSeconds != null
+                  ? _durationLogger(controller, active)
+                  : _repLogger(controller, active),
+            ),
           ),
-        const SizedBox(height: 16),
-        if (active != null) _logger(controller, active),
-        const SizedBox(height: 24),
       ],
     );
   }
 
-  Widget _restMode(WorkoutController controller, WorkoutSession session) {
+  Widget _rateMode(
+    WorkoutController controller,
+    WorkoutSession session,
+    ExerciseLog active,
+  ) {
     final progress = liveSessionProgress(session);
-    final active = controller.activeLog;
-    final subtitle = _restSubtitle(controller, active);
-    return ListView(
+    final scheme = Theme.of(context).colorScheme;
+    final extras = controller.inExtrasPhase;
+    final setLabel = extras
+        ? 'set ${controller.headerSetIndex}  ·  extra'
+        : 'set ${controller.headerSetIndex} of ${active.prescribedSets}';
+
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
-        const AppText(
-          LiveWorkoutCopy.leaveReassurance,
-          style: subtitleTextStyle,
+        _leaveHelper(scheme),
+        Padding(
+          padding: const EdgeInsets.fromLTRB(20, 12, 20, 0),
+          child: _SegmentedProgress(progress: progress),
         ),
-        const SizedBox(height: 12),
-        if (progress.line.isNotEmpty) ...[
-          AppText(progress.line, style: subtitleTextStyle),
-          const SizedBox(height: 24),
-        ],
-        _RestClock(controller: controller),
-        const SizedBox(height: 16),
-        const AppText(
-          LiveWorkoutCopy.restBreathe,
-          style: subtitleTextStyle,
-          textAlign: TextAlign.center,
-        ),
-        if (subtitle != null) ...[
-          const SizedBox(height: 4),
-          AppText(
-            subtitle,
-            style: dataTextStyle,
-            textAlign: TextAlign.center,
+        Expanded(
+          child: ListView(
+            padding: const EdgeInsets.fromLTRB(20, 12, 20, 16),
+            children: [
+              _HeroMedia(title: active.exerciseTitle, height: 120),
+              const SizedBox(height: 12),
+              AppText(
+                LiveWorkoutCopy.yourTurn(active.exerciseTitle),
+                style: titleTextStyle.copyWith(fontSize: 22),
+                textAlign: TextAlign.center,
+              ),
+              const SizedBox(height: 4),
+              AppText(
+                setLabel,
+                style: dataTextStyle,
+                textAlign: TextAlign.center,
+              ),
+              const SizedBox(height: 16),
+              const AppText(
+                LiveWorkoutCopy.ratePrompt,
+                style: titleTextStyle,
+                textAlign: TextAlign.center,
+              ),
+              const SizedBox(height: 12),
+              for (var n = 1; n <= 5; n++) ...[
+                Padding(
+                  padding: const EdgeInsets.only(bottom: 8),
+                  child: OutlinedButton(
+                    key: Key('rate-$n'),
+                    style: OutlinedButton.styleFrom(
+                      minimumSize: const Size.fromHeight(44),
+                    ),
+                    onPressed: () => _rate(n),
+                    child: Text(LiveWorkoutCopy.rateLabels[n]!),
+                  ),
+                ),
+              ],
+              TextButton(
+                key: const Key('skip-rating'),
+                onPressed: _skipRate,
+                child: const Text(LiveWorkoutCopy.skipRating),
+              ),
+            ],
           ),
-        ],
-        const SizedBox(height: 32),
-        AppElevatedButton(
-          key: const Key('end-rest'),
-          data: LiveWorkoutCopy.imReady,
-          onPressed: controller.endRest,
         ),
+        if (controller.canLogSet(active) || controller.canLogTime(active))
+          Material(
+            elevation: 6,
+            color: scheme.surfaceContainerHighest,
+            child: Padding(
+              padding: const EdgeInsets.fromLTRB(20, 12, 20, 16),
+              child: active.prescribedDurationSeconds != null
+                  ? _durationLogger(controller, active)
+                  : _repLogger(controller, active),
+            ),
+          ),
       ],
     );
   }
@@ -398,7 +499,129 @@ class _LiveWorkoutPageState extends State<LiveWorkoutPage> {
     if (!controller.isPrescribedPhase && controller.canRate(active)) {
       return LiveWorkoutCopy.rateWhenReady(active.exerciseTitle);
     }
-    return LiveWorkoutCopy.nextUp(active.exerciseTitle);
+    final setLabel = controller.inExtrasPhase
+        ? 'extra set'
+        : 'set ${controller.headerSetIndex} of ${active.prescribedSets}';
+    return setLabel;
+  }
+
+  Widget _restMode(WorkoutController controller, WorkoutSession session) {
+    final progress = liveSessionProgress(session);
+    final active = controller.activeLog;
+    final subtitle = _restSubtitle(controller, active);
+    const onDark = Color(0xFFF3EEF8);
+
+    return ColoredBox(
+      color: const Color(0xFF1A1424),
+      child: Padding(
+        padding: const EdgeInsets.symmetric(horizontal: 20),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: [
+            const SizedBox(height: 8),
+            _SegmentedProgress(progress: progress, onDark: true),
+            if (progress.line.isNotEmpty) ...[
+              const SizedBox(height: 8),
+              AppText(
+                progress.line,
+                style: subtitleTextStyle.copyWith(
+                  color: onDark.withValues(alpha: 0.7),
+                ),
+                textAlign: TextAlign.center,
+              ),
+            ],
+            const Spacer(),
+            const AppText(
+              LiveWorkoutCopy.restBreathe,
+              style: subtitleTextStyle,
+              textAlign: TextAlign.center,
+            ),
+            const SizedBox(height: 8),
+            _RestClock(controller: controller, color: onDark),
+            const SizedBox(height: 24),
+            Row(
+              children: [
+                Expanded(
+                  child: OutlinedButton(
+                    key: const Key('add-rest'),
+                    style: OutlinedButton.styleFrom(
+                      foregroundColor: onDark,
+                      side: BorderSide(color: onDark.withValues(alpha: 0.5)),
+                      minimumSize: const Size.fromHeight(48),
+                    ),
+                    onPressed: controller.addRestSeconds,
+                    child: const Text(LiveWorkoutCopy.restAdd15),
+                  ),
+                ),
+                const SizedBox(width: 12),
+                Expanded(
+                  child: ElevatedButton(
+                    key: const Key('end-rest'),
+                    style: ElevatedButton.styleFrom(
+                      minimumSize: const Size.fromHeight(48),
+                    ),
+                    onPressed: controller.endRest,
+                    child: const Text(LiveWorkoutCopy.restSkip),
+                  ),
+                ),
+              ],
+            ),
+            const Spacer(),
+            if (active != null)
+              DecoratedBox(
+                decoration: BoxDecoration(
+                  color: onDark.withValues(alpha: 0.08),
+                  borderRadius: BorderRadius.circular(16),
+                ),
+                child: Padding(
+                  padding: const EdgeInsets.all(16),
+                  child: Row(
+                    children: [
+                      Expanded(
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            AppText(
+                              'NEXT UP',
+                              style: subtitleTextStyle.copyWith(
+                                color: onDark.withValues(alpha: 0.6),
+                                letterSpacing: 0.8,
+                              ),
+                            ),
+                            const SizedBox(height: 4),
+                            AppText(
+                              active.exerciseTitle,
+                              style: dataTextStyle.copyWith(
+                                color: onDark,
+                                fontWeight: FontWeight.w700,
+                              ),
+                            ),
+                            if (subtitle != null) ...[
+                              const SizedBox(height: 2),
+                              AppText(
+                                subtitle,
+                                style: subtitleTextStyle.copyWith(
+                                  color: onDark.withValues(alpha: 0.75),
+                                ),
+                              ),
+                            ],
+                          ],
+                        ),
+                      ),
+                      _HeroMedia(
+                        title: active.exerciseTitle,
+                        height: 64,
+                        width: 64,
+                      ),
+                    ],
+                  ),
+                ),
+              ),
+            const SizedBox(height: 16),
+          ],
+        ),
+      ),
+    );
   }
 
   Widget _header(WorkoutController controller, ExerciseLog active) {
@@ -412,7 +635,7 @@ class _LiveWorkoutPageState extends State<LiveWorkoutPage> {
       children: [
         AppText(
           LiveWorkoutCopy.yourTurn(active.exerciseTitle),
-          style: titleTextStyle,
+          style: titleTextStyle.copyWith(fontSize: 22),
         ),
         if (partner != null) ...[
           const SizedBox(height: 2),
@@ -423,44 +646,6 @@ class _LiveWorkoutPageState extends State<LiveWorkoutPage> {
         ],
         const SizedBox(height: 4),
         AppText(setLabel, style: dataTextStyle),
-      ],
-    );
-  }
-
-  Widget _logger(WorkoutController controller, ExerciseLog active) {
-    if (active.isComplete) {
-      return const AppText(LiveWorkoutCopy.ratedNext);
-    }
-    final showRate = controller.canRate(active);
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.stretch,
-      children: [
-        if (showRate) ...[
-          const AppText(LiveWorkoutCopy.ratePrompt, style: dataTextStyle),
-          const SizedBox(height: 8),
-          Wrap(
-            spacing: 6,
-            runSpacing: 6,
-            children: [
-              for (var n = 1; n <= 5; n++)
-                OutlinedButton(
-                  key: Key('rate-$n'),
-                  onPressed: () => _rate(n),
-                  child: Text(LiveWorkoutCopy.rateLabels[n]!),
-                ),
-            ],
-          ),
-          TextButton(
-            key: const Key('skip-rating'),
-            onPressed: _skipRate,
-            child: const Text(LiveWorkoutCopy.skipRating),
-          ),
-          const SizedBox(height: 16),
-        ],
-        if (active.prescribedDurationSeconds != null)
-          _durationLogger(controller, active)
-        else
-          _repLogger(controller, active),
       ],
     );
   }
@@ -513,6 +698,7 @@ class _LiveWorkoutPageState extends State<LiveWorkoutPage> {
             style: subtitleTextStyle,
           ),
         ],
+        const SizedBox(height: 8),
         AppElevatedButton(
           key: const Key('save-set'),
           data: LiveWorkoutCopy.saveSet,
@@ -523,15 +709,15 @@ class _LiveWorkoutPageState extends State<LiveWorkoutPage> {
   }
 
   Widget _durationLogger(WorkoutController controller, ExerciseLog active) {
-    final remaining =
-        controller.durationRemainingSeconds ?? active.prescribedDurationSeconds!;
+    final remaining = controller.durationRemainingSeconds ??
+        active.prescribedDurationSeconds!;
     final canLog = controller.canLogTime(active);
     return Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
         AppText(
           formatSignedClock(remaining),
-          style: titleTextStyle.copyWith(fontSize: 32),
+          style: titleTextStyle.copyWith(fontSize: 40),
           textAlign: TextAlign.center,
         ),
         const SizedBox(height: 4),
@@ -560,11 +746,47 @@ class _LiveWorkoutPageState extends State<LiveWorkoutPage> {
 
 enum _EndAction { finish, discard }
 
-/// Local ticker so rest seconds update without rebuilding the I'm ready button.
+class _SegmentedProgress extends StatelessWidget {
+  const _SegmentedProgress({required this.progress, this.onDark = false});
+
+  final LiveSessionProgress progress;
+  final bool onDark;
+
+  @override
+  Widget build(BuildContext context) {
+    final total = progress.totalMovements;
+    if (total <= 0) return const SizedBox.shrink();
+    final scheme = Theme.of(context).colorScheme;
+    final fill = onDark ? scheme.primary : scheme.primary;
+    final empty = onDark
+        ? Colors.white.withValues(alpha: 0.18)
+        : scheme.surfaceContainerHighest;
+
+    return Row(
+      children: [
+        for (var i = 0; i < total; i++) ...[
+          if (i > 0) const SizedBox(width: 3),
+          Expanded(
+            child: Container(
+              height: 4,
+              decoration: BoxDecoration(
+                color: i < progress.currentOrdinal ? fill : empty,
+                borderRadius: BorderRadius.circular(2),
+              ),
+            ),
+          ),
+        ],
+      ],
+    );
+  }
+}
+
+/// Local ticker so rest seconds update without rebuilding Skip / +15s.
 class _RestClock extends StatefulWidget {
-  const _RestClock({required this.controller});
+  const _RestClock({required this.controller, required this.color});
 
   final WorkoutController controller;
+  final Color color;
 
   @override
   State<_RestClock> createState() => _RestClockState();
@@ -577,10 +799,13 @@ class _RestClockState extends State<_RestClock> {
   @override
   void initState() {
     super.initState();
-    _seconds = widget.controller.restElapsedSeconds;
-    _uiTimer = Timer.periodic(const Duration(seconds: 1), (_) {
+    _seconds = widget.controller.restRemainingSeconds;
+    _uiTimer = Timer.periodic(const Duration(milliseconds: 200), (_) {
       if (!mounted) return;
-      setState(() => _seconds = widget.controller.restElapsedSeconds);
+      final next = widget.controller.restRemainingSeconds;
+      if (next != _seconds) {
+        setState(() => _seconds = next);
+      }
     });
   }
 
@@ -595,33 +820,61 @@ class _RestClockState extends State<_RestClock> {
     return AppText(
       formatSignedClock(_seconds),
       key: const Key('rest-clock'),
-      style: titleTextStyle.copyWith(fontSize: 56, height: 1.1),
+      style: titleTextStyle.copyWith(
+        fontSize: 64,
+        height: 1.05,
+        color: widget.color,
+      ),
       textAlign: TextAlign.center,
     );
   }
 }
 
-class _ActiveMedia extends StatelessWidget {
-  const _ActiveMedia({required this.title});
+class _HeroMedia extends StatelessWidget {
+  const _HeroMedia({
+    required this.title,
+    this.height = 160,
+    this.width,
+  });
 
   final String title;
+  final double height;
+  final double? width;
 
   @override
   Widget build(BuildContext context) {
     final asset = matchExerciseAsset(title);
-    if (asset == null) return const SizedBox.shrink();
-    final still = asset.assetPath;
+    final placeholder = DecoratedBox(
+      decoration: BoxDecoration(
+        color: Theme.of(context).colorScheme.surfaceContainerHighest,
+        borderRadius: BorderRadius.circular(16),
+      ),
+      child: const Center(child: Icon(Icons.fitness_center, size: 48)),
+    );
+    if (asset == null) {
+      return SizedBox(height: height, width: width, child: placeholder);
+    }
     final media = ExerciseMediaRef(
-      uri: still,
+      uri: asset.assetPath,
       source: ExerciseMediaSource.asset,
       kind: ExerciseMediaKind.image,
     );
-    return Align(
-      alignment: Alignment.centerLeft,
-      child: ExerciseMediaThumbnail.media(
-        media: media,
-        size: 88,
-        borderRadius: 12,
+    return ClipRRect(
+      borderRadius: BorderRadius.circular(16),
+      child: SizedBox(
+        height: height,
+        width: width,
+        child: LayoutBuilder(
+          builder: (context, constraints) {
+            final side = width ??
+                (constraints.maxWidth.isFinite ? constraints.maxWidth : height);
+            return ExerciseMediaThumbnail.media(
+              media: media,
+              size: side,
+              borderRadius: 0,
+            );
+          },
+        ),
       ),
     );
   }
@@ -790,35 +1043,38 @@ class _EndedView extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Center(
-      child: Column(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          AppText(
-            discarded
-                ? LiveWorkoutCopy.discarded
-                : LiveWorkoutCopy.workoutComplete,
-            style: titleTextStyle,
-            textAlign: TextAlign.center,
-          ),
-          const SizedBox(height: 8),
-          AppText(
-            discarded
-                ? LiveWorkoutCopy.discardedDetail
-                : LiveWorkoutCopy.niceWork,
-            style: subtitleTextStyle,
-            textAlign: TextAlign.center,
-          ),
-          if (!discarded && summary != null) ...[
-            const SizedBox(height: 4),
+      child: Padding(
+        padding: const EdgeInsets.symmetric(horizontal: 24),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
             AppText(
-              summary!,
-              style: dataTextStyle,
+              discarded
+                  ? LiveWorkoutCopy.discarded
+                  : LiveWorkoutCopy.workoutComplete,
+              style: titleTextStyle,
               textAlign: TextAlign.center,
             ),
+            const SizedBox(height: 8),
+            AppText(
+              discarded
+                  ? LiveWorkoutCopy.discardedDetail
+                  : LiveWorkoutCopy.niceWork,
+              style: subtitleTextStyle,
+              textAlign: TextAlign.center,
+            ),
+            if (!discarded && summary != null) ...[
+              const SizedBox(height: 4),
+              AppText(
+                summary!,
+                style: dataTextStyle,
+                textAlign: TextAlign.center,
+              ),
+            ],
+            const SizedBox(height: 24),
+            AppElevatedButton(data: 'Done', onPressed: onDone),
           ],
-          const SizedBox(height: 24),
-          AppElevatedButton(data: 'Done', onPressed: onDone),
-        ],
+        ),
       ),
     );
   }
