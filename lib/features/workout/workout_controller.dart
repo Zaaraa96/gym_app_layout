@@ -264,9 +264,10 @@ class WorkoutController extends GetxController {
     if (_restTimer != null) return;
     _restWatch = Stopwatch()..start();
     restElapsedSeconds = 0;
+    // Tick silently — the rest clock widget polls elapsed so GetBuilder
+    // does not rebuild every second (that was dropping I'm ready taps).
     _restTimer = Timer.periodic(const Duration(seconds: 1), (_) {
       restElapsedSeconds = _restWatch?.elapsed.inSeconds ?? restElapsedSeconds;
-      update();
     });
     update();
   }

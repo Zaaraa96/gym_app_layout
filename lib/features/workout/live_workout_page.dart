@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 
@@ -366,12 +368,7 @@ class _LiveWorkoutPageState extends State<LiveWorkoutPage> {
           AppText(progress.line, style: subtitleTextStyle),
           const SizedBox(height: 24),
         ],
-        AppText(
-          formatSignedClock(controller.restElapsedSeconds),
-          key: const Key('rest-clock'),
-          style: titleTextStyle.copyWith(fontSize: 56, height: 1.1),
-          textAlign: TextAlign.center,
-        ),
+        _RestClock(controller: controller),
         const SizedBox(height: 16),
         const AppText(
           LiveWorkoutCopy.restBreathe,
@@ -563,6 +560,47 @@ class _LiveWorkoutPageState extends State<LiveWorkoutPage> {
 
 enum _EndAction { finish, discard }
 
+/// Local ticker so rest seconds update without rebuilding the I'm ready button.
+class _RestClock extends StatefulWidget {
+  const _RestClock({required this.controller});
+
+  final WorkoutController controller;
+
+  @override
+  State<_RestClock> createState() => _RestClockState();
+}
+
+class _RestClockState extends State<_RestClock> {
+  Timer? _uiTimer;
+  int _seconds = 0;
+
+  @override
+  void initState() {
+    super.initState();
+    _seconds = widget.controller.restElapsedSeconds;
+    _uiTimer = Timer.periodic(const Duration(seconds: 1), (_) {
+      if (!mounted) return;
+      setState(() => _seconds = widget.controller.restElapsedSeconds);
+    });
+  }
+
+  @override
+  void dispose() {
+    _uiTimer?.cancel();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return AppText(
+      formatSignedClock(_seconds),
+      key: const Key('rest-clock'),
+      style: titleTextStyle.copyWith(fontSize: 56, height: 1.1),
+      textAlign: TextAlign.center,
+    );
+  }
+}
+
 class _ActiveMedia extends StatelessWidget {
   const _ActiveMedia({required this.title});
 
@@ -572,11 +610,11 @@ class _ActiveMedia extends StatelessWidget {
   Widget build(BuildContext context) {
     final asset = matchExerciseAsset(title);
     if (asset == null) return const SizedBox.shrink();
-    final gif = asset.gifPath;
+    final still = asset.assetPath;
     final media = ExerciseMediaRef(
-      uri: gif,
+      uri: still,
       source: ExerciseMediaSource.asset,
-      kind: ExerciseMediaKind.gif,
+      kind: ExerciseMediaKind.image,
     );
     return Align(
       alignment: Alignment.centerLeft,
