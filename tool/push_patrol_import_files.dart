@@ -90,6 +90,8 @@ Future<void> main(List<String> args) async {
   );
   await copyFixture(
     adbPath,
+    // Trailing-comma JSON (salvages into Create plan + issues banner).
+    // Plain text would only snackbar — that is not what flow 2c asserts.
     File('${root.path}/tool/fixtures/invalid-plan.json'),
     'broken.json',
   );
