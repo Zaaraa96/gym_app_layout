@@ -1,8 +1,8 @@
-/// Normalized screen tap (0–1) for opening a DocumentsUI list row.
+/// Normalized screen tap (0–1) for a DocumentsUI list row.
 ///
-/// DocumentsUI enters multi-select when the left icon/thumbnail is tapped.
-/// ACTION_OPEN_DOCUMENT finishes when the geometric middle of the row is
-/// tapped (title band), away from the icon and the right-hand preview control.
+/// On the Patrol AVD a row tap selects the file ("1 selected"); the robot then
+/// presses the top-bar **Select** to finish ACTION_OPEN_DOCUMENT. Aim at the
+/// geometric middle of the row (title band), not the left icon strip.
 ({double x, double y}) documentsUiRowMiddleTap({
   required double rowMinX,
   required double rowMinY,
