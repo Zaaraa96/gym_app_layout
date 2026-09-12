@@ -4,6 +4,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:gym_app/app/app_bootstrap.dart';
+import 'package:gym_app/features/plans/documents_ui_row_tap.dart';
 import 'package:gym_app/features/plans/native_file_label.dart';
 import 'package:patrol/patrol.dart';
 
@@ -469,10 +470,10 @@ class GymApp {
     }
   }
 
-  /// DocumentsUI / SAF: the filename TextView is visible and "tappable" but
-  /// not the click target. ACTION_OPEN_DOCUMENT only finishes when the list
-  /// row (or the icon to the left of the title) is clicked. Success is the
-  /// picker closing, not UiAutomator reporting a tap.
+  /// DocumentsUI / SAF: on this AVD a row tap puts the file into selection
+  /// mode ("1 selected") instead of returning a URI. Confirm with the top-bar
+  /// **Select** action so ACTION_OPEN_DOCUMENT finishes. Success is the picker
+  /// closing, not UiAutomator reporting a tap.
   Future<void> pickFileFromDownloads(String fileName) =>
       pickJsonFromDownloads(fileName);
 
@@ -505,8 +506,8 @@ class GymApp {
     }
     if (!await _selectDocumentsUiFile(fileName)) {
       fail(
-        'Native picker stayed open after tapping $fileName. SAF did not '
-        'return a file.\n${await _dumpNativeUi()}',
+        'Native picker stayed open after tapping $fileName / Select. SAF did '
+        'not return a file.\n${await _dumpNativeUi()}',
       );
     }
     await pumpQuiet(const Duration(milliseconds: 800));
@@ -532,62 +533,135 @@ class GymApp {
     Future<AndroidGetNativeViewsResponse> snapshot() =>
         $.platform.android.getNativeViews(null);
 
-    Future<void> tapCellFor(AndroidNativeView label) async {
+    /// Tap the geometric middle of the list row so the file becomes selected.
+    Future<void> tapRowMiddle(AndroidNativeView label) async {
       final next = await snapshot();
-      final cell = _cellContainingLabel(next, label) ?? label;
-      await _tapAtScreen(cell, next);
-    }
-
-    Future<void> tapLabelCenter(AndroidNativeView label) async {
-      final next = await snapshot();
-      await _tapAtScreen(label, next);
-    }
-
-    Future<void> tapIcon(AndroidNativeView label) async {
-      final next = await snapshot();
+      final row = _rowContainingLabel(next, label);
       final size = _screenSize(next);
-      await _tapAtScreenPoint(
-        x: (label.visibleBounds.minX - 48) / size.width,
-        y: label.visibleCenter.y / size.height,
+      if (row != null) {
+        final bounds = row.visibleBounds;
+        final tap = documentsUiRowMiddleTap(
+          rowMinX: bounds.minX,
+          rowMinY: bounds.minY,
+          rowMaxX: bounds.maxX,
+          rowMaxY: bounds.maxY,
+          screenWidth: size.width,
+          screenHeight: size.height,
+        );
+        await _tapAtScreenPoint(x: tap.x, y: tap.y);
+        return;
+      }
+      final tap = documentsUiLabelBandTap(
+        labelCenterY: label.visibleCenter.y,
+        screenHeight: size.height,
       );
+      await _tapAtScreenPoint(x: tap.x, y: tap.y);
+    }
+
+    /// Press the top-bar **Select** after the row is in selection mode.
+    Future<bool> confirmSelect() async {
+      // Wait briefly for the action bar to flip to "N selected" + Select.
+      for (var i = 0; i < 8; i++) {
+        if (await _tapDocumentsUiSelectButton()) {
+          await pumpQuiet(const Duration(milliseconds: 500));
+          if (!await _pickerShows(fileName)) return true;
+        }
+        await Future<void>.delayed(const Duration(milliseconds: 250));
+      }
+      return !await _pickerShows(fileName);
     }
 
     var labels = _exactLabels(await snapshot(), fileName);
     for (final label in labels) {
       try {
-        await tapCellFor(label);
+        await tapRowMiddle(label);
       } catch (_) {}
       await pumpQuiet(const Duration(milliseconds: 500));
-      if (!await _pickerShows(fileName)) return true;
-      try {
-        await tapLabelCenter(label);
-      } catch (_) {}
-      await pumpQuiet(const Duration(milliseconds: 500));
-      if (!await _pickerShows(fileName)) return true;
-      try {
-        await tapIcon(label);
-      } catch (_) {}
-      await pumpQuiet(const Duration(milliseconds: 500));
-      if (!await _pickerShows(fileName)) return true;
+      // Row tap alone leaves the picker open in selection mode — confirm.
+      if (await confirmSelect()) return true;
     }
 
     labels = _exactLabels(await snapshot(), fileName);
     if (labels.isNotEmpty) {
       try {
-        await tapCellFor(labels.last);
+        await tapRowMiddle(labels.last);
       } catch (_) {}
       await pumpQuiet(const Duration(milliseconds: 500));
-      if (!await _pickerShows(fileName)) return true;
+      if (await confirmSelect()) return true;
     }
 
-    for (final desc in ['Open', 'Select', 'Done', 'OK']) {
-      await _nativeTapDescription(desc);
+    // Already in selection mode from a prior tap — just confirm.
+    return confirmSelect();
+  }
+
+  /// Tap DocumentsUI's top-bar Select (or Open) after a file row is selected.
+  Future<bool> _tapDocumentsUiSelectButton() async {
+    const labels = ['Select', 'SELECT', 'Open', 'OPEN', 'Done', 'OK'];
+
+    // 1) Preferred: find the action in the native tree and tap its center.
+    try {
+      final tree = await $.platform.android.getNativeViews(null);
+      final button = _findDocumentsUiConfirmAction(tree);
+      if (button != null) {
+        final size = _screenSize(tree);
+        await _tapAtScreenPoint(
+          x: button.visibleCenter.x / size.width,
+          y: button.visibleCenter.y / size.height,
+        );
+        return true;
+      }
+    } catch (_) {}
+
+    // 2) UiAutomator text / content-description.
+    for (final text in labels) {
+      if (await nativeTapText(
+        text,
+        timeout: const Duration(milliseconds: 600),
+      )) {
+        return true;
+      }
     }
-    for (final text in ['SELECT', 'Select', 'Open']) {
-      await nativeTapText(text, timeout: const Duration(milliseconds: 500));
+    for (final desc in labels) {
+      if (await _nativeTapDescription(desc)) return true;
     }
-    await pumpQuiet(const Duration(milliseconds: 500));
-    return !await _pickerShows(fileName);
+
+    // 3) Fallback: top-right where DocumentsUI places Select.
+    try {
+      await _tapAtScreenPoint(x: 0.82, y: 0.06);
+      return true;
+    } catch (_) {
+      return false;
+    }
+  }
+
+  AndroidNativeView? _findDocumentsUiConfirmAction(
+    AndroidGetNativeViewsResponse tree,
+  ) {
+    const labels = {'select', 'open', 'done', 'ok'};
+    final matches = <AndroidNativeView>[];
+    void collect(AndroidNativeView view) {
+      final text = view.text?.trim().toLowerCase() ?? '';
+      final desc = view.contentDescription?.trim().toLowerCase() ?? '';
+      final res = view.resourceName?.toLowerCase() ?? '';
+      final isLabel = labels.contains(text) || labels.contains(desc);
+      final isSelectRes = res.contains('select') ||
+          res.endsWith('/option_menu_select') ||
+          res.endsWith('/action_menu_select');
+      if (isLabel || isSelectRes) {
+        matches.add(view);
+      }
+      for (final child in view.children) {
+        collect(child);
+      }
+    }
+
+    for (final root in tree.roots) {
+      collect(root);
+    }
+    if (matches.isEmpty) return null;
+    // Prefer the topmost (action bar) match.
+    matches.sort((a, b) => a.visibleCenter.y.compareTo(b.visibleCenter.y));
+    return matches.first;
   }
 
   Future<bool> _nativeTapDescription(String description) async {
@@ -651,19 +725,30 @@ class GymApp {
     return labels;
   }
 
-  AndroidNativeView? _cellContainingLabel(
+  /// Prefer DocumentsUI `item_root` / clickable list rows over nested title
+  /// wrappers so the tap lands in the middle of the row, not on chrome.
+  AndroidNativeView? _rowContainingLabel(
     AndroidGetNativeViewsResponse tree,
     AndroidNativeView label,
   ) {
+    final itemRoots = <AndroidNativeView>[];
+    final clickableRows = <AndroidNativeView>[];
     final cells = <AndroidNativeView>[];
     final screen = _screenSize(tree);
     final screenArea = screen.width * screen.height;
     void collect(AndroidNativeView view) {
       if (_boundsContain(view.visibleBounds, label.visibleBounds) &&
-          _isCellSize(view) &&
           _area(view) > _area(label) + 1 &&
-          _area(view) < screenArea * 0.35) {
-        cells.add(view);
+          _area(view) < screenArea * 0.5) {
+        final isItemRoot =
+            view.resourceName?.endsWith('id/item_root') ?? false;
+        if (isItemRoot) {
+          itemRoots.add(view);
+        } else if (view.isClickable && _isCellSize(view)) {
+          clickableRows.add(view);
+        } else if (_isCellSize(view)) {
+          cells.add(view);
+        }
       }
       for (final child in view.children) {
         collect(child);
@@ -673,9 +758,17 @@ class GymApp {
     for (final root in tree.roots) {
       collect(root);
     }
+    if (itemRoots.isNotEmpty) {
+      itemRoots.sort(_byArea);
+      return itemRoots.first;
+    }
+    if (clickableRows.isNotEmpty) {
+      clickableRows.sort(_byArea);
+      return clickableRows.last;
+    }
     if (cells.isEmpty) return null;
     cells.sort(_byArea);
-    return cells.first;
+    return cells.last;
   }
 
   bool _boundsContain(Rectangle outer, Rectangle inner) {
@@ -716,17 +809,6 @@ class GymApp {
       walk(root);
     }
     return (width: maxX <= 0 ? 1 : maxX, height: maxY <= 0 ? 1 : maxY);
-  }
-
-  Future<void> _tapAtScreen(
-    AndroidNativeView target,
-    AndroidGetNativeViewsResponse tree,
-  ) {
-    final size = _screenSize(tree);
-    return _tapAtScreenPoint(
-      x: target.visibleCenter.x / size.width,
-      y: target.visibleCenter.y / size.height,
-    );
   }
 
   Future<void> _tapAtScreenPoint({required double x, required double y}) {
