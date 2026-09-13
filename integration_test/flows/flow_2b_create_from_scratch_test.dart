@@ -58,7 +58,7 @@ void main() {
       await gym.openDayByTitle('Day 1');
       await gym.tapText('Start workout');
       await gym.awaitLiveLogger();
-      await gym.tapLogSet();
+      await gym.saveSetAndSkipRest();
       await gym.endAndDiscard();
       await gym.returnToPlansHome();
       expect($('Continue workout'), findsNothing);

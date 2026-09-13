@@ -101,6 +101,12 @@ Pin the AVD with `-d emulator-5554` if Flutter still lists another device.
   (`save-day`).
 - Plan overflow **Export plan** offers Full package or Lite. Patrol stops at
   Cancel so the native share sheet is not required.
+- Live logger (comfort + immersive): wait for **Done with this set? Save it.**
+  (or **Your turn:**). **Save set** / **Log time** auto-starts rest
+  (**Breathe.**, **+15s**, **Skip**). Soft rate is Easy→Brutal keys
+  (`rate-1`…`rate-5`) or **Skip for now**. After the last movement, tap
+  **Continue** on the session-done beat before **Workout complete**. **End**
+  is hidden while resting — **Skip** rest first.
 - Process death from the host: `adb shell am force-stop com.zahra.gym_app`.
   The Dart tests use Home then `openApp` so they stay in-band.
 - Three-button home row (Import / New / Beginner) can sit under the IME or

@@ -14,7 +14,7 @@ Default is the quiet info card (idea A):
 - Estimated duration (`~N min`) and volume (`1 exercise · 3 sets` or `4 exercises`)
 - **Delete day** and tap-to-open day preview
 
-Logic lives in `lib/features/plans/day_card_summary.dart`. Duration is an estimate, not a clock: work from sets × reps/duration, plus assumed 60s rest between sets and 30s between blocks. Live rest stays a manual stopwatch and is not stored.
+Logic lives in `lib/features/plans/day_card_summary.dart`. Duration is an estimate, not a clock: work from sets × reps/duration, plus assumed 60s rest between sets and 30s between blocks. Live rest is a UI-only countdown (auto-starts after save; +15s / Skip) and is not stored.
 
 ### Thumbnails (idea B) only when assets exist
 

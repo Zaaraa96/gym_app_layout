@@ -35,14 +35,18 @@ void main() {
       await gym.back();
 
       await gym.startTodaysWorkoutFromHome();
-      expect($('Bodyweight squat  ·  set 1 of 3'), findsOneWidget);
+      expect($('Your turn: Bodyweight squat'), findsOneWidget);
+      expect($('set 1 of 3'), findsOneWidget);
 
-      await gym.tapLogSet();
-      expect($('Bodyweight squat  ·  set 2 of 3'), findsOneWidget);
-      await gym.tapStartRest();
-      expect($('Resting…'), findsOneWidget);
-      await gym.tapResetRest();
-      expect($('Start rest'), findsOneWidget);
+      await gym.tapSaveSet();
+      expect($('Breathe.'), findsOneWidget);
+      expect($('Skip'), findsOneWidget);
+      expect($('+15s'), findsOneWidget);
+      await gym.tapAddRest15();
+      await gym.tapSkipRest();
+      expect($('Your turn: Bodyweight squat'), findsOneWidget);
+      expect($('set 2 of 3'), findsOneWidget);
+      expect($('Done with this set? Save it.'), findsOneWidget);
 
       await gym.back();
       expect($(const Key('continue-banner')), findsOneWidget);

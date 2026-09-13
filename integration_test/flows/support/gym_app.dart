@@ -220,7 +220,7 @@ class GymApp {
 
   /// Live logger is a snapshot; there is no Include-today sheet.
   Future<void> awaitLiveLogger() async {
-    await $('Log what you did on this set.').waitUntilVisible();
+    await $('Done with this set? Save it.').waitUntilVisible();
     expect($('Include today'), findsNothing);
   }
 
@@ -229,23 +229,40 @@ class GymApp {
     await awaitLiveLogger();
   }
 
-  Future<void> tapLogSet() async {
-    await _tap($('Log set'), settle: SettlePolicy.trySettle);
+  Future<void> tapSaveSet() async {
+    await _tap($('Save set'), settle: SettlePolicy.trySettle);
   }
+
+  /// Kept for older call sites; same as [tapSaveSet].
+  Future<void> tapLogSet() => tapSaveSet();
 
   Future<void> tapLogTime() async {
     await _tap($('Log time'), settle: SettlePolicy.trySettle);
   }
 
-  Future<void> tapStartRest() async => tapText('Start rest');
+  /// Dismiss auto-started rest so work / rate / End return.
+  Future<void> tapSkipRest() async => tapText('Skip');
 
-  Future<void> tapResetRest() async => tapText('Reset rest');
+  Future<void> tapAddRest15() async => tapText('+15s');
+
+  /// Save set then skip the auto rest takeover.
+  Future<void> saveSetAndSkipRest() async {
+    await tapSaveSet();
+    await expectVisible('Breathe.');
+    await tapSkipRest();
+  }
 
   Future<void> rate(int n) async {
     await tapKey('rate-$n');
   }
 
-  /// Prefer rating when the 1–5 row is on screen so extras are not logged.
+  Future<void> acknowledgeSessionDoneBeat() async {
+    if ($(const Key('session-done-continue')).exists) {
+      await tapKey('session-done-continue');
+    }
+  }
+
+  /// Prefer rating when the Easy→Brutal row is on screen so extras are not logged.
   ///
   /// [expectSupersetAlternate] / [expectTimedWork] cover Day 1 of Beginner
   /// full body (Glute bridge + Bird dog, then timed Plank).
@@ -272,30 +289,38 @@ class GymApp {
         }
         return;
       }
+      if ($(const Key('session-done-continue')).exists) {
+        await tapKey('session-done-continue');
+        continue;
+      }
+      if ($('Breathe.').exists && $('Skip').exists) {
+        await tapSkipRest();
+        continue;
+      }
       if ($(Key('rate-$difficulty')).exists) {
         await _tap($(Key('rate-$difficulty')), settle: SettlePolicy.trySettle);
         continue;
       }
       if (expectSupersetAlternate &&
           !sawAlternate &&
-          $('Glute bridge  ·  set 1 of 3').exists &&
-          $('Log set').exists) {
-        await tapLogSet();
-        await expectVisible('Bird dog  ·  set 1 of 3');
+          $('Your turn: Glute bridge').exists &&
+          $('Save set').exists) {
+        await saveSetAndSkipRest();
+        await expectVisible('Your turn: Bird dog');
         sawAlternate = true;
         continue;
       }
       if ($('Log time').exists) {
         if (expectTimedWork && !sawTimed) {
           expect($('Start timer'), findsOneWidget);
-          expect($('Plank'), findsWidgets);
+          expect($('Your turn: Plank'), findsOneWidget);
         }
         sawTimed = true;
         await tapLogTime();
         continue;
       }
-      if ($('Log set').exists) {
-        await tapLogSet();
+      if ($('Save set').exists) {
+        await saveSetAndSkipRest();
         continue;
       }
     }
@@ -429,15 +454,25 @@ class GymApp {
   }
 
   Future<void> endAndDiscard() async {
+    await _leaveRestIfNeeded();
     await tapKey('end-workout');
     await tapKey('discard-workout');
     await pumpQuiet(const Duration(milliseconds: 600));
   }
 
   Future<void> endAndFinish() async {
+    await _leaveRestIfNeeded();
     await tapKey('end-workout');
     await tapKey('finish-workout');
+    await acknowledgeSessionDoneBeat();
     await $('Workout complete').waitUntilVisible();
+  }
+
+  Future<void> _leaveRestIfNeeded() async {
+    if ($('Breathe.').exists && $('Skip').exists) {
+      await tapSkipRest();
+      await pumpQuiet(const Duration(milliseconds: 300));
+    }
   }
 
   Future<void> backgroundAndReopen() async {

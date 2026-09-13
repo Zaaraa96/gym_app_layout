@@ -16,7 +16,7 @@ Locked decisions:
 - Creating a plan uses one vertical stepper (`docs/plan-builder-stepper.md`). Progress auto-saves as a **draft**. Only **active** plans appear in Today or can start a workout.
 - Legacy `common-plan` JSON is still readable. Those sections become ordinary days on import. New sessions do not offer an Include-today sheet.
 
-v1: import + create/edit, start/resume a day, log sets (weight/reps or duration), rest stopwatch, 1–5 per exercise, month calendar + per-exercise trends.
+v1: import + create/edit, start/resume a day, log sets (weight/reps or duration), auto rest countdown, soft 1–5 per exercise (or skip), month calendar + per-exercise trends.
 
 ---
 
@@ -130,10 +130,10 @@ Copied from the prescription when the session starts.
 | `prescribedReps` | `int?` | |
 | `prescribedDurationSeconds` | `int?` | |
 | `sets` | `List<SetLog>` | |
-| `difficulty` | `int?` | 1–5. Required to mark this exercise complete |
-| `completedAt` | `DateTime?` | Set when difficulty is saved |
+| `difficulty` | `int?` | 1–5 when rated. Null when skipped or not yet finished |
+| `completedAt` | `DateTime?` | Set when rated **or** skipped |
 
-An exercise is **complete** when `difficulty != null`. Sets can be logged before rating. Rating is the last step for that movement.
+An exercise is **complete** when `completedAt != null` (rated or **Skip for now**). Sets can be logged before that. Soft rate or skip is the last step for that movement.
 
 ### `SetLog` (embedded)
 
@@ -145,7 +145,7 @@ An exercise is **complete** when `difficulty != null`. Sets can be logged before
 | `durationSeconds` | `int?` | Timed work |
 | `completedAt` | `DateTime` | |
 
-Rest is **not** stored. The rest stopwatch is UI-only in v1.
+Rest is **not** stored. The rest countdown is UI-only in v1 (auto-starts after save; +15s / Skip).
 
 ### Import JSON (v1)
 
@@ -312,8 +312,8 @@ Starting while another session is `inProgress`:
 | Day editor | One day’s title, summary, blocks; same cards as Create plan; optional SVG/gallery media; target areas | `day_editor_page.dart` + `day_step_body.dart` |
 | Create plan | Vertical stepper: details, one step per day, Review. Auto-saves a draft | `plan_builder_page.dart` |
 | In-progress conflict | Resume vs abandon-and-start | Dialog in `start_workout.dart` |
-| Live workout | Current block, set logger, rest | `live_workout_page.dart` |
-| Rate exercise | Inline 1–5 on the exercise row after prescribed sets; not a blocking dialog | On `live_workout_page.dart` |
+| Live workout | Work / rest / rate modes; set logger; countdown rest | `live_workout_page.dart` |
+| Rate exercise | Full takeover after prescribed sets: Easy→Brutal or Skip for now | On `live_workout_page.dart` |
 | End-workout sheet | Finish (`completed`), Discard (`abandoned`), or Keep going | Sheet on `live_workout_page.dart` |
 | Month | Calendar + trends | `month_tab.dart` |
 | Session log | Read-only history for one session, or a day list when several | `session_log_page.dart` |
@@ -341,10 +341,10 @@ Empty start (if reached) shows **Add an exercise first.** There is no Include-to
 ```
 [ Day 1 ]
 
-Leaving keeps this workout — Continue on Plans.
+Leaving keeps this workout — continue on Plans.
 3 of 8 · ~12 min left
 
-[ GIF / still ]
+[ catalog still ]
 
 Your turn: Kang squat
 then Leg extension
@@ -358,19 +358,19 @@ Done with this set? Save it.
   [ Save set ]
 ```
 
-Work vs rest are separate modes. **Save set** / **Log time** auto-starts rest. Rest takes over the screen (big clock, breathe / next-up copy, **Skip**) and hides the weight/reps form. Details: [live-logger-comfort.md](live-logger-comfort.md).
+Work vs rest are separate modes. **Save set** / **Log time** auto-starts rest. Rest takes over the screen (big clock, breathe / next-up copy, **+15s** / **Skip**) and hides the weight/reps form. Details: [live-logger-comfort.md](live-logger-comfort.md).
 
 A **superset is alternating sets**, not “finish A then B”. Both prescriptions stay visible; **active** is the next exercise in the block that still has unlogged prescribed sets, cycling in prescription order: A1 → B1 → A2 → B2 → … Weight may be empty (`null` = bodyweight). Reps are required for rep work.
 
 **Prescribed phase.** Only the active exercise accepts Save set / Log time. Keep alternating until every log in the block has `sets.length >= prescribedSets`. Do not rate yet if the partner still has prescribed sets left (A3 then B3, not A3-rate-B3).
 
-**Then extras + rating.** Soft 1–5 with human labels (Easy → Brutal) appears inline after prescribed sets — never a modal that replaces logging. **Skip for now** finishes the movement without a number (`completedAt` set, `difficulty` null). Extra sets are allowed only in this phase, and only on an unfinished exercise. Rating or skip hides Save set for that movement.
+**Then extras + rating.** Soft 1–5 with human labels (Easy → Brutal) is a full-screen takeover after prescribed sets. **Skip for now** finishes the movement without a number (`completedAt` set, `difficulty` null). **Log an extra set** is allowed only in this phase, and only on an unfinished exercise. Rating or skip advances the block.
 
 Duration exercises replace weight/reps with a countdown from `prescribedDurationSeconds`, paused until Start. The countdown may run past 0 (overtime). **Log time** stores actual seconds: if the timer ran, elapsed (`prescribed − remaining`, remaining can be negative); if they log without starting, store the prescribed value. No separate control to type remaining.
 
-Header names the **active** exercise (“Your turn”) and set index. Quiet progress line: `N of M · ~T left`. Catalog GIF/still when the title matches.
+Header names the **active** exercise (“Your turn”) and set index. Quiet progress line: `N of M · ~T left`. Catalog still when the title matches.
 
-Persist every logged set immediately. App-bar back and system back leave the session `inProgress` with no extra prompt; reassurance copy notes Continue on Plans.
+Persist every logged set immediately. App-bar back and system back leave the session `inProgress` with no extra prompt; reassurance copy notes continue on Plans.
 
 **End.** A live-workout action (not back) opens Finish | Discard | Keep going. Finish → `completed` (partial logs stay; unrated `difficulty` may stay null). Discard → `abandoned` (month view ignores it, per Step 2). Keep going dismisses the sheet.
 
@@ -442,9 +442,9 @@ initialRoute: plans exist ? /home : /
 `WorkoutController` is a GetX controller created with the session uuid. It:
 
 - Loads the session from the session repository
-- Tracks which `ExerciseLog` is **active**. On a single, that log stays active through extras until it is rated. On a superset, after each logged set in the prescribed phase the active log becomes the next partner in the same `blockId` with `sets.length < prescribedSets`. After every log in the block has its prescribed sets, extras and inline 1–5 are available on each unrated log in that block; rating one does not hide the partner
-- Holds rest elapsed seconds with `Stopwatch` + `Timer.periodic` (1s). Rest auto-starts after each save and is not written to Isar
-- Last movement finish sets a short `sessionDoneBeat` before `finish()`; Skip rating sets `completedAt` without `difficulty`
+- Tracks which `ExerciseLog` is **active**. On a single, that log stays active through extras until it is finished (rated or skipped). On a superset, after each logged set in the prescribed phase the active log becomes the next partner in the same `blockId` with `sets.length < prescribedSets`. After every log in the block has its prescribed sets, extras and soft rate/skip are available on each unfinished log in that block
+- Holds rest as a **countdown** (`restRemainingSeconds`, default 60) with `Timer.periodic` (1s), **+15s**, and **Skip**. Rest auto-starts after each save and is not written to Isar
+- Last movement finish sets a short `sessionDoneBeat` (UI **Continue**) before `finish()`; Skip rating sets `completedAt` without `difficulty`
 - Duration work: countdown `int` remaining, paused until Start; Log time stores `prescribed - remaining` if the timer ran, or the prescribed value if they log without starting; persist `durationSeconds`
 - Calls `sessionRepository.update` after each set and after rating so process death does not lose the log
 
@@ -482,9 +482,9 @@ Routes: `/`, `/home`, `/starters`, `/import`, `/new-plan`, `/plan`, `/day`, `/ed
 
 ## Step 5 — Implementation slices
 
-Slices **1–9 are in the running app** (Welcome, import/create stepper, plan/day editors, start/conflict, live logger + 1–5, Month). Slice **10** (harden) is largely in: resume after back, one in-progress session, invalid JSON error, analyze/CI, widget tests. Remaining product gaps:
+Slices **1–9 are in the running app** (Welcome, import/create stepper, plan/day editors, start/conflict, live logger + soft rate, Month). Slice **10** (harden) is largely in: resume after back, one in-progress session, invalid JSON error, analyze/CI, widget tests. Remaining product gaps:
 
-- Target weight, accounts, suggested next load, reorder/duplicate days
+- Target weight, accounts, suggested next load, reorder/duplicate days, prefill weight from last session
 - HTTP sync only when `API_BASE_URL` is set
 
 Historical build order (already shipped):
