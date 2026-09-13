@@ -85,7 +85,9 @@ void main() {
         expectTimedWork: true,
       );
       expect($('Workout complete'), findsOneWidget);
-      expect($('Nice work. What you logged is saved.'), findsOneWidget);
+      expect($('Nice work.'), findsOneWidget);
+      // Concrete summary line, e.g. "3 sets of Bodyweight squat saved".
+      expect(find.textContaining(' saved'), findsOneWidget);
       await gym.tapDone();
 
       await gym.expectPlansHomeWith(GymApp.fullBodyTitle);
