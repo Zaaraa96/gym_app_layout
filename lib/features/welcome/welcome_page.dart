@@ -43,7 +43,10 @@ class WelcomePage extends StatelessWidget {
               child: Column(
                 mainAxisAlignment: MainAxisAlignment.center,
                 children: [
-                  const CueLiftWelcomeBrand(height: 260),
+                  const CueLiftWelcomeBrand(
+                    height: 260,
+                    animateEntrance: true,
+                  ),
                   const SizedBox(height: 28),
                   SizedBox(
                     width: double.infinity,

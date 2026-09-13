@@ -4,6 +4,7 @@ import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 
 import '../../common/app_routes.dart';
+import '../../common/app_theme.dart';
 import '../../common/widgets/app_elevated_button.dart';
 import '../../common/widgets/app_load_error.dart';
 import '../../common/widgets/app_scaffold.dart';
@@ -141,6 +142,7 @@ class _PlansHomePageState extends State<PlansHomePage> {
           : null,
       bottomNavigationBar: NavigationBar(
         selectedIndex: _tab,
+        animationDuration: CueLiftMotion.navIndicator,
         onDestinationSelected: (index) => setState(() => _tab = index),
         destinations: const [
           NavigationDestination(

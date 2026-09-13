@@ -19,6 +19,22 @@ abstract final class CueLiftColors {
   static const error = Color(0xFFEF4444);
 }
 
+/// Motion tokens from [docs/design-system.md](../../docs/design-system.md).
+abstract final class CueLiftMotion {
+  /// Welcome brand stack entrance.
+  static const welcomeEntrance = Duration(milliseconds: 400);
+  static const Curve welcomeCurve = Curves.easeOutCubic;
+
+  /// Primary CTA press scale (slight).
+  static const ctaPressScale = 0.97;
+  static const ctaPress = Duration(milliseconds: 120);
+  static const Curve ctaCurve = Curves.easeOutCubic;
+
+  /// Bottom nav / tab coral indicator travel.
+  static const navIndicator = Duration(milliseconds: 320);
+  static const Curve navCurve = Curves.easeInOutCubic;
+}
+
 const _radius = 12.0;
 
 ColorScheme _lightScheme() {

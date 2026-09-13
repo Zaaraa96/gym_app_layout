@@ -105,9 +105,9 @@ Welcome: one vertical composition — brand stack → actions. No cards in the h
 
 ## Motion
 
-1. Welcome brand stack appears once on entry (~400ms).
-2. Primary CTA: light scale on press.
-3. Tab / active: coral indicator ease.
+1. Welcome brand stack appears once on entry (~400ms) — `CueLiftWelcomeBrand(animateEntrance: true)` / `CueLiftMotion.welcomeEntrance`.
+2. Primary CTA: light scale on press — `AppElevatedButton` + `CueLiftMotion.ctaPressScale`.
+3. Tab / active: coral indicator ease — `NavigationBar.animationDuration` = `CueLiftMotion.navIndicator`.
 
 No glow pulses.
 
@@ -126,8 +126,10 @@ Platform launcher icons and iOS launch images are generated from `cuelift-icon.p
 
 | Code | Responsibility |
 |---|---|
-| `lib/common/app_theme.dart` | Light / dark `ThemeData` + CueLift color tokens |
+| `lib/common/app_theme.dart` | Light / dark `ThemeData`, CueLift color + motion tokens |
+| `lib/common/widgets/cuelift_brand.dart` | Welcome brand stack (+ entrance motion) / app-bar mark |
+| `lib/common/widgets/app_elevated_button.dart` | Primary CTA press scale |
 | `lib/features/welcome/welcome_page.dart` | Welcome rule brand field |
 | `lib/app/app_bootstrap.dart` | Boot splash uses Welcome brand |
-| `lib/features/plans/plans_home_page.dart` | App-bar C mark |
+| `lib/features/plans/plans_home_page.dart` | App-bar C mark + nav indicator duration |
 | Native Android / iOS splash + mipmaps | Navy field + C icon |
