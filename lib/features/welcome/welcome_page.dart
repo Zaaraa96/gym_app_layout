@@ -44,7 +44,7 @@ class WelcomePage extends StatelessWidget {
                 mainAxisAlignment: MainAxisAlignment.center,
                 children: [
                   const CueLiftWelcomeBrand(
-                    height: 260,
+                    height: 220,
                     animateEntrance: true,
                   ),
                   const SizedBox(height: 28),

@@ -6,9 +6,9 @@ Brand identity and UI tokens for the gym app. Product name: **CueLift**.
 
 Primary identity is the **Welcome-style brand stack**:
 
-1. Slash-tail **C** mark (coral on navy)
-2. Wordmark **CueLift** — `Cue` white / `Lift` coral
-3. One line: *Your training assistant*
+1. Slash-tail **C** mark (coral `#FF4D3D` on transparent; sits on navy field)
+2. Wordmark **CueLift** — `Cue` white / `Lift` coral (same hex; transparent PNG)
+3. One line: *Your training assistant* — Flutter `Text` under the artwork (not baked into the bitmap)
 
 | Surface | Treatment |
 |---|---|
@@ -115,7 +115,7 @@ No glow pulses.
 
 | File | Use |
 |---|---|
-| `assets/image/brand/cuelift-welcome.png` | Welcome / splash Flutter brand |
+| `assets/image/brand/cuelift-welcome.png` | Welcome / splash mark + wordmark (transparent; no tagline) |
 | `assets/image/brand/cuelift-icon.png` | Launcher / splash mark source (coral C on navy) |
 | `assets/image/brand/cuelift-mark-light.png` | App-bar / surface chrome (coral C on transparent) |
 

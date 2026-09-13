@@ -9,14 +9,15 @@ abstract final class CueLiftBrandAssets {
   static const markLight = 'assets/image/brand/cuelift-mark-light.png';
 }
 
-/// Welcome / splash brand stack (C + CueLift + assist line artwork).
+/// Welcome / splash brand stack (transparent C + CueLift artwork + tagline).
 ///
+/// Tagline is Flutter [Text], not baked into [CueLiftBrandAssets.welcome].
 /// When [animateEntrance] is true, the stack fades/slides in once over
 /// [CueLiftMotion.welcomeEntrance] (design-system Welcome motion).
 class CueLiftWelcomeBrand extends StatefulWidget {
   const CueLiftWelcomeBrand({
     super.key,
-    this.height = 280,
+    this.height = 220,
     this.showLoader = false,
     this.animateEntrance = false,
   });
@@ -76,6 +77,18 @@ class _CueLiftWelcomeBrandState extends State<CueLiftWelcomeBrand>
           fit: BoxFit.contain,
           filterQuality: FilterQuality.high,
           semanticLabel: 'CueLift',
+        ),
+        const SizedBox(height: 14),
+        Text(
+          'Your training assistant',
+          textAlign: TextAlign.center,
+          style: TextStyle(
+            color: CueLiftColors.white.withValues(alpha: 0.92),
+            fontSize: 17,
+            fontWeight: FontWeight.w500,
+            height: 1.35,
+            letterSpacing: 0.15,
+          ),
         ),
         if (widget.showLoader) ...[
           const SizedBox(height: 28),
