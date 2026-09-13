@@ -66,4 +66,78 @@ void main() {
     expect(tap.x, 0.5);
     expect(tap.y, closeTo(680 / screenH, 0.001));
   });
+
+  test('selection mode matches "N selected" chrome', () {
+    expect(documentsUiIsSelectionMode(['1 selected']), isTrue);
+    expect(documentsUiIsSelectionMode(['3 selected', 'broken.json']), isTrue);
+    expect(
+      documentsUiIsSelectionMode(['Recent files', 'broken.json']),
+      isFalse,
+    );
+    expect(documentsUiIsSelectionMode([null, '']), isFalse);
+  });
+
+  test('pick confirm prefers Select text in the action bar', () {
+    final picked = documentsUiPickConfirmAction(
+      const [
+        DocumentsUiConfirmCandidate(
+          centerX: 100,
+          centerY: 900,
+          text: 'Select', // too low — list chrome, ignore
+        ),
+        DocumentsUiConfirmCandidate(
+          centerX: 200,
+          centerY: 120,
+          resourceName: 'com.google.android.documentsui:id/icon_selected',
+        ),
+        DocumentsUiConfirmCandidate(
+          centerX: 900,
+          centerY: 160,
+          text: 'Select',
+        ),
+        DocumentsUiConfirmCandidate(
+          centerX: 800,
+          centerY: 160,
+          text: 'Open',
+        ),
+      ],
+      screenHeight: screenH,
+    );
+    expect(picked?.text, 'Select');
+    expect(picked?.centerX, 900);
+  });
+
+  test('pick confirm ignores resourceName.contains(select) checkboxes', () {
+    final picked = documentsUiPickConfirmAction(
+      const [
+        DocumentsUiConfirmCandidate(
+          centerX: 80,
+          centerY: 140,
+          resourceName: 'com.google.android.documentsui:id/icon_selected',
+        ),
+        DocumentsUiConfirmCandidate(
+          centerX: 900,
+          centerY: 150,
+          resourceName:
+              'com.google.android.documentsui:id/option_menu_select',
+        ),
+      ],
+      screenHeight: screenH,
+    );
+    expect(
+      picked?.resourceName,
+      'com.google.android.documentsui:id/option_menu_select',
+    );
+  });
+
+  test('Select fallback taps stay in the top-right action bar', () {
+    final taps = documentsUiSelectButtonFallbackTaps();
+    expect(taps, isNotEmpty);
+    for (final tap in taps) {
+      expect(tap.x, greaterThan(0.7));
+      expect(tap.x, lessThan(0.95));
+      expect(tap.y, greaterThan(0.05));
+      expect(tap.y, lessThan(0.12));
+    }
+  });
 }
