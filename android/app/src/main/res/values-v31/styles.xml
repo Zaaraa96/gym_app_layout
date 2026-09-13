@@ -1,10 +1,9 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
     <!--
-      Android 12+ system SplashScreen API.
-      Without windowSplashScreenIconBackgroundColor, the OS draws the launcher
-      icon on a WHITE circular disc — the broken CueLift splash the user saw.
-      Navy icon + splash backgrounds make the circle invisible (continuous field).
+      Android 12+ SplashScreen API.
+      Default icon plate is white; set icon background to navy so the coral C
+      sits on a continuous navy field (no white ring/letterboxing).
     -->
     <style name="LaunchTheme" parent="@android:style/Theme.Light.NoTitleBar">
         <item name="android:windowBackground">@drawable/launch_background</item>
