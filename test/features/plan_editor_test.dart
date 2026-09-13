@@ -1179,8 +1179,9 @@ void main() {
     await tester.pump();
     await settle(tester);
 
-    expect(find.text('kang squat  ·  set 1 of 3'), findsOneWidget);
-    expect(find.text('Log set'), findsOneWidget);
+    expect(find.text('Your turn: kang squat'), findsOneWidget);
+    expect(find.text('set 1 of 3'), findsOneWidget);
+    expect(find.text('Save set'), findsOneWidget);
     expect(
       (await db(tester, () => sessions.inProgress()))!.status,
       SessionStatus.inProgress,

@@ -35,14 +35,27 @@ class WorkoutController extends GetxController {
   WorkoutSession? _session;
   int? _activeLogIndex;
 
-  int restElapsedSeconds = 0;
-  Stopwatch? _restWatch;
+  /// Countdown seconds left while resting. 0 when not resting.
+  int restRemainingSeconds = 0;
+
+  /// Default rest length after Save set / Log time.
+  static const int defaultRestSeconds = 60;
+
+  /// Extra rest granted by +15s.
+  static const int restBumpSeconds = 15;
+
   Timer? _restTimer;
 
   /// Remaining seconds for duration work. Negative means overtime.
   int? durationRemainingSeconds;
   bool durationTimerStarted = false;
   Timer? _durationTimer;
+
+  /// After the last movement is finished, UI shows a short beat before [finish].
+  bool sessionDoneBeat = false;
+
+  /// Difficulty of the last rate/skip that triggered [sessionDoneBeat] (null = skip).
+  int? sessionDoneDifficulty;
 
   WorkoutSession? get session => _session;
 
@@ -62,12 +75,12 @@ class WorkoutController extends GetxController {
 
   bool get isDurationRunning => _durationTimer != null;
 
-  /// First block that still has an unrated log. Null when everything is rated.
+  /// First block that still has an unfinished log. Null when everything is done.
   String? get currentBlockId {
     final session = _session;
     if (session == null) return null;
     for (final log in session.exerciseLogs) {
-      if (log.difficulty == null) return log.blockId;
+      if (!log.isComplete) return log.blockId;
     }
     return null;
   }
@@ -93,16 +106,30 @@ class WorkoutController extends GetxController {
   bool get inExtrasPhase =>
       currentBlockId != null && !isPrescribedPhase && isLive;
 
-  bool get allLogsRated {
+  bool get allLogsComplete {
     final session = _session;
     if (session == null || session.exerciseLogs.isEmpty) return false;
-    return session.exerciseLogs.every((log) => log.difficulty != null);
+    return session.exerciseLogs.every((log) => log.isComplete);
   }
+
+  /// Kept for older tests; same as [allLogsComplete].
+  bool get allLogsRated => allLogsComplete;
 
   /// 1-based set index shown in the live header for the active exercise.
   int get headerSetIndex => (activeLog?.sets.length ?? 0) + 1;
 
   int get headerPrescribedSets => activeLog?.prescribedSets ?? 0;
+
+  /// Partner in the same block still unfinished (for “then …” / orientation).
+  ExerciseLog? get companionCueLog {
+    final active = activeLog;
+    if (active == null) return null;
+    for (final log in currentBlockLogs) {
+      if (log.prescriptionId == active.prescriptionId) continue;
+      if (!log.isComplete) return log;
+    }
+    return null;
+  }
 
   Future<void> load() async {
     _session = await _sessions.byUuid(sessionId);
@@ -122,7 +149,7 @@ class WorkoutController extends GetxController {
 
   bool canRate(ExerciseLog log) {
     if (!isLive || isPrescribedPhase) return false;
-    if (log.difficulty != null) return false;
+    if (log.isComplete) return false;
     return _inCurrentBlock(log);
   }
 
@@ -134,7 +161,8 @@ class WorkoutController extends GetxController {
     _ensureLive();
     final target = log ?? activeLog;
     if (target == null || !canLogSet(target)) {
-      throw const WorkoutActionException('This exercise cannot take a set yet.');
+      throw const WorkoutActionException(
+          'This exercise cannot take a set yet.');
     }
     if (reps == null || reps < 1) {
       throw const WorkoutActionException('Reps are required.');
@@ -149,8 +177,8 @@ class WorkoutController extends GetxController {
         weightKg: weightKg,
       ),
     );
-    _resetRestKeepingStopped();
     _advanceActiveAfterLog();
+    _startRestAfterLog();
     await _persist();
   }
 
@@ -158,13 +186,13 @@ class WorkoutController extends GetxController {
     _ensureLive();
     final target = log ?? activeLog;
     if (target == null || !canLogTime(target)) {
-      throw const WorkoutActionException('This exercise cannot take a time yet.');
+      throw const WorkoutActionException(
+          'This exercise cannot take a time yet.');
     }
     final prescribed = target.prescribedDurationSeconds!;
     final loggingActive = _indexOf(target) == _activeLogIndex;
-    final remaining = loggingActive
-        ? (durationRemainingSeconds ?? prescribed)
-        : prescribed;
+    final remaining =
+        loggingActive ? (durationRemainingSeconds ?? prescribed) : prescribed;
     final seconds = loggingActive && durationTimerStarted
         ? prescribed - remaining
         : prescribed;
@@ -178,8 +206,8 @@ class WorkoutController extends GetxController {
         durationSeconds: seconds,
       ),
     );
-    _resetRestKeepingStopped();
     _advanceActiveAfterLog();
+    _startRestAfterLog();
     await _persist();
   }
 
@@ -197,17 +225,35 @@ class WorkoutController extends GetxController {
     _focus(target);
     target.difficulty = difficulty;
     target.completedAt = _now().toUtc();
-    _selectInitialActive();
-    _syncDurationForActive();
-    await _persist();
-    if (allLogsRated && isLive) {
-      await finish();
+    await _afterMovementFinished(difficulty);
+  }
+
+  /// Finish the movement without a difficulty number.
+  Future<void> skipRating({ExerciseLog? log}) async {
+    _ensureLive();
+    final target = log ?? activeLog;
+    if (target == null || !canRate(target)) {
+      throw const WorkoutActionException(
+        'Skip after this block’s prescribed sets are logged.',
+      );
     }
+    _focus(target);
+    target.difficulty = null;
+    target.completedAt = _now().toUtc();
+    await _afterMovementFinished(null);
+  }
+
+  Future<void> acknowledgeSessionDone() async {
+    if (!sessionDoneBeat || !isLive) return;
+    sessionDoneBeat = false;
+    sessionDoneDifficulty = null;
+    await finish();
   }
 
   Future<void> finish() async {
     _ensureLive();
     _stopTimers();
+    sessionDoneBeat = false;
     _session!.status = SessionStatus.completed;
     _session!.endedAt = _now().toUtc();
     await _persist();
@@ -216,6 +262,7 @@ class WorkoutController extends GetxController {
   Future<void> discard() async {
     _ensureLive();
     _stopTimers();
+    sessionDoneBeat = false;
     _session!.status = SessionStatus.abandoned;
     _session!.endedAt = _now().toUtc();
     await _persist();
@@ -223,12 +270,30 @@ class WorkoutController extends GetxController {
 
   void startRest() {
     if (_restTimer != null) return;
-    _restWatch = Stopwatch()..start();
-    restElapsedSeconds = 0;
+    restRemainingSeconds = defaultRestSeconds;
+    // Tick silently — the rest clock widget polls remaining so GetBuilder
+    // does not rebuild every second (that was dropping Skip taps).
     _restTimer = Timer.periodic(const Duration(seconds: 1), (_) {
-      restElapsedSeconds = _restWatch?.elapsed.inSeconds ?? restElapsedSeconds;
-      update();
+      if (_restTimer == null) return;
+      if (restRemainingSeconds <= 1) {
+        endRest();
+        return;
+      }
+      restRemainingSeconds -= 1;
     });
+    update();
+  }
+
+  /// Add time to the rest countdown (no-op when not resting).
+  void addRestSeconds([int seconds = restBumpSeconds]) {
+    if (_restTimer == null) return;
+    if (seconds <= 0) return;
+    restRemainingSeconds += seconds;
+  }
+
+  /// Leave rest mode and return to work / rate UI (Skip).
+  void endRest() {
+    _resetRestKeepingStopped();
     update();
   }
 
@@ -266,8 +331,25 @@ class WorkoutController extends GetxController {
     super.onClose();
   }
 
+  Future<void> _afterMovementFinished(int? difficulty) async {
+    _selectInitialActive();
+    _syncDurationForActive();
+    _resetRestKeepingStopped();
+    await _persist();
+    if (allLogsComplete && isLive) {
+      sessionDoneBeat = true;
+      sessionDoneDifficulty = difficulty;
+      update();
+    }
+  }
+
+  void _startRestAfterLog() {
+    _resetRestKeepingStopped();
+    startRest();
+  }
+
   bool _canAcceptLog(ExerciseLog log) {
-    if (!isLive || log.difficulty != null) return false;
+    if (!isLive || log.isComplete) return false;
     if (!_inCurrentBlock(log)) return false;
     if (isPrescribedPhase) {
       return _indexOf(log) == _activeLogIndex;
@@ -303,10 +385,11 @@ class WorkoutController extends GetxController {
     }
     final after = _activeLogIndex;
     if (isPrescribedPhase && after != null) {
-      final next = _nextNeedingPrescribedSets(afterIndex: after, blockId: blockId);
-      _activeLogIndex = next ?? _firstUnratedIndex(blockId);
-    } else if (activeLog?.difficulty != null) {
-      _activeLogIndex = _firstUnratedIndex(blockId);
+      final next =
+          _nextNeedingPrescribedSets(afterIndex: after, blockId: blockId);
+      _activeLogIndex = next ?? _firstUnfinishedIndex(blockId);
+    } else if (activeLog?.isComplete == true) {
+      _activeLogIndex = _firstUnfinishedIndex(blockId);
     }
     _syncDurationForActive();
   }
@@ -318,7 +401,7 @@ class WorkoutController extends GetxController {
       return;
     }
     final needing = _firstNeedingPrescribedSets(blockId);
-    _activeLogIndex = needing ?? _firstUnratedIndex(blockId);
+    _activeLogIndex = needing ?? _firstUnfinishedIndex(blockId);
   }
 
   List<int> _indicesFor(String blockId) {
@@ -344,9 +427,9 @@ class WorkoutController extends GetxController {
     return bestIndex < 0 ? null : bestIndex;
   }
 
-  int? _firstUnratedIndex(String blockId) {
+  int? _firstUnfinishedIndex(String blockId) {
     for (final i in _indicesFor(blockId)) {
-      if (_session!.exerciseLogs[i].difficulty == null) return i;
+      if (!_session!.exerciseLogs[i].isComplete) return i;
     }
     return null;
   }
@@ -391,9 +474,7 @@ class WorkoutController extends GetxController {
   void _resetRestKeepingStopped() {
     _restTimer?.cancel();
     _restTimer = null;
-    _restWatch?.stop();
-    _restWatch = null;
-    restElapsedSeconds = 0;
+    restRemainingSeconds = 0;
   }
 
   void _stopDurationTimer() {

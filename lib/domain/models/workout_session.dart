@@ -76,10 +76,10 @@ class ExerciseLog {
 
   List<SetLog> sets = [];
 
-  /// 1–5. Required to mark this exercise complete.
+  /// 1–5 when rated. Null when skipped or not yet finished.
   int? difficulty;
 
-  /// Set when difficulty is saved.
+  /// Set when the movement is rated or skipped.
   DateTime? completedAt;
 
   ExerciseLog();
@@ -99,8 +99,8 @@ class ExerciseLog {
     List<SetLog>? sets,
   }) : sets = sets ?? [];
 
-  /// An exercise is complete when [difficulty] is set. Sets may be logged first.
-  bool get isComplete => difficulty != null;
+  /// Complete when rated or skipped ([completedAt] set). Sets may be logged first.
+  bool get isComplete => completedAt != null;
 }
 
 class SetLog {

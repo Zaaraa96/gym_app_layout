@@ -5,6 +5,7 @@ import 'package:http/http.dart' as http;
 
 import '../common/app_routes.dart';
 import '../common/app_theme.dart';
+import '../common/theme_controller.dart';
 import '../common/widgets/app_load_error.dart';
 import '../common/widgets/app_scaffold.dart';
 import '../data/app_ports.dart';
@@ -27,6 +28,16 @@ import '../domain/session_repository.dart';
 import '../features/plans/exercise_media_picker.dart';
 import '../features/plans/plan_import_picker.dart';
 import 'app_routes.dart';
+
+/// Registers [ThemeController] once. Prefs failures fall back to system theme.
+Future<void> _ensureThemeController() async {
+  if (Get.isRegistered<ThemeController>()) return;
+  try {
+    Get.put(await ThemeController.load(), permanent: true);
+  } catch (_) {
+    // SharedPreferences can be unavailable in some test hosts; keep system.
+  }
+}
 
 /// Opens local storage, registers repositories, and picks welcome vs home.
 Future<String> bootApp() async {
@@ -98,6 +109,11 @@ class _AppBootstrapState extends State<AppBootstrap> {
       });
     }
     try {
+      // Appearance belongs in composition, not main.dart. Load before Isar so
+      // the themed loader matches a saved light/dark preference.
+      await _ensureThemeController();
+      if (!mounted || generation != _generation) return;
+      setState(() {});
       final route = await widget.boot();
       if (!mounted || generation != _generation) return;
       setState(() => _route = route);
@@ -113,9 +129,15 @@ class _AppBootstrapState extends State<AppBootstrap> {
     if (route != null) {
       return MyApp(initialRoute: route);
     }
+    final themeMode = Get.isRegistered<ThemeController>()
+        ? Get.find<ThemeController>().mode.value
+        : ThemeMode.system;
     return MaterialApp(
       title: 'My Awesome Gym App',
-      theme: appTheme,
+      debugShowCheckedModeBanner: false,
+      theme: lightTheme,
+      darkTheme: darkTheme,
+      themeMode: themeMode,
       home: AppScaffold(
         body: _error == null
             ? const Center(

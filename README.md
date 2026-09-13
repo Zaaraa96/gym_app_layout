@@ -12,10 +12,10 @@ Application ID: `com.zahra.gym_app`
 | Welcome when no plans exist | Working. Later launches go to Plans |
 | Beginner templates | Working. Welcome, empty home, or **Beginner** on populated Plans (`Beginner full body`, `Beginner 2-day`) |
 | Import JSON (`name` / `basic-plan` / `common-plan`) | Working. Invalid JSON shows a readable error |
-| Create a plan | Working. Empty Day 1; Start stays disabled until a block or common section exists |
-| Plan / day preview and editors | Working. Rename, add/delete days, delete-plan overflow (logged sessions stay on Month), common sections |
-| Start / resume a day | Working. Commons default off. In-progress conflict: Resume / Abandon and start / Cancel |
-| Live logger | Working. Snapshot session, alternating supersets, rest stopwatch, duration timer, inline 1–5 |
+| Create a plan | Working. Empty Day 1; Start stays disabled until a block exists |
+| Plan / day preview and editors | Working. Rename, add/delete days, export/delete-plan overflow (logged sessions stay on Month) |
+| Start / resume a day | Working. In-progress conflict: Resume / Abandon and start / Cancel |
+| Live logger | Working. Snapshot session, alternating supersets, auto rest countdown (+15s / Skip), soft rate Easy→Brutal or Skip |
 | Finish / Discard | Working. Partial finish is `completed`. Discard is hidden on Month |
 | Month tab | Working. Dots, session log, per-exercise trends |
 | Exercises catalog | Working. Bundled stills/GIFs plus user-added movements, region/muscle filters |
@@ -36,17 +36,17 @@ Welcome (/)  →  Beginner plans / Create plan (import or new)
 1. **Welcome** — Lottie gym animation, three actions: Start with a beginner plan, Import a plan, Create a plan. Skipped once any plan exists.
 2. **Plans** — Continue banner if a session is live, Today card (next startable day on the newest startable plan), plan list, Import | New | Beginner (Beginner only when a plan exists).
 3. **Exercises** — Catalog of supported movements with pictures, region/muscle filters, and user-added custom exercises.
-4. **Plan / day** — Photo day cards, common-section chips, read-only day preview, editor, Start workout.
-5. **Live** — Log weight/reps or duration, rest, rate 1–5, End → Finish, Discard, or Keep going.
+4. **Plan / day** — Info day cards with optional rotating stills, read-only day preview, editor, Start workout.
+5. **Live** — Save set / Log time, auto rest countdown, soft rate Easy→Brutal (or Skip), End → Finish, Discard, or Keep going.
 6. **Month** — Calendar dots, empty-month / empty-day copy, expandable trends.
 
 ## Architecture
 
-- **UI:** Flutter Material 3, seed color `Colors.deepPurple`.
+- **UI:** Flutter Material 3, seed color `Colors.deepPurple`, with light / dark / system theme (toggle on Welcome and Plans).
 - **Navigation:** GetX named routes. Plan and session ids on routes are **uuids**.
 - **Domain:** `lib/domain` — models, repository interfaces, start/progress rules. No Isar imports.
 - **Data:** Isar 3 adapters, JSON importer, in-memory stand-ins for web/tests, optional HTTP remotes.
-- **Composition:** `lib/app/app_bootstrap.dart` opens storage and picks Welcome vs Plans. `kIsWeb` stays here, not in pages.
+- **Composition:** `lib/app/app_bootstrap.dart` opens storage and picks Welcome vs Plans. `kIsWeb` stays here, not in pages. Appearance preference loads in `main.dart` before the first frame.
 
 ```
 lib/
@@ -119,4 +119,4 @@ dart run build_runner build --delete-conflicting-outputs
 
 ## Known gaps
 
-- Auto-start rest, target weight, accounts, suggested next load, reorder/duplicate days are out of v1.
+- Target weight, accounts, suggested next load, reorder/duplicate days, prefill weight from a previous session are out of v1.

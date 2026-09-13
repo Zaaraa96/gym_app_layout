@@ -8,6 +8,7 @@ import '../../common/widgets/app_elevated_button.dart';
 import '../../common/widgets/app_load_error.dart';
 import '../../common/widgets/app_scaffold.dart';
 import '../../common/widgets/app_text.dart';
+import '../../common/widgets/theme_mode_button.dart';
 import '../../data/app_ports.dart';
 import '../../domain/models/workout_plan.dart';
 import '../../domain/models/workout_session.dart';
@@ -114,6 +115,7 @@ class _PlansHomePageState extends State<PlansHomePage> {
     return AppScaffold(
       appbar: AppBar(
         title: AppText(_title, style: titleTextStyle),
+        actions: const [ThemeModeButton()],
       ),
       body: IndexedStack(
         index: _tab,

@@ -38,7 +38,7 @@ void main() {
   });
 
   Future<({SessionRepository sessions, WorkoutController controller})>
-  startController({
+      startController({
     WorkoutPlan? plan,
     List<String> commons = const [],
   }) async {
@@ -135,6 +135,9 @@ void main() {
 
     await c.rate(4);
     expect(c.session!.exerciseLogs.single.isComplete, isTrue);
+    expect(c.sessionDoneBeat, isTrue);
+    expect(c.session!.status, SessionStatus.inProgress);
+    await c.acknowledgeSessionDone();
     expect(c.session!.status, SessionStatus.completed);
     expect(c.activeLog, isNull);
     expect(c.canLogSet(c.session!.exerciseLogs.single), isFalse);
@@ -192,19 +195,45 @@ void main() {
     expect(resumed.session!.status, SessionStatus.inProgress);
   });
 
-  test('rest is manual and is not persisted', () async {
+  test('rest auto-starts after a set and is not persisted', () async {
     final started = await startController();
     final c = started.controller;
     expect(c.isResting, isFalse);
     c.startRest();
     expect(c.isResting, isTrue);
-    expect(c.restElapsedSeconds, 0);
-    c.resetRest();
+    expect(c.restRemainingSeconds, WorkoutController.defaultRestSeconds);
+    c.addRestSeconds();
+    expect(
+        c.restRemainingSeconds,
+        WorkoutController.defaultRestSeconds +
+            WorkoutController.restBumpSeconds);
+    c.endRest();
     expect(c.isResting, isFalse);
 
     await c.logSet(reps: 12);
+    expect(c.isResting, isTrue);
     final stored = await started.sessions.byUuid(c.sessionId);
     expect(stored!.exerciseLogs.first.sets, hasLength(1));
+    c.endRest();
+    expect(c.isResting, isFalse);
+  });
+
+  test('skip rating finishes a movement without a difficulty', () async {
+    final started = await startController(
+      plan: _singlePlan(),
+      commons: const [],
+    );
+    final c = started.controller;
+    await c.logSet(reps: 10);
+    await c.logSet(reps: 10);
+    expect(c.canRate(c.activeLog!), isTrue);
+    await c.skipRating();
+    expect(c.session!.exerciseLogs.single.difficulty, isNull);
+    expect(c.session!.exerciseLogs.single.isComplete, isTrue);
+    expect(c.sessionDoneBeat, isTrue);
+    expect(c.sessionDoneDifficulty, isNull);
+    await c.acknowledgeSessionDone();
+    expect(c.session!.status, SessionStatus.completed);
   });
 
   test('finish marks the session completed', () async {
@@ -394,6 +423,9 @@ void main() {
 
     await c.logTime();
     await c.rate(2);
+    expect(c.sessionDoneBeat, isTrue);
+    expect(c.session!.status, SessionStatus.inProgress);
+    await c.acknowledgeSessionDone();
     expect(c.session!.status, SessionStatus.completed);
     expect(c.session!.endedAt, isNotNull);
     expect(c.allLogsRated, isTrue);
@@ -407,9 +439,10 @@ void main() {
       final c = started.controller;
       c.startRest();
       expect(c.isResting, isTrue);
+      expect(c.restRemainingSeconds, WorkoutController.defaultRestSeconds);
       c.startRest();
       expect(c.isResting, isTrue);
-      expect(c.restElapsedSeconds, 0);
+      expect(c.restRemainingSeconds, WorkoutController.defaultRestSeconds);
 
       await c.discard();
       await expectLater(
