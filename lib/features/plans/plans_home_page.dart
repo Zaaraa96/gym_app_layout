@@ -8,6 +8,7 @@ import '../../common/widgets/app_elevated_button.dart';
 import '../../common/widgets/app_load_error.dart';
 import '../../common/widgets/app_scaffold.dart';
 import '../../common/widgets/app_text.dart';
+import '../../common/widgets/cuelift_brand.dart';
 import '../../common/widgets/theme_mode_button.dart';
 import '../../data/app_ports.dart';
 import '../../domain/models/workout_plan.dart';
@@ -114,6 +115,11 @@ class _PlansHomePageState extends State<PlansHomePage> {
   Widget build(BuildContext context) {
     return AppScaffold(
       appbar: AppBar(
+        leading: const Padding(
+          padding: EdgeInsets.only(left: 12),
+          child: CueLiftAppMark(size: 28),
+        ),
+        leadingWidth: 44,
         title: AppText(_title, style: titleTextStyle),
         actions: const [ThemeModeButton()],
       ),
