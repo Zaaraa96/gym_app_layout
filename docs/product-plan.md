@@ -282,11 +282,13 @@ Home shell
         └─ Exercise rows → same-screen trend numbers
 
 Live workout
+  ├─ Progress line + active media + “Your turn”
   ├─ Current block (single, or superset with alternating sets)
-  │     ├─ Log set (weight+reps) or Log time (duration countdown)
-  │     ├─ Rest stopwatch (manual start/reset)
-  │     └─ Rate 1–5 after the block’s prescribed sets (inline, extras until rated)
-  ├─ Back / system back → leave `inProgress`
+  │     ├─ Save set (weight± / reps±) or Log time (duration countdown)
+  │     ├─ Rest takeover (auto-start after save; I'm ready)
+  │     └─ Soft rate Easy→Brutal or Skip after prescribed sets
+  ├─ Last finish → short done beat → ended summary
+  ├─ Back / system back → leave `inProgress` (reassurance copy)
   └─ End → Finish (`completed`) / Discard (`abandoned`) / Keep going
 ```
 
@@ -337,42 +339,48 @@ Empty start (if reached) shows **Add an exercise first.** There is no Include-to
 **Live workout (make-or-break).**
 
 ```
-[ Day 1  ·  Kang squat  ·  set 2 of 3  ·  rest 0:45 ]
+[ Day 1 ]
 
-Superset
-  Kang squat          3 × 12     ← active
-  Leg extension       3 × 12
+Leaving keeps this workout — Continue on Plans.
+3 of 8 · ~12 min left
 
-Active: Kang squat
-  Weight [     ] kg     Reps [  12  ]
-  [ Log set ]
+[ GIF / still ]
 
-Rest stopwatch  [ Start ]  [ Reset ]
+Your turn: Kang squat
+then Leg extension
+
+This block
+  Kang squat          3 × 12 · 1/3   ← active
+  Leg extension       3 × 12 · 1/3
+
+Done with this set? Save it.
+  [−] Weight [+]   [−] Reps [+]
+  [ Save set ]
 ```
+
+Work vs rest are separate modes. **Save set** / **Log time** auto-starts rest. Rest takes over the screen (big clock, breathe / next-up copy, **I'm ready**) and hides the weight/reps form. Details: [live-logger-comfort.md](live-logger-comfort.md).
 
 A **superset is alternating sets**, not “finish A then B”. Both prescriptions stay visible; **active** is the next exercise in the block that still has unlogged prescribed sets, cycling in prescription order: A1 → B1 → A2 → B2 → … Weight may be empty (`null` = bodyweight). Reps are required for rep work.
 
-After each logged set, rest is **manual** (user starts the stopwatch). Do not auto-start rest.
+**Prescribed phase.** Only the active exercise accepts Save set / Log time. Keep alternating until every log in the block has `sets.length >= prescribedSets`. Do not rate yet if the partner still has prescribed sets left (A3 then B3, not A3-rate-B3).
 
-**Prescribed phase.** Only the active exercise accepts Log set / Log time. Keep alternating until every log in the block has `sets.length >= prescribedSets`. Do not rate yet if the partner still has prescribed sets left (A3 then B3, not A3-rate-B3).
-
-**Then extras + rating.** 1–5 appears **inline** on each unrated row in that block — never a modal that replaces logging. Log set stays on that row until they tap a digit. Extra sets are allowed only in this phase, and only on an unrated exercise. Tapping 1–5 writes `difficulty` and `completedAt` and hides Log set for that movement. No skip.
+**Then extras + rating.** Soft 1–5 with human labels (Easy → Brutal) appears inline after prescribed sets — never a modal that replaces logging. **Skip for now** finishes the movement without a number (`completedAt` set, `difficulty` null). Extra sets are allowed only in this phase, and only on an unfinished exercise. Rating or skip hides Save set for that movement.
 
 Duration exercises replace weight/reps with a countdown from `prescribedDurationSeconds`, paused until Start. The countdown may run past 0 (overtime). **Log time** stores actual seconds: if the timer ran, elapsed (`prescribed − remaining`, remaining can be negative); if they log without starting, store the prescribed value. No separate control to type remaining.
 
-Header must name the **active exercise** and that exercise’s set index, not only “set 2 of 3”.
+Header names the **active** exercise (“Your turn”) and set index. Quiet progress line: `N of M · ~T left`. Catalog GIF/still when the title matches.
 
-Persist every logged set immediately. App-bar back and system back leave the session `inProgress` with no extra prompt.
+Persist every logged set immediately. App-bar back and system back leave the session `inProgress` with no extra prompt; reassurance copy notes Continue on Plans.
 
-**End.** A live-workout action (not back) opens Finish | Discard | Keep going. Finish → `completed` (partial logs stay; unrated `difficulty` stays null). Discard → `abandoned` (month view ignores it, per Step 2). Keep going dismisses the sheet.
+**End.** A live-workout action (not back) opens Finish | Discard | Keep going. Finish → `completed` (partial logs stay; unrated `difficulty` may stay null). Discard → `abandoned` (month view ignores it, per Step 2). Keep going dismisses the sheet.
 
-**Rate.** Required to mark the movement complete. Five equal tappable digits. Confirm writes `difficulty` and `completedAt`.
+**Rate.** Soft required-or-skip. Five labeled digits or Skip. Last finish shows a short beat quote, then the ended screen.
 
 **Month.** Month title with prev/next. Empty month: calendar with no dots and “No workouts this month.” Dots on days with a non-abandoned session. Below: list of `exerciseTitleKey`s this month with primary metric, delta vs first session in the month, and optional “felt easier”. Tap a dotted day → session log (one session) or a day list (several, oldest first). Tap a day with no session → “No workouts this day.” Trend rows expand in place.
 
 ### Out of v1 UI
 
-Auto-start rest, target weight field, required photos, accounts, suggested next load, reordering days, duplicating days, prefill weight from last session, body-map day-card fills (idea C — [plan-day-cards.md](plan-day-cards.md)).
+Target weight field, required photos, accounts, suggested next load, reordering days, duplicating days, prefill weight from last session, body-map day-card fills (idea C — [plan-day-cards.md](plan-day-cards.md)).
 
 ---
 
@@ -435,7 +443,8 @@ initialRoute: plans exist ? /home : /
 
 - Loads the session from the session repository
 - Tracks which `ExerciseLog` is **active**. On a single, that log stays active through extras until it is rated. On a superset, after each logged set in the prescribed phase the active log becomes the next partner in the same `blockId` with `sets.length < prescribedSets`. After every log in the block has its prescribed sets, extras and inline 1–5 are available on each unrated log in that block; rating one does not hide the partner
-- Holds rest elapsed seconds with `Stopwatch` + `Timer.periodic` (1s). Rest is not written to Isar
+- Holds rest elapsed seconds with `Stopwatch` + `Timer.periodic` (1s). Rest auto-starts after each save and is not written to Isar
+- Last movement finish sets a short `sessionDoneBeat` before `finish()`; Skip rating sets `completedAt` without `difficulty`
 - Duration work: countdown `int` remaining, paused until Start; Log time stores `prescribed - remaining` if the timer ran, or the prescribed value if they log without starting; persist `durationSeconds`
 - Calls `sessionRepository.update` after each set and after rating so process death does not lose the log
 
@@ -475,7 +484,7 @@ Routes: `/`, `/home`, `/starters`, `/import`, `/new-plan`, `/plan`, `/day`, `/ed
 
 Slices **1–9 are in the running app** (Welcome, import/create stepper, plan/day editors, start/conflict, live logger + 1–5, Month). Slice **10** (harden) is largely in: resume after back, one in-progress session, invalid JSON error, analyze/CI, widget tests. Remaining product gaps:
 
-- Auto-start rest, target weight, accounts, suggested next load, reorder/duplicate days
+- Target weight, accounts, suggested next load, reorder/duplicate days
 - HTTP sync only when `API_BASE_URL` is set
 
 Historical build order (already shipped):

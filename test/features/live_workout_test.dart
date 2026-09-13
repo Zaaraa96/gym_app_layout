@@ -12,6 +12,7 @@ import 'package:gym_app/domain/session_lifecycle.dart';
 import 'package:gym_app/domain/session_repository.dart';
 import 'package:gym_app/data/starter_plans.dart';
 import 'package:gym_app/features/workout/live_workout_page.dart';
+import 'package:gym_app/features/workout/live_workout_copy.dart';
 import 'package:gym_app/main.dart';
 
 import '../helpers/isar_core.dart';
@@ -60,6 +61,42 @@ void main() {
 
   Future<void> settle(WidgetTester tester) => settleApp(tester);
 
+  /// Save set auto-starts rest; dismiss so work/rate UI is visible again.
+  Future<void> saveSetAndReady(WidgetTester tester) async {
+    final save = find.text('Save set');
+    await tester.ensureVisible(save);
+    await tester.pump();
+    await tester.tap(save);
+    await tester.pump();
+    await settle(tester);
+    final ready = find.text("I'm ready");
+    expect(ready, findsOneWidget);
+    await tester.ensureVisible(ready);
+    await tester.tap(ready);
+    await tester.pump();
+    await settle(tester);
+  }
+
+  Future<void> tapRate(WidgetTester tester, int n) async {
+    final rate = find.byKey(Key('rate-$n'));
+    await tester.scrollUntilVisible(
+      rate,
+      120,
+      scrollable: find.byType(Scrollable).first,
+    );
+    await tester.pump();
+    await tester.tap(rate);
+    await tester.pump();
+    await settle(tester);
+  }
+
+  Future<void> finishSessionDoneBeat(WidgetTester tester) async {
+    expect(find.byKey(const Key('session-done-beat')), findsOneWidget);
+    await tester.tap(find.byKey(const Key('session-done-continue')));
+    await tester.pump();
+    await settle(tester);
+  }
+
   Future<void> launch(WidgetTester tester, String route) async {
     await tester.pumpWidget(MyApp(initialRoute: route));
     await tester.pump(const Duration(milliseconds: 100));
@@ -91,15 +128,13 @@ void main() {
     await tester.pump();
     await settle(tester);
 
-    expect(find.text('Log what you did on this set.'), findsOneWidget);
-    expect(find.text('Bodyweight squat  ·  set 1 of 2'), findsOneWidget);
+    expect(find.text('Done with this set? Save it.'), findsOneWidget);
+    expect(find.textContaining('Your turn: Bodyweight squat'), findsOneWidget);
     expect(find.text('10'), findsWidgets);
 
-    await tester.tap(find.text('Log set'));
-    await tester.pump();
-    await settle(tester);
+    await saveSetAndReady(tester);
 
-    expect(find.text('Bodyweight squat  ·  set 2 of 2'), findsOneWidget);
+    expect(find.text('set 2 of 2'), findsOneWidget);
 
     await tester.pageBack();
     await tester.pump();
@@ -110,7 +145,7 @@ void main() {
     await tester.pump();
     await settle(tester);
 
-    expect(find.text('Bodyweight squat  ·  set 2 of 2'), findsOneWidget);
+    expect(find.text('set 2 of 2'), findsOneWidget);
   });
 
   testWidgets('live page logs the prefilled reps and then asks for a rating', (
@@ -133,19 +168,16 @@ void main() {
     );
     await settle(tester);
 
-    await tester.tap(find.text('Log set'));
-    await tester.pump();
-    await settle(tester);
-    await tester.tap(find.text('Log set'));
-    await tester.pump();
-    await settle(tester);
+    await saveSetAndReady(tester);
+    await saveSetAndReady(tester);
 
-    expect(find.text('How hard was that? 1 easy · 5 hard'), findsOneWidget);
-    await tester.tap(find.byKey(const Key('rate-3')));
-    await tester.pump();
-    await settle(tester);
+    expect(find.text('How did that feel?'), findsOneWidget);
+    await tapRate(tester, 3);
+
+    await finishSessionDoneBeat(tester);
 
     expect(find.text('Workout complete'), findsOneWidget);
+    expect(find.text('Nice. Session done.'), findsNothing);
     final stored = await db(tester, () => repos.sessions.byId(session.id));
     expect(stored!.status, SessionStatus.completed);
     expect(stored.exerciseLogs.single.sets, hasLength(2));
@@ -173,9 +205,7 @@ void main() {
     );
     await settle(tester);
 
-    await tester.tap(find.text('Log set'));
-    await tester.pump();
-    await settle(tester);
+    await saveSetAndReady(tester);
 
     final end = find.byKey(const Key('end-workout'));
     await tester.ensureVisible(end);
@@ -190,7 +220,8 @@ void main() {
     await settle(tester);
 
     expect(find.text('Workout complete'), findsOneWidget);
-    expect(find.text('Nice work. What you logged is saved.'), findsOneWidget);
+    expect(find.text('Nice work.'), findsOneWidget);
+    expect(find.textContaining('set of Bodyweight squat saved'), findsOneWidget);
     expect(find.byKey(const Key('end-workout')), findsNothing);
     final stored = await db(tester, () => repos.sessions.byId(session.id));
     expect(stored!.status, SessionStatus.completed);
@@ -230,7 +261,7 @@ void main() {
       await tester.tap(find.text("Start today's workout"));
       await tester.pump();
       await settle(tester);
-      expect(find.text('Bodyweight squat  ·  set 1 of 2'), findsOneWidget);
+      expect(find.textContaining('Your turn: Bodyweight squat'), findsOneWidget);
 
       await tester.pageBack();
       await tester.pump();
@@ -241,7 +272,7 @@ void main() {
       await settle(tester);
 
       expect(find.text('A workout is already in progress'), findsNothing);
-      expect(find.text('Bodyweight squat  ·  set 1 of 2'), findsOneWidget);
+      expect(find.textContaining('Your turn: Bodyweight squat'), findsOneWidget);
       expect(await db(tester, () => repos.sessions.inProgress()), isNotNull);
     },
   );
@@ -257,9 +288,7 @@ void main() {
     await tester.pump();
     await settle(tester);
 
-    await tester.tap(find.text('Log set'));
-    await tester.pump();
-    await settle(tester);
+    await saveSetAndReady(tester);
     await settle(tester);
 
     final end = find.byKey(const Key('end-workout'));
@@ -335,7 +364,7 @@ void main() {
 
     expect(find.text('Workout complete'), findsNothing);
     expect(find.text('Workout discarded'), findsNothing);
-    expect(find.text('Log set'), findsOneWidget);
+    expect(find.text('Save set'), findsOneWidget);
     expect(find.byKey(const Key('end-workout')), findsOneWidget);
     final live = await db(tester, () => repos.sessions.inProgress());
     expect(live, isNotNull);
@@ -366,7 +395,7 @@ void main() {
         find.text('Nothing to log. End this workout or go back.'),
         findsOneWidget,
       );
-      expect(find.text('Log set'), findsNothing);
+      expect(find.text('Save set'), findsNothing);
       expect(find.text('Log time'), findsNothing);
       expect(find.byKey(const Key('end-workout')), findsOneWidget);
     },
@@ -395,13 +424,14 @@ void main() {
       expect(find.text('0:30'), findsOneWidget);
       expect(find.text('Start timer'), findsOneWidget);
       expect(find.text('Log time'), findsOneWidget);
-      expect(find.text('Log set'), findsNothing);
+      expect(find.text('Save set'), findsNothing);
 
       await tester.tap(find.text('Start timer'));
       await tester.pump();
       expect(find.text('Running…'), findsOneWidget);
       expect(find.text('Start timer'), findsNothing);
 
+      await tester.ensureVisible(find.text('Log time'));
       await tester.tap(find.text('Log time'));
       await tester.pump();
       await settle(tester);
@@ -435,9 +465,7 @@ void main() {
     await settle(tester);
 
     await tester.enterText(find.byKey(const Key('weight-field')), '0');
-    await tester.tap(find.text('Log set'));
-    await tester.pump();
-    await settle(tester);
+    await saveSetAndReady(tester);
 
     final stored = await db(tester, () => repos.sessions.byId(session.id));
     expect(stored!.exerciseLogs.single.sets, hasLength(1));
@@ -484,7 +512,7 @@ void main() {
       find.text('This session will not show on the month view.'),
       findsOneWidget,
     );
-    expect(find.text('Log set'), findsNothing);
+    expect(find.text('Save set'), findsNothing);
     expect(find.byKey(const Key('end-workout')), findsNothing);
     expect(find.text('Done'), findsOneWidget);
   });
@@ -509,14 +537,18 @@ void main() {
       );
       await settle(tester);
 
+      await tester.ensureVisible(find.text('Log time'));
       await tester.tap(find.text('Log time'));
+      await tester.pump();
+      await settle(tester);
+      await tester.tap(find.text("I'm ready"));
       await tester.pump();
       await settle(tester);
 
       final stored = await db(tester, () => repos.sessions.byId(session.id));
       expect(stored!.exerciseLogs.single.sets.single.durationSeconds, 30);
       expect(stored.status, SessionStatus.inProgress);
-      expect(find.text('How hard was that? 1 easy · 5 hard'), findsOneWidget);
+      expect(find.text('How did that feel?'), findsOneWidget);
     },
   );
 
@@ -582,16 +614,14 @@ void main() {
 
       await tester.enterText(find.byKey(const Key('weight-field')), '40.5');
       await tester.enterText(find.byKey(const Key('reps-field')), '');
-      await tester.tap(find.text('Log set'));
-      await tester.pump();
-      await settle(tester);
+      await saveSetAndReady(tester);
 
       final stored = await db(tester, () => repos.sessions.byId(session.id));
       expect(stored!.status, SessionStatus.inProgress);
       expect(stored.exerciseLogs.single.sets, hasLength(1));
       expect(stored.exerciseLogs.single.sets.single.reps, 10);
       expect(stored.exerciseLogs.single.sets.single.weightKg, 40.5);
-      expect(find.text('Bodyweight squat  ·  set 2 of 2'), findsOneWidget);
+      expect(find.text('set 2 of 2'), findsOneWidget);
     },
   );
 
@@ -614,11 +644,14 @@ void main() {
     await settle(tester);
 
     await tester.enterText(find.byKey(const Key('reps-field')), '0');
-    await tester.tap(find.text('Log set'));
+    final save = find.text('Save set');
+    await tester.ensureVisible(save);
+    await tester.tap(save);
     await tester.pump();
     await settle(tester);
 
     expect(find.text('Reps are required.'), findsOneWidget);
+    expect(find.text("I'm ready"), findsNothing);
     final stored = await db(tester, () => repos.sessions.byId(session.id));
     expect(stored!.exerciseLogs.single.sets, isEmpty);
     expect(stored.status, SessionStatus.inProgress);
@@ -645,7 +678,9 @@ void main() {
     await settle(tester);
 
     await tester.enterText(find.byKey(const Key('weight-field')), 'heavy');
-    await tester.tap(find.text('Log set'));
+    final save = find.text('Save set');
+    await tester.ensureVisible(save);
+    await tester.tap(save);
     await tester.pump();
     await settle(tester);
 
@@ -653,12 +688,13 @@ void main() {
       find.text('Weight must be a number, or leave it empty.'),
       findsOneWidget,
     );
+    expect(find.text("I'm ready"), findsNothing);
     final stored = await db(tester, () => repos.sessions.byId(session.id));
     expect(stored!.exerciseLogs.single.sets, isEmpty);
     expect(stored.status, SessionStatus.inProgress);
   });
 
-  testWidgets('Start rest and Reset rest toggle the rest controls', (
+  testWidgets('Save set auto-starts rest and I’m ready returns to work', (
     tester,
   ) async {
     final repos = await bootstrap(tester);
@@ -678,22 +714,26 @@ void main() {
     );
     await settle(tester);
 
-    expect(find.text('Rest  0:00'), findsOneWidget);
-    expect(find.text('Start rest'), findsOneWidget);
+    expect(find.text('Save set'), findsOneWidget);
+    expect(find.text("I'm ready"), findsNothing);
 
-    await tester.ensureVisible(find.text('Start rest'));
-    await tester.tap(find.text('Start rest'));
+    final save = find.text('Save set');
+    await tester.ensureVisible(save);
+    await tester.tap(save);
     await tester.pump();
+    await settle(tester);
 
-    expect(find.text('Resting…'), findsOneWidget);
-    expect(find.text('Start rest'), findsNothing);
+    expect(find.byKey(const Key('rest-clock')), findsOneWidget);
+    expect(find.text("I'm ready"), findsOneWidget);
+    expect(find.text('Save set'), findsNothing);
+    expect(find.text(LiveWorkoutCopy.restBreathe), findsOneWidget);
 
-    await tester.tap(find.text('Reset rest'));
+    await tester.tap(find.text("I'm ready"));
     await tester.pump();
+    await settle(tester);
 
-    expect(find.text('Start rest'), findsOneWidget);
-    expect(find.text('Resting…'), findsNothing);
-    expect(find.text('Rest  0:00'), findsOneWidget);
+    expect(find.text('Save set'), findsOneWidget);
+    expect(find.text("I'm ready"), findsNothing);
     expect(await db(tester, () => repos.sessions.byId(session.id)), isNotNull);
     expect(
       (await db(tester, () => repos.sessions.byId(session.id)))!.status,
@@ -726,7 +766,7 @@ void main() {
     await tester.pump();
     await settle(tester);
 
-    expect(find.text('Log set'), findsOneWidget);
+    expect(find.text('Save set'), findsOneWidget);
     final stillLive = await db(tester, () => repos.sessions.byId(session.id));
     expect(stillLive!.status, SessionStatus.inProgress);
   });
@@ -769,14 +809,18 @@ void main() {
     await settle(tester);
 
     expect(
-      find.text('Start the hold, then log the time you actually did.'),
+      find.text('Start the hold, then save the time you actually did.'),
       findsOneWidget,
     );
+    await tester.ensureVisible(find.text('Log time'));
     await tester.tap(find.text('Log time'));
     await tester.pump();
     await settle(tester);
+    await tester.tap(find.text("I'm ready"));
+    await tester.pump();
+    await settle(tester);
 
-    expect(find.text('How hard was that? 1 easy · 5 hard'), findsOneWidget);
+    expect(find.text('How did that feel?'), findsOneWidget);
     final held = await db(tester, () => repos.sessions.byId(session.id));
     expect(held!.exerciseLogs.single.sets.single.durationSeconds, 30);
   });
@@ -810,7 +854,7 @@ void main() {
       find.text('Nothing to log. End this workout or go back.'),
       findsOneWidget,
     );
-    expect(find.text('Log set'), findsNothing);
+    expect(find.text('Save set'), findsNothing);
   });
 
   testWidgets('after prescribed sets the header marks extras, not set of N',
@@ -834,23 +878,18 @@ void main() {
     );
     await settle(tester);
 
-    await tester.tap(find.text('Log set'));
-    await tester.pump();
-    await settle(tester);
-    await tester.tap(find.text('Log set'));
-    await tester.pump();
-    await settle(tester);
+    await saveSetAndReady(tester);
+    await saveSetAndReady(tester);
 
-    expect(find.text('Bodyweight squat  ·  set 3  ·  extra'), findsOneWidget);
-    expect(find.text('Bodyweight squat  ·  set 3 of 2'), findsNothing);
-    expect(find.text('How hard was that? 1 easy · 5 hard'), findsOneWidget);
-    expect(find.text('Log set'), findsOneWidget);
+    expect(find.text('set 3  ·  extra'), findsOneWidget);
+    expect(find.textContaining('Your turn: Bodyweight squat'), findsOneWidget);
+    expect(find.text('set 3 of 2'), findsNothing);
+    expect(find.text('How did that feel?'), findsOneWidget);
+    expect(find.text('Save set'), findsOneWidget);
 
-    await tester.tap(find.text('Log set'));
-    await tester.pump();
-    await settle(tester);
+    await saveSetAndReady(tester);
 
-    expect(find.text('Bodyweight squat  ·  set 4  ·  extra'), findsOneWidget);
+    expect(find.text('set 4  ·  extra'), findsOneWidget);
     final stored = await db(tester, () => repos.sessions.byId(session.id));
     expect(stored!.status, SessionStatus.inProgress);
     expect(stored.exerciseLogs.single.sets, hasLength(3));
@@ -878,11 +917,9 @@ void main() {
       await settle(tester);
 
       await tester.enterText(find.byKey(const Key('reps-field')), '');
-      await tester.tap(find.text('Log set'));
-      await tester.pump();
-      await settle(tester);
+      await saveSetAndReady(tester);
 
-      expect(find.text('Bodyweight squat  ·  set 2 of 2'), findsOneWidget);
+      expect(find.text('set 2 of 2'), findsOneWidget);
       final afterFirst = await db(
         tester,
         () => repos.sessions.byId(session.id),
@@ -892,12 +929,10 @@ void main() {
       expect(afterFirst.exerciseLogs.single.sets.single.weightKg, isNull);
 
       await tester.enterText(find.byKey(const Key('weight-field')), '22.5');
-      await tester.tap(find.text('Log set'));
-      await tester.pump();
-      await settle(tester);
+      await saveSetAndReady(tester);
 
-      expect(find.text('Bodyweight squat  ·  set 3  ·  extra'), findsOneWidget);
-      expect(find.text('How hard was that? 1 easy · 5 hard'), findsOneWidget);
+      expect(find.text('set 3  ·  extra'), findsOneWidget);
+      expect(find.text('How did that feel?'), findsOneWidget);
       final afterSecond = await db(
         tester,
         () => repos.sessions.byId(session.id),
@@ -921,9 +956,7 @@ void main() {
     await settle(tester);
 
     await tester.enterText(find.byKey(const Key('weight-field')), '40');
-    await tester.tap(find.text('Log set'));
-    await tester.pump();
-    await settle(tester);
+    await saveSetAndReady(tester);
 
     await tester.pageBack();
     await tester.pump();
@@ -933,7 +966,7 @@ void main() {
     await tester.pump();
     await settle(tester);
 
-    expect(find.text('Bodyweight squat  ·  set 2 of 2'), findsOneWidget);
+    expect(find.text('set 2 of 2'), findsOneWidget);
     expect(_weightText(tester), '40');
   });
 
@@ -946,15 +979,11 @@ void main() {
     await tester.pump();
     await settle(tester);
 
-    await tester.tap(find.text('Log set'));
-    await tester.pump();
-    await settle(tester);
-    await tester.tap(find.text('Log set'));
-    await tester.pump();
-    await settle(tester);
-    await tester.tap(find.byKey(const Key('rate-3')));
-    await tester.pump();
-    await settle(tester);
+    await saveSetAndReady(tester);
+    await saveSetAndReady(tester);
+    await tapRate(tester, 3);
+
+    await finishSessionDoneBeat(tester);
 
     expect(find.text('Workout complete'), findsOneWidget);
     await tester.tap(find.text('Done'));
