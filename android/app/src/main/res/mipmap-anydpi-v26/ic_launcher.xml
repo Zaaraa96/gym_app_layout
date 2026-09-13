@@ -1,0 +1,6 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Adaptive launcher: navy plate + transparent coral C (no white ring). -->
+<adaptive-icon xmlns:android="http://schemas.android.com/apk/res/android">
+    <background android:drawable="@color/cuelift_navy" />
+    <foreground android:drawable="@drawable/ic_launcher_foreground" />
+</adaptive-icon>
