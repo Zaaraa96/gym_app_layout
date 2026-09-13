@@ -13,7 +13,7 @@ Primary identity is the **Welcome-style brand stack**:
 | Surface | Treatment |
 |---|---|
 | Welcome / splash | Full Welcome stack on navy `#0B1D36` (always — light or dark preference does not change this) |
-| Plans app bar | Small C icon + screen title |
+| Plans app bar | Small coral C (`cuelift-mark-light`) + screen title |
 | Live workout | No logo; coral only on primary actions |
 | Launcher icon | Slash-tail C on navy |
 

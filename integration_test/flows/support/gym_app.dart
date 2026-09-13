@@ -1,6 +1,5 @@
 // Shared Patrol robot for gym_app device flows.
 // The Android runner already launched main(). Do not pump MyApp again.
-// Welcome's Lottie never settles — avoid pumpAndSettle.
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:gym_app/app/app_bootstrap.dart';
@@ -52,8 +51,8 @@ class GymApp {
   static const dayATitle = 'Day A — Squat and push';
 
   Future<void> waitUntilAppReady() async {
-    // Patrol's tester tree is empty until the test pumps the app. Do not
-    // pumpAndSettle: Welcome's Lottie never stops.
+    // Patrol's tester tree is empty until the test pumps the app. Prefer timed
+    // pumps over pumpAndSettle while boot/splash and route transitions finish.
     await $.pumpWidget(const AppBootstrap());
     await $.pump(const Duration(milliseconds: 100));
     final deadline = DateTime.now().add(const Duration(seconds: 40));

@@ -41,7 +41,8 @@ Existing `integration_test/*.dart` wrappers are host/device runners for widget
 tests. Do not pass that folder to `patrol test`. Patrol only looks in
 `integration_test/flows/` (`test_directory` in `pubspec.yaml`).
 
-Never `pumpAndSettle` on Welcome: the Lottie animation does not stop.
+Prefer timed pumps / `SettlePolicy.trySettle` over a blind `pumpAndSettle`
+during boot and route transitions.
 
 ## Device data
 

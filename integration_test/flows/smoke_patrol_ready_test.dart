@@ -3,7 +3,7 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:patrol/patrol.dart';
 
 /// Proves Patrol, the Android runner, and the AVD can talk to each other.
-/// Does not launch the gym app (Welcome Lottie never settles).
+/// Does not launch the gym app (runner / AVD smoke only).
 void main() {
   patrolTest(
     'Patrol can pump a widget and reach the Android device',
