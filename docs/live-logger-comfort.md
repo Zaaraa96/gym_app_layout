@@ -28,7 +28,7 @@ Explicitly **out of this pass**: prefill weight from a *previous session* (still
 
 ```
 [←] Day title                         End
-Leaving keeps this workout — Continue on Plans.
+Leaving keeps this workout — continue on Plans.
 
 3 of 8 · ~12 min left
 
@@ -68,6 +68,7 @@ Next: Leg extension
 - Weight/reps (and rate UI) are hidden while resting.
 - Rest is a **countdown** (default 60s) with **+15s** and **Skip**. **Skip** ends rest early and returns to work (or rate). Hitting 0 auto-ends rest.
 - Manual Start rest is gone from the default path; Reset is not needed on this surface.
+- Rest chrome hides the app bar (**End** is unavailable until rest ends or is skipped).
 
 ### Rate
 
@@ -90,7 +91,7 @@ Manual **Finish workout** from End skips the beat and goes straight to the ended
 
 ## End / leave
 
-- Strip always visible while live: **Leaving keeps this workout — Continue on Plans.**
+- Strip always visible while live: **Leaving keeps this workout — continue on Plans.**
 - End sheet: **Finish workout** primary; **Discard workout** secondary/destructive; **Keep going**.
 - Back / system back unchanged: leave `inProgress`.
 

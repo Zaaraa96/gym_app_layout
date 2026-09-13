@@ -93,17 +93,19 @@ Same flow from the Today card or from day preview.
 
 ## 6. Live workout
 
-Copied from the plan at start. Later plan edits do not change this session. App-bar back leaves the session **in progress** (Continue banner on home). Reassurance: **Leaving keeps this workout — Continue on Plans.**
+Copied from the plan at start. Later plan edits do not change this session. App-bar back leaves the session **in progress** (Continue banner on home). Reassurance strip: **Leaving keeps this workout — continue on Plans.**
 
-1. Quiet progress: **`N of M · ~T left`**. Header: **Your turn: {title}** (and **then {partner}** on supersets), set index, catalog GIF/still when matched.
+Work, rest, and rate are separate full-screen modes. Details: [live-logger-comfort.md](live-logger-comfort.md).
+
+1. Quiet progress: **`N of M · ~T left`**. Header: **Your turn: {title}** (and **then {partner}** on supersets), set line (`set 1 of 3` or `set N · extra`), catalog still when the title matches.
 2. Log the active exercise:
    - Rep work: optional **Weight (kg)** with ± steppers (`Bodyweight is fine — leave weight blank.`), **Reps** with ±, **Save set**. Copy: **Done with this set? Save it.**
    - Timed work: countdown, **Start timer**, then **Log time** (or log without starting; that stores the prescribed time).
 3. **This block** lists partners with `3 × 10 · 0/3`. On a **superset**, prescribed sets alternate. Rating is blocked until both have their prescribed sets.
-4. After **Save set** / **Log time**, rest **auto-starts** and takes over (big clock, **Breathe.** / **Next: …**, **Skip**). Weight/reps stay hidden until rest ends.
-5. After prescribed sets, extras can still be logged, then soft rate **Easy → Brutal** (**How did that feel?**) or **Skip for now**. Rating or skip completes that exercise and moves on.
-6. When every exercise is finished, a short **session done** beat (quote from the last rating), then the session completes.
-7. **End** (not back) opens:
+4. After **Save set** / **Log time**, rest **auto-starts** and takes over the screen (dark countdown, default 60s, **Breathe.** / **Next: …**, **+15s** / **Skip**). Weight/reps stay hidden until rest ends or is skipped. Hitting 0 ends rest. **End** is not on the rest chrome — leave rest first, or use system back.
+5. After prescribed sets, a rate takeover: **How did that feel?** with **Easy · Light · Solid · Hard · Brutal** (1–5), or **Skip for now**. **Log an extra set** stays available in this phase. Rating or skip completes that exercise (`completedAt`) and moves on; skip leaves `difficulty` null.
+6. When every exercise is finished, a short **session done** beat (quote from the last rating, **Continue**), then the ended screen.
+7. **End** (not back; work/rate modes only) opens:
    - **Finish workout** — keep a partial log (`completed`)
    - **Discard workout** — abandoned; hidden on the month view
    - **Keep going**
@@ -124,7 +126,7 @@ Copied from the plan at start. Later plan edits do not change this session. App-
 
 1. Welcome → **Beginner full body**.
 2. Start **today’s** day from the home card.
-3. Log prescribed sets, rest as needed, rate each movement 1–5 (or **Finish workout** on a partial log).
+3. Log prescribed sets (**Save set** / **Log time**), skip or ride out rest, soft-rate each movement Easy→Brutal or **Skip for now** (or **Finish workout** on a partial log). Acknowledge the session-done beat, then **Done**.
 4. Land back on Plans; today card moves to the next day.
 5. Open the plan, peek at another day, optionally edit.
 6. Open **Month** and confirm a dot + trend row for what was logged.
