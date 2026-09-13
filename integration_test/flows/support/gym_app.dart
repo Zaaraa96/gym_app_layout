@@ -18,7 +18,7 @@ const gymPatrolConfig = PatrolTesterConfig(
   visibleTimeout: Duration(seconds: 20),
 );
 
-const gymPatrolTimeout = Timeout(Duration(minutes: 6));
+const gymPatrolTimeout = Timeout(Duration(minutes: 10));
 
 void gymPatrolTest(
   String description,
@@ -482,12 +482,19 @@ class GymApp {
     await pumpQuiet(const Duration(seconds: 1));
   }
 
-  Future<void> dismissPermissionIfAny() async {
-    if (await $.platform.mobile.isPermissionDialogVisible(
-      timeout: const Duration(seconds: 2),
-    )) {
-      await $.platform.mobile.grantPermissionWhenInUse();
+  Future<bool> dismissPermissionIfAny() async {
+    try {
+      if (await $.platform.mobile.isPermissionDialogVisible(
+        timeout: const Duration(seconds: 2),
+      )) {
+        await $.platform.mobile.grantPermissionWhenInUse();
+        return true;
+      }
+    } catch (_) {
+      // Native automator can time out while DocumentsUI is coming up; SAF
+      // import does not need the storage sheet on modern Android.
     }
+    return false;
   }
 
   Future<bool> nativeTapText(
@@ -513,24 +520,19 @@ class GymApp {
       pickJsonFromDownloads(fileName);
 
   Future<void> pickJsonFromDownloads(String fileName) async {
+    // Give DocumentsUI time to replace the app window before native calls.
+    await Future<void>.delayed(const Duration(milliseconds: 800));
     await dismissPermissionIfAny();
-    await nativeTapText('Allow', timeout: const Duration(milliseconds: 800));
-    await Future<void>.delayed(const Duration(milliseconds: 500));
+    await Future<void>.delayed(const Duration(milliseconds: 400));
     var found = await _waitForNativeFile(fileName);
     if (!found) {
-      await nativeTapText(
-        'Show roots',
-        timeout: const Duration(milliseconds: 800),
-      );
-      if (!await nativeTapText(
-        'Downloads',
-        timeout: const Duration(milliseconds: 800),
-      )) {
-        await nativeTapText(
-          'Download',
-          timeout: const Duration(milliseconds: 800),
-        );
-      }
+      await _openDownloadsRoot();
+      found = await _waitForNativeFile(fileName);
+    }
+    if (!found) {
+      // Unknown extensions can be missing from the MediaStore Downloads
+      // collection; browse the filesystem Download folder instead.
+      await _openDeviceDownloadFolder();
       found = await _waitForNativeFile(fileName);
     }
     if (!found) {
@@ -548,15 +550,85 @@ class GymApp {
     await pumpQuiet(const Duration(milliseconds: 800));
   }
 
-  Future<bool> _waitForNativeFile(String fileName) async {
+  Future<bool> _nativeTapSelector(
+    AndroidSelector selector, {
+    Duration timeout = const Duration(milliseconds: 800),
+  }) async {
     try {
-      await $.platform.android.waitUntilVisible(
-        AndroidSelector(text: fileName),
-        timeout: const Duration(seconds: 8),
-      );
+      await $.platform.android.tap(selector, timeout: timeout);
       return true;
-    } catch (_) {}
-    final deadline = DateTime.now().add(const Duration(seconds: 5));
+    } catch (_) {
+      return false;
+    }
+  }
+
+  Future<void> _openDrawer() async {
+    if (await nativeTapText(
+      'Show roots',
+      timeout: const Duration(milliseconds: 600),
+    )) {
+      return;
+    }
+    // API 34 DocumentsUI often exposes the hamburger only as a description
+    // or toolbar home control, not as visible text.
+    for (final selector in [
+      AndroidSelector(contentDescription: 'Show roots'),
+      AndroidSelector(contentDescriptionContains: 'roots'),
+      AndroidSelector(contentDescriptionContains: 'Navigation'),
+      AndroidSelector(contentDescriptionContains: 'drawer'),
+      AndroidSelector(resourceName: 'android:id/home'),
+      AndroidSelector(
+        resourceName: 'com.google.android.documentsui:id/toolbar',
+      ),
+      AndroidSelector(resourceName: 'com.android.documentsui:id/toolbar'),
+    ]) {
+      if (await _nativeTapSelector(selector)) return;
+    }
+  }
+
+  Future<void> _openDownloadsRoot() async {
+    await _openDrawer();
+    if (!await nativeTapText(
+      'Downloads',
+      timeout: const Duration(milliseconds: 800),
+    )) {
+      await nativeTapText(
+        'Download',
+        timeout: const Duration(milliseconds: 800),
+      );
+    }
+  }
+
+  Future<void> _openDeviceDownloadFolder() async {
+    await _openDrawer();
+    // AVD drawer labels vary by system image.
+    for (final root in [
+      'sdk_gphone64_x86_64',
+      'sdk_gphone_x86_64',
+      'Emulated',
+      'Android SDK built for x86_64',
+      'Files',
+      'Documents',
+    ]) {
+      if (await nativeTapText(root, timeout: const Duration(milliseconds: 600))) {
+        break;
+      }
+    }
+    if (!await nativeTapText(
+      'Download',
+      timeout: const Duration(milliseconds: 800),
+    )) {
+      await nativeTapText(
+        'Downloads',
+        timeout: const Duration(milliseconds: 800),
+      );
+    }
+  }
+
+  Future<bool> _waitForNativeFile(String fileName) async {
+    // Tree-only: exact UiAutomator text waits are slow when they fail and
+    // DocumentsUI often attaches size/type to the label.
+    final deadline = DateTime.now().add(const Duration(seconds: 8));
     while (DateTime.now().isBefore(deadline)) {
       if (await _treeHasFile(fileName)) return true;
       await Future<void>.delayed(const Duration(milliseconds: 300));
@@ -565,12 +637,20 @@ class GymApp {
   }
 
   Future<bool> _selectDocumentsUiFile(String fileName) async {
-    Future<AndroidGetNativeViewsResponse> snapshot() =>
-        $.platform.android.getNativeViews(null);
+    Future<AndroidGetNativeViewsResponse?> snapshot() async {
+      try {
+        return await $.platform.android
+            .getNativeViews(null)
+            .timeout(const Duration(seconds: 8));
+      } catch (_) {
+        return null;
+      }
+    }
 
     /// Tap the geometric middle of the list row so the file becomes selected.
     Future<void> tapRowMiddle(AndroidNativeView label) async {
       final next = await snapshot();
+      if (next == null) return;
       final row = _rowContainingLabel(next, label);
       final size = _screenSize(next);
       if (row != null) {
@@ -594,6 +674,7 @@ class GymApp {
     }
 
     /// Press the top-bar **Select** after the row is in selection mode.
+    /// Same pattern as e9dbfef: tap Select, then succeed when the picker closes.
     Future<bool> confirmSelect() async {
       // Wait briefly for the action bar to flip to "N selected" + Select.
       for (var i = 0; i < 8; i++) {
@@ -606,7 +687,17 @@ class GymApp {
       return !await _pickerShows(fileName);
     }
 
-    var labels = _exactLabels(await snapshot(), fileName);
+    final firstTree = await snapshot();
+    if (firstTree == null) {
+      // DocumentsUI likely already dismissed; give Create plan a moment.
+      await pumpQuiet(const Duration(seconds: 1));
+      return !await _pickerShows(fileName);
+    }
+
+    var labels = _exactLabels(firstTree, fileName);
+    if (labels.isEmpty) {
+      labels = _matchingLabels(firstTree, fileName);
+    }
     for (final label in labels) {
       try {
         await tapRowMiddle(label);
@@ -616,13 +707,19 @@ class GymApp {
       if (await confirmSelect()) return true;
     }
 
-    labels = _exactLabels(await snapshot(), fileName);
-    if (labels.isNotEmpty) {
-      try {
-        await tapRowMiddle(labels.last);
-      } catch (_) {}
-      await pumpQuiet(const Duration(milliseconds: 500));
-      if (await confirmSelect()) return true;
+    final lastTree = await snapshot();
+    if (lastTree != null) {
+      labels = _exactLabels(lastTree, fileName);
+      if (labels.isEmpty) {
+        labels = _matchingLabels(lastTree, fileName);
+      }
+      if (labels.isNotEmpty) {
+        try {
+          await tapRowMiddle(labels.last);
+        } catch (_) {}
+        await pumpQuiet(const Duration(milliseconds: 500));
+        if (await confirmSelect()) return true;
+      }
     }
 
     // Already in selection mode from a prior tap — just confirm.
@@ -633,9 +730,24 @@ class GymApp {
   Future<bool> _tapDocumentsUiSelectButton() async {
     const labels = ['Select', 'SELECT', 'Open', 'OPEN', 'Done', 'OK'];
 
-    // 1) Preferred: find the action in the native tree and tap its center.
+    // 1) UiAutomator text / content-description (visible top-bar Select).
+    for (final textLabel in labels) {
+      if (await nativeTapText(
+        textLabel,
+        timeout: const Duration(milliseconds: 600),
+      )) {
+        return true;
+      }
+    }
+    for (final desc in labels) {
+      if (await _nativeTapDescription(desc)) return true;
+    }
+
+    // 2) Native tree: exact action-bar labels / known menu ids.
     try {
-      final tree = await $.platform.android.getNativeViews(null);
+      final tree = await $.platform.android
+          .getNativeViews(null)
+          .timeout(const Duration(seconds: 5));
       final button = _findDocumentsUiConfirmAction(tree);
       if (button != null) {
         final size = _screenSize(tree);
@@ -646,19 +758,6 @@ class GymApp {
         return true;
       }
     } catch (_) {}
-
-    // 2) UiAutomator text / content-description.
-    for (final text in labels) {
-      if (await nativeTapText(
-        text,
-        timeout: const Duration(milliseconds: 600),
-      )) {
-        return true;
-      }
-    }
-    for (final desc in labels) {
-      if (await _nativeTapDescription(desc)) return true;
-    }
 
     // 3) Fallback: top-right where DocumentsUI places Select.
     try {
@@ -679,9 +778,11 @@ class GymApp {
       final desc = view.contentDescription?.trim().toLowerCase() ?? '';
       final res = view.resourceName?.toLowerCase() ?? '';
       final isLabel = labels.contains(text) || labels.contains(desc);
-      final isSelectRes = res.contains('select') ||
-          res.endsWith('/option_menu_select') ||
-          res.endsWith('/action_menu_select');
+      // Exact menu ids only — do not use contains('select') (matches
+      // checkboxes / "1 selected" chrome and taps the wrong node).
+      final isSelectRes = res.endsWith('/option_menu_select') ||
+          res.endsWith('/action_menu_select') ||
+          res.endsWith('/menu_select');
       if (isLabel || isSelectRes) {
         matches.add(view);
       }
@@ -699,6 +800,7 @@ class GymApp {
     return matches.first;
   }
 
+
   Future<bool> _nativeTapDescription(String description) async {
     try {
       await $.platform.android.tap(
@@ -713,13 +815,23 @@ class GymApp {
 
   Future<bool> _pickerShows(String fileName) => _treeHasFile(fileName);
 
-  Future<bool> _treeHasFile(String fileName) async {
+  /// `true` / `false` when the native tree is readable; `null` on timeout so
+  /// callers do not treat a hung getNativeViews as "picker closed".
+  Future<bool?> _pickerShowsOrUnknown(String fileName) async {
     try {
-      final snapshot = await $.platform.android.getNativeViews(null);
+      final snapshot = await $.platform.android
+          .getNativeViews(null)
+          .timeout(const Duration(seconds: 5));
       return _treeHasFileIn(snapshot.roots, fileName);
     } catch (_) {
-      return false;
+      return null;
     }
+  }
+
+  Future<bool> _treeHasFile(String fileName) async {
+    final showing = await _pickerShowsOrUnknown(fileName);
+    // Unknown (timeout) → not found yet; keep waiting in _waitForNativeFile.
+    return showing ?? false;
   }
 
   bool _treeHasFileIn(List<AndroidNativeView> roots, String fileName) {
@@ -746,6 +858,30 @@ class GymApp {
       if (package == _appPackage) return;
       if (nativeFileLabelIsExact(view.text, fileName) ||
           nativeFileLabelIsExact(view.contentDescription, fileName)) {
+        labels.add(view);
+      }
+      for (final child in view.children) {
+        collect(child, package);
+      }
+    }
+
+    for (final root in tree.roots) {
+      collect(root, null);
+    }
+    labels.sort((a, b) => a.visibleCenter.y.compareTo(b.visibleCenter.y));
+    return labels;
+  }
+
+  List<AndroidNativeView> _matchingLabels(
+    AndroidGetNativeViewsResponse tree,
+    String fileName,
+  ) {
+    final labels = <AndroidNativeView>[];
+    void collect(AndroidNativeView view, String? owner) {
+      final package = view.applicationPackage ?? owner;
+      if (package == _appPackage) return;
+      if (nativeFileLabelMatches(view.text, fileName) ||
+          nativeFileLabelMatches(view.contentDescription, fileName)) {
         labels.add(view);
       }
       for (final child in view.children) {

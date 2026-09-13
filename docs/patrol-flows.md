@@ -30,7 +30,7 @@ uses the vertical stepper and auto-saves a **Draft**. Import salvages
 | `flow_1_2a_welcome_and_beginner_test.dart` | §1 Welcome, §2a beginner full body (5 days), same-title reuse, delete plan |
 | `flow_2b_create_from_scratch_test.dart` | §2b stepper: untitled draft, Resume, Finish plan disabled until a block, Add another day, start, discard |
 | `flow_2c_import_json_test.dart` | §2c native picker (`broken.json` then `valid-plan.json`); Create plan draft + Finish plan |
-| `flow_2c_import_gymplan_test.dart` | §2c `.gymplan` package → Create plan draft + Finish plan |
+| `flow_2c_import_gymplan_test.dart` | §2c package zip (`pack.zip`, same bytes as `.gymplan`) → Create plan draft + Finish plan |
 | `flow_3_exercises_catalog_test.dart` | §3 Exercises tab: search, region filter, bundled detail, add form |
 | `flow_3_7_home_to_month_test.dart` | §3–7 on full body: home (Plans / Exercises / Month), extra days, live, superset + timed plank, snapshot edit, Month |
 | `flow_4_export_plan_test.dart` | §4 overflow **Export plan** (Full package / Lite), then Cancel |
@@ -101,6 +101,10 @@ Pin the AVD with `-d emulator-5554` if Flutter still lists another device.
   (`save-day`).
 - Plan overflow **Export plan** offers Full package or Lite. Patrol stops at
   Cancel so the native share sheet is not required.
+- DocumentsUI import (flow 2c): a row tap only puts the file into selection
+  mode (**1 selected**). The robot must then press the top-bar **Select**
+  (UiAutomator text / `option_menu_select`, then coordinate fallbacks left of
+  ⋮) so `ACTION_OPEN_DOCUMENT` returns. Do not stop after the row highlight.
 - Live logger (comfort + immersive): wait for **Done with this set? Save it.**
   (or **Your turn:**). **Save set** / **Log time** auto-starts rest
   (**Breathe.**, **+15s**, **Skip**). Soft rate is Easy→Brutal keys
