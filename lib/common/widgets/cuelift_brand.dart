@@ -83,11 +83,11 @@ class _CueLiftWelcomeBrandState extends State<CueLiftWelcomeBrand>
           'Your training assistant',
           textAlign: TextAlign.center,
           style: TextStyle(
-            color: CueLiftColors.white.withValues(alpha: 0.92),
-            fontSize: 17,
-            fontWeight: FontWeight.w500,
+            color: CueLiftColors.white.withValues(alpha: 0.95),
+            fontSize: 18,
+            fontWeight: FontWeight.w600,
             height: 1.35,
-            letterSpacing: 0.15,
+            letterSpacing: 0.2,
           ),
         ),
         if (widget.showLoader) ...[
