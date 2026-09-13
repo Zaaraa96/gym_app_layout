@@ -101,6 +101,10 @@ Pin the AVD with `-d emulator-5554` if Flutter still lists another device.
   (`save-day`).
 - Plan overflow **Export plan** offers Full package or Lite. Patrol stops at
   Cancel so the native share sheet is not required.
+- DocumentsUI import (flow 2c): a row tap only puts the file into selection
+  mode (**1 selected**). The robot must then press the top-bar **Select**
+  (UiAutomator text / `option_menu_select`, then coordinate fallbacks left of
+  ⋮) so `ACTION_OPEN_DOCUMENT` returns. Do not stop after the row highlight.
 - Live logger (comfort + immersive): wait for **Done with this set? Save it.**
   (or **Your turn:**). **Save set** / **Log time** auto-starts rest
   (**Breathe.**, **+15s**, **Skip**). Soft rate is Easy→Brutal keys
