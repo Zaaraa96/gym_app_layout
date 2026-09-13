@@ -484,7 +484,7 @@ Routes: `/`, `/home`, `/starters`, `/import`, `/new-plan`, `/plan`, `/day`, `/ed
 
 Slices **1–9 are in the running app** (Welcome, import/create stepper, plan/day editors, start/conflict, live logger + 1–5, Month). Slice **10** (harden) is largely in: resume after back, one in-progress session, invalid JSON error, analyze/CI, widget tests. Remaining product gaps:
 
-- Auto-start rest, target weight, accounts, suggested next load, reorder/duplicate days
+- Target weight, accounts, suggested next load, reorder/duplicate days
 - HTTP sync only when `API_BASE_URL` is set
 
 Historical build order (already shipped):
