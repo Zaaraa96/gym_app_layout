@@ -641,37 +641,10 @@ class GymApp {
       try {
         return await $.platform.android
             .getNativeViews(null)
-            .timeout(const Duration(seconds: 5));
+            .timeout(const Duration(seconds: 8));
       } catch (_) {
         return null;
       }
-    }
-
-    Future<bool> importLanded() async {
-      await pumpQuiet(const Duration(milliseconds: 400));
-      return $('Create plan').exists ||
-          $(const Key('import-issues-banner')).exists;
-    }
-
-    /// `true` = picker closed / imported, `false` = still open, `null` = unknown.
-    Future<bool?> pickerClosed() async {
-      if (await importLanded()) return true;
-      final showing = await _pickerShowsOrUnknown(fileName);
-      if (showing == null) return null;
-      return !showing;
-    }
-
-    /// Press the top-bar **Select** after the row is in selection mode.
-    Future<bool> confirmSelect() async {
-      // Wait for the action bar to flip to "N selected" + Select, then tap it.
-      for (var i = 0; i < 12; i++) {
-        await _tapDocumentsUiSelectButton();
-        await pumpQuiet(const Duration(milliseconds: 400));
-        final closed = await pickerClosed();
-        if (closed == true) return true;
-        await Future<void>.delayed(const Duration(milliseconds: 200));
-      }
-      return await pickerClosed() == true;
     }
 
     /// Tap the geometric middle of the list row so the file becomes selected.
@@ -700,37 +673,25 @@ class GymApp {
       await _tapAtScreenPoint(x: tap.x, y: tap.y);
     }
 
-    Future<bool> alreadySelecting() async {
-      final tree = await snapshot();
-      if (tree == null) return false;
-      return documentsUiIsSelectionMode(_nativeLabels(tree));
-    }
-
-    // Already on "1 selected" (row tap worked) — only press Select.
-    if (await alreadySelecting()) {
-      if (await confirmSelect()) return true;
-    }
-
-    // Direct text tap first — coordinate taps can enter DocumentsUI action mode.
-    if (await _nativeTapSelector(
-      AndroidSelector(textContains: fileName),
-      timeout: const Duration(seconds: 3),
-    )) {
-      await pumpQuiet(const Duration(milliseconds: 800));
-      if (await pickerClosed() == true) return true;
-      if (await confirmSelect()) return true;
-    }
-    if (await nativeTapText(fileName, timeout: const Duration(seconds: 2))) {
-      await pumpQuiet(const Duration(milliseconds: 800));
-      if (await pickerClosed() == true) return true;
-      if (await confirmSelect()) return true;
+    /// Press the top-bar **Select** after the row is in selection mode.
+    /// Same pattern as e9dbfef: tap Select, then succeed when the picker closes.
+    Future<bool> confirmSelect() async {
+      // Wait briefly for the action bar to flip to "N selected" + Select.
+      for (var i = 0; i < 8; i++) {
+        if (await _tapDocumentsUiSelectButton()) {
+          await pumpQuiet(const Duration(milliseconds: 500));
+          if (!await _pickerShows(fileName)) return true;
+        }
+        await Future<void>.delayed(const Duration(milliseconds: 250));
+      }
+      return !await _pickerShows(fileName);
     }
 
     final firstTree = await snapshot();
     if (firstTree == null) {
       // DocumentsUI likely already dismissed; give Create plan a moment.
       await pumpQuiet(const Duration(seconds: 1));
-      return await importLanded() || await pickerClosed() == true;
+      return !await _pickerShows(fileName);
     }
 
     var labels = _exactLabels(firstTree, fileName);
@@ -766,34 +727,14 @@ class GymApp {
   }
 
   /// Tap DocumentsUI's top-bar Select (or Open) after a file row is selected.
-  ///
-  /// Prefer UiAutomator resource/text taps before getNativeViews — the native
-  /// tree walk often stalls on DocumentsUI and used to match checkbox nodes via
-  /// `resourceName.contains('select')`, never hitting the real Select button.
   Future<bool> _tapDocumentsUiSelectButton() async {
     const labels = ['Select', 'SELECT', 'Open', 'OPEN', 'Done', 'OK'];
-    const resourceNames = [
-      'com.google.android.documentsui:id/option_menu_select',
-      'com.android.documentsui:id/option_menu_select',
-      'com.google.android.documentsui:id/action_menu_select',
-      'com.android.documentsui:id/action_menu_select',
-    ];
 
-    // 1) Known menu resource ids.
-    for (final res in resourceNames) {
-      if (await _nativeTapSelector(
-        AndroidSelector(resourceName: res),
-        timeout: const Duration(milliseconds: 700),
-      )) {
-        return true;
-      }
-    }
-
-    // 2) Exact toolbar text / content-description (what the screenshot shows).
-    for (final text in labels) {
+    // 1) UiAutomator text / content-description (visible top-bar Select).
+    for (final textLabel in labels) {
       if (await nativeTapText(
-        text,
-        timeout: const Duration(seconds: 2),
+        textLabel,
+        timeout: const Duration(milliseconds: 600),
       )) {
         return true;
       }
@@ -802,7 +743,7 @@ class GymApp {
       if (await _nativeTapDescription(desc)) return true;
     }
 
-    // 3) Native tree — exact labels / known menu suffixes in the action bar only.
+    // 2) Native tree: exact action-bar labels / known menu ids.
     try {
       final tree = await $.platform.android
           .getNativeViews(null)
@@ -818,32 +759,33 @@ class GymApp {
       }
     } catch (_) {}
 
-    // 4) Coordinate fallbacks across the Select region (left of ⋮).
-    for (final point in documentsUiSelectButtonFallbackTaps()) {
-      try {
-        await _tapAtScreenPoint(x: point.x, y: point.y);
-        return true;
-      } catch (_) {}
+    // 3) Fallback: top-right where DocumentsUI places Select.
+    try {
+      await _tapAtScreenPoint(x: 0.82, y: 0.06);
+      return true;
+    } catch (_) {
+      return false;
     }
-    return false;
   }
 
   AndroidNativeView? _findDocumentsUiConfirmAction(
     AndroidGetNativeViewsResponse tree,
   ) {
-    final size = _screenSize(tree);
-    final byId = <DocumentsUiConfirmCandidate, AndroidNativeView>{};
-    final candidates = <DocumentsUiConfirmCandidate>[];
+    const labels = {'select', 'open', 'done', 'ok'};
+    final matches = <AndroidNativeView>[];
     void collect(AndroidNativeView view) {
-      final candidate = DocumentsUiConfirmCandidate(
-        centerX: view.visibleCenter.x,
-        centerY: view.visibleCenter.y,
-        text: view.text,
-        contentDescription: view.contentDescription,
-        resourceName: view.resourceName,
-      );
-      candidates.add(candidate);
-      byId[candidate] = view;
+      final text = view.text?.trim().toLowerCase() ?? '';
+      final desc = view.contentDescription?.trim().toLowerCase() ?? '';
+      final res = view.resourceName?.toLowerCase() ?? '';
+      final isLabel = labels.contains(text) || labels.contains(desc);
+      // Exact menu ids only — do not use contains('select') (matches
+      // checkboxes / "1 selected" chrome and taps the wrong node).
+      final isSelectRes = res.endsWith('/option_menu_select') ||
+          res.endsWith('/action_menu_select') ||
+          res.endsWith('/menu_select');
+      if (isLabel || isSelectRes) {
+        matches.add(view);
+      }
       for (final child in view.children) {
         collect(child);
       }
@@ -852,29 +794,12 @@ class GymApp {
     for (final root in tree.roots) {
       collect(root);
     }
-    final picked = documentsUiPickConfirmAction(
-      candidates,
-      screenHeight: size.height,
-    );
-    if (picked == null) return null;
-    return byId[picked];
+    if (matches.isEmpty) return null;
+    // Prefer the topmost (action bar) match.
+    matches.sort((a, b) => a.visibleCenter.y.compareTo(b.visibleCenter.y));
+    return matches.first;
   }
 
-  List<String?> _nativeLabels(AndroidGetNativeViewsResponse tree) {
-    final labels = <String?>[];
-    void collect(AndroidNativeView view) {
-      labels.add(view.text);
-      labels.add(view.contentDescription);
-      for (final child in view.children) {
-        collect(child);
-      }
-    }
-
-    for (final root in tree.roots) {
-      collect(root);
-    }
-    return labels;
-  }
 
   Future<bool> _nativeTapDescription(String description) async {
     try {
@@ -887,6 +812,8 @@ class GymApp {
       return false;
     }
   }
+
+  Future<bool> _pickerShows(String fileName) => _treeHasFile(fileName);
 
   /// `true` / `false` when the native tree is readable; `null` on timeout so
   /// callers do not treat a hung getNativeViews as "picker closed".
