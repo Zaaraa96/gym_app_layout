@@ -6,7 +6,7 @@ Brand identity and UI tokens for the gym app. Product name: **CueLift**.
 
 Primary identity is the **Welcome-style brand stack**:
 
-1. Slash-tail **C** mark (coral `#FF4D3D` on transparent; sits on navy field)
+1. Slash-tail **C** mark (coral `#FF4D3D` on transparent; sits on navy field) — italic monogram with a sharp lightning slash fused into the lower terminal
 2. Wordmark **CueLift** — `Cue` white / `Lift` coral (same hex; transparent PNG)
 3. One line: *Your training assistant* — Flutter `Text` under the artwork (not baked into the bitmap)
 
@@ -15,11 +15,13 @@ Primary identity is the **Welcome-style brand stack**:
 | Welcome / splash | Full Welcome stack on navy `#0B1D36` (always — light or dark preference does not change this) |
 | Plans app bar | Small coral C (`cuelift-mark-light`) + screen title |
 | Live workout | No logo; coral only on primary actions |
-| Launcher icon | Slash-tail C on navy |
+| Launcher icon | Slash-tail C on full-bleed navy (no ring, disc, or light halo) |
 
 ### Logo rules
 
-- Keep the slash-tail angle fixed.
+- Keep the slash-tail angle fixed; the bolt is one continuous path with the C, not a separate sticker.
+- Prefer the vector source `cuelift-mark.svg` when regenerating bitmaps; export at native density so edges stay crisp.
+- No circular frame, white disc, or off-white fringe around the mark — navy field or transparent only.
 - Do not stretch, outline, or recolor `Lift` to white on the navy lockup.
 - Clear space around the mark ≈ the C stroke width.
 
@@ -115,11 +117,12 @@ No glow pulses.
 
 | File | Use |
 |---|---|
+| `assets/image/brand/cuelift-mark.svg` | Vector source for the slash-tail C (coral path) |
 | `assets/image/brand/cuelift-welcome.png` | Welcome / splash mark + wordmark (transparent; no tagline) |
-| `assets/image/brand/cuelift-icon.png` | Launcher / splash mark source (coral C on navy) |
+| `assets/image/brand/cuelift-icon.png` | Launcher / splash mark source (coral C on navy `#0B1D36`) |
 | `assets/image/brand/cuelift-mark-light.png` | App-bar / surface chrome (coral C on transparent) |
 
-Platform launcher icons and iOS launch images are generated from `cuelift-icon.png`.
+Platform launcher icons and iOS launch images are generated from `cuelift-icon.png` / `cuelift-mark-light.png` at each density. Colors must stay exact `#FF4D3D` / `#0B1D36`.
 
 ## Implementation map
 
