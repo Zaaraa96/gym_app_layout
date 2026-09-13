@@ -34,6 +34,7 @@ void main() {
 
     await tester.pumpAndSettle();
     expect(find.byType(CueLiftWelcomeBrand), findsOneWidget);
+    expect(find.text('Your training assistant'), findsOneWidget);
   });
 
   testWidgets('primary CTA scales on press', (tester) async {
