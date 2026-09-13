@@ -51,6 +51,9 @@ class CueLiftWelcomeBrand extends StatelessWidget {
 }
 
 /// Small C mark for app bars and compact chrome.
+///
+/// Uses [CueLiftBrandAssets.markLight] (coral on transparent) so the mark sits
+/// cleanly on light and dark surface app bars — not the navy-field launcher icon.
 class CueLiftAppMark extends StatelessWidget {
   const CueLiftAppMark({super.key, this.size = 28});
 
@@ -59,7 +62,7 @@ class CueLiftAppMark extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Image.asset(
-      CueLiftBrandAssets.icon,
+      CueLiftBrandAssets.markLight,
       width: size,
       height: size,
       fit: BoxFit.contain,
