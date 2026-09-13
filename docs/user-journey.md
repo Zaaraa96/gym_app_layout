@@ -8,11 +8,12 @@ Welcome, Plans, live workout, and Month all exist and are wired. Judge this file
 
 The app opens on **Welcome** when no plans exist. Later launches skip Welcome whenever any plan is stored — including a draft — and go to **Plans**.
 
-On-screen copy:
+Welcome is the CueLift brand screen (see [design-system.md](design-system.md) — Welcome rule):
 
-- Title: **Welcome To the Amazing Gym app**
-- Subtitle: **Start with a plan. Grab a beginner template, import one you already have, or build it here.**
-- A looping gym Lottie animation
+- Full-bleed navy `#0B1D36` field (always — light/dark preference does not change Welcome or splash)
+- Centered brand stack: slash-tail **C** mark, **CueLift** wordmark (`Cue` white / `Lift` coral), line *Your training assistant*
+- No title/subtitle copy and no Lottie — the brand stack is the hero
+- Theme control may sit in the app bar; it does not recolor this navy field
 
 Three full-width actions, no bottom nav:
 

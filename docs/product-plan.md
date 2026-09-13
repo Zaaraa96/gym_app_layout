@@ -249,7 +249,7 @@ Drop `SinglePlanModel` / `SingleDayPlanModel` / `SingleExerciseWithRound` / `Exe
 
 ## Step 3 — UX design
 
-Keep Material 3, deep purple seed, Lottie welcome. Plan preview uses info day cards (optional rotating exercise stills), not the old photo backgrounds. No new visual language before code. Full Figma is optional; this screen map is enough to build.
+Keep Material 3. Theme chrome (navy / coral CueLift tokens, light and dark surfaces, Welcome/splash brand rule) is locked in [design-system.md](design-system.md) — do not reintroduce a purple seed or Lottie welcome. Plan preview uses info day cards (optional rotating exercise stills), not the old photo backgrounds. Full Figma is optional; this screen map is enough to build.
 
 Reviewed against Step 1–2 and the screens already in the app. Locked decisions below replace the earlier “FAB or…”, “local flag or…”, and “completed or abandoned” forks.
 
@@ -322,7 +322,7 @@ There is **no** all-in-one post-create plan editor. Creation uses the stepper. A
 
 ### Wireframes (layout, not pixels)
 
-**Welcome.** Centered Lottie, title, subtitle, three full-width actions: Start with a beginner plan | Import a plan | Create a plan. Returning users never see this once any plan exists.
+**Welcome.** Navy brand field with the CueLift Welcome stack (C mark + CueLift wordmark + *Your training assistant* — [design-system.md](design-system.md)); no Lottie and no “Amazing Gym” title/subtitle. Three full-width actions: Start with a beginner plan | Import a plan | Create a plan. Returning users never see this once any plan exists.
 
 **Plans home.** App bar “Plans” (or “Exercises” / “Month” on those tabs). Continue banner above the body when `inProgress` exists. **Today** card with the next active-plan day and a Start CTA. List of plan titles + day count; drafts show **Draft** / **Resume** / **Delete**. Bottom row: Import | New, plus **Beginner** when at least one plan exists. Empty list: **Start with a beginner plan** instead of that third button. Bottom nav: Plans, Exercises, Month.
 
@@ -388,11 +388,11 @@ Target weight field, required photos, accounts, suggested next load, reordering 
 
 ### Keep
 
-- Flutter Material 3 theme (`lib/common/app_theme.dart`) with light / dark / system (`ThemeController`)
+- Flutter Material 3 theme (`lib/common/app_theme.dart`) with CueLift navy/coral tokens and light / dark / system (`ThemeController`) — see [design-system.md](design-system.md)
 - GetX `GetMaterialApp` named routes (`lib/app/app_routes.dart`)
 - Isar **3.1.x** + `isar_flutter_libs` + `isar_generator` (no Isar 4)
 - Shared widgets: `AppScaffold`, `AppText`, `AppElevatedButton`, `AppTextField`
-- Lottie welcome, SVG icons, bundled exercise stills
+- CueLift brand bitmaps (`assets/image/brand/`), SVG icons, bundled exercise stills (no Lottie welcome)
 - `path_provider` for the Isar directory
 - Domain types and repository **interfaces** stay Isar-free. Pages do not import `isar_*_repository.dart`. `kIsWeb` belongs at composition (`bootApp` / adapters), not in pages.
 
