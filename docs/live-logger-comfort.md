@@ -61,12 +61,12 @@ Done with this set? Save it.
 Breathe.
 Next: Leg extension
 
-[ I'm ready ]
+[ Skip ]
 ```
 
 - Auto-starts when a set/time is saved.
 - Weight/reps (and rate UI) are hidden while resting.
-- **I'm ready** stops rest and returns to work (or rate) for the active movement.
+- Rest is a **countdown** (default 60s) with **+15s** and **Skip**. **Skip** ends rest early and returns to work (or rate). Hitting 0 auto-ends rest.
 - Manual Start rest is gone from the default path; Reset is not needed on this surface.
 
 ### Rate
@@ -114,6 +114,15 @@ Manual **Finish workout** from End skips the beat and goes straight to the ended
 | Log set | Save set |
 | empty = bodyweight | Bodyweight is fine — leave weight blank. |
 | How hard was that? 1 easy · 5 hard | How did that feel? + labeled digits |
-| Start rest / Resting… / Reset rest | Rest takeover + I'm ready |
+| Start rest / Resting… / Reset rest | Rest takeover + Skip |
 | (after log, nothing) | Next: {title} on rest; optional work-mode next line |
 | Nice work. What you logged is saved. | Keep + `{n} sets of {title} saved` |
+
+
+## Immersive shell (visual + flow)
+
+- Deep-purple Material stays app-wide; live has no brand mark.
+- Segmented progress, large exercise media, **This block** always visible, sticky save dock.
+- Leave helper stays: “Leaving keeps this workout — continue on Plans.”
+- Rate is a full takeover (Easy→Brutal / Skip for now / Log an extra set).
+- Rest is a dark full-screen countdown with +15s / Skip and next-up preview.

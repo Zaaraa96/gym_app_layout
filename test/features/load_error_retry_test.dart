@@ -250,7 +250,9 @@ void main() {
 
     expect(find.text('Could not open this workout.'), findsNothing);
     expect(find.text('Day 1'), findsWidgets);
-    expect(find.text('squat'), findsWidgets);
+    // Immersive work mode puts the title in "Your turn: …"; the block
+    // tile's bare title can sit offstage on the default test surface.
+    expect(find.text('Your turn: squat'), findsOneWidget);
   });
 }
 

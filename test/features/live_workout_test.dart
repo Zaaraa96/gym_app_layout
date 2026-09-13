@@ -69,7 +69,7 @@ void main() {
     await tester.tap(save);
     await tester.pump();
     await settle(tester);
-    final ready = find.text("I'm ready");
+    final ready = find.text("Skip");
     expect(ready, findsOneWidget);
     await tester.ensureVisible(ready);
     await tester.tap(ready);
@@ -88,6 +88,16 @@ void main() {
     await tester.tap(rate);
     await tester.pump();
     await settle(tester);
+  }
+
+  Future<void> openExtraLogging(WidgetTester tester) async {
+    final extra = find.text('Log an extra set');
+    if (extra.evaluate().isNotEmpty) {
+      await tester.ensureVisible(extra);
+      await tester.tap(extra);
+      await tester.pump();
+      await settle(tester);
+    }
   }
 
   Future<void> finishSessionDoneBeat(WidgetTester tester) async {
@@ -164,7 +174,9 @@ void main() {
     );
 
     await tester.pumpWidget(
-      GetMaterialApp(home: LiveWorkoutPage(sessionId: session.uuid, ports: Get.find<AppPorts>())),
+      GetMaterialApp(
+          home: LiveWorkoutPage(
+              sessionId: session.uuid, ports: Get.find<AppPorts>())),
     );
     await settle(tester);
 
@@ -201,7 +213,9 @@ void main() {
     );
 
     await tester.pumpWidget(
-      GetMaterialApp(home: LiveWorkoutPage(sessionId: session.uuid, ports: Get.find<AppPorts>())),
+      GetMaterialApp(
+          home: LiveWorkoutPage(
+              sessionId: session.uuid, ports: Get.find<AppPorts>())),
     );
     await settle(tester);
 
@@ -221,7 +235,8 @@ void main() {
 
     expect(find.text('Workout complete'), findsOneWidget);
     expect(find.text('Nice work.'), findsOneWidget);
-    expect(find.textContaining('set of Bodyweight squat saved'), findsOneWidget);
+    expect(
+        find.textContaining('set of Bodyweight squat saved'), findsOneWidget);
     expect(find.byKey(const Key('end-workout')), findsNothing);
     final stored = await db(tester, () => repos.sessions.byId(session.id));
     expect(stored!.status, SessionStatus.completed);
@@ -261,7 +276,8 @@ void main() {
       await tester.tap(find.text("Start today's workout"));
       await tester.pump();
       await settle(tester);
-      expect(find.textContaining('Your turn: Bodyweight squat'), findsOneWidget);
+      expect(
+          find.textContaining('Your turn: Bodyweight squat'), findsOneWidget);
 
       await tester.pageBack();
       await tester.pump();
@@ -272,7 +288,8 @@ void main() {
       await settle(tester);
 
       expect(find.text('A workout is already in progress'), findsNothing);
-      expect(find.textContaining('Your turn: Bodyweight squat'), findsOneWidget);
+      expect(
+          find.textContaining('Your turn: Bodyweight squat'), findsOneWidget);
       expect(await db(tester, () => repos.sessions.inProgress()), isNotNull);
     },
   );
@@ -387,7 +404,9 @@ void main() {
       await db(tester, () => repos.sessions.save(session));
 
       await tester.pumpWidget(
-        GetMaterialApp(home: LiveWorkoutPage(sessionId: session.uuid, ports: Get.find<AppPorts>())),
+        GetMaterialApp(
+            home: LiveWorkoutPage(
+                sessionId: session.uuid, ports: Get.find<AppPorts>())),
       );
       await settle(tester);
 
@@ -417,7 +436,9 @@ void main() {
       );
 
       await tester.pumpWidget(
-        GetMaterialApp(home: LiveWorkoutPage(sessionId: session.uuid, ports: Get.find<AppPorts>())),
+        GetMaterialApp(
+            home: LiveWorkoutPage(
+                sessionId: session.uuid, ports: Get.find<AppPorts>())),
       );
       await settle(tester);
 
@@ -459,7 +480,8 @@ void main() {
 
     await tester.pumpWidget(
       GetMaterialApp(
-        home: LiveWorkoutPage(sessionId: session.uuid, ports: Get.find<AppPorts>()),
+        home: LiveWorkoutPage(
+            sessionId: session.uuid, ports: Get.find<AppPorts>()),
       ),
     );
     await settle(tester);
@@ -502,7 +524,8 @@ void main() {
 
     await tester.pumpWidget(
       GetMaterialApp(
-        home: LiveWorkoutPage(sessionId: session.uuid, ports: Get.find<AppPorts>()),
+        home: LiveWorkoutPage(
+            sessionId: session.uuid, ports: Get.find<AppPorts>()),
       ),
     );
     await settle(tester);
@@ -533,7 +556,9 @@ void main() {
       );
 
       await tester.pumpWidget(
-        GetMaterialApp(home: LiveWorkoutPage(sessionId: session.uuid, ports: Get.find<AppPorts>())),
+        GetMaterialApp(
+            home: LiveWorkoutPage(
+                sessionId: session.uuid, ports: Get.find<AppPorts>())),
       );
       await settle(tester);
 
@@ -541,7 +566,7 @@ void main() {
       await tester.tap(find.text('Log time'));
       await tester.pump();
       await settle(tester);
-      await tester.tap(find.text("I'm ready"));
+      await tester.tap(find.text("Skip"));
       await tester.pump();
       await settle(tester);
 
@@ -608,7 +633,9 @@ void main() {
       );
 
       await tester.pumpWidget(
-        GetMaterialApp(home: LiveWorkoutPage(sessionId: session.uuid, ports: Get.find<AppPorts>())),
+        GetMaterialApp(
+            home: LiveWorkoutPage(
+                sessionId: session.uuid, ports: Get.find<AppPorts>())),
       );
       await settle(tester);
 
@@ -639,7 +666,9 @@ void main() {
     );
 
     await tester.pumpWidget(
-      GetMaterialApp(home: LiveWorkoutPage(sessionId: session.uuid, ports: Get.find<AppPorts>())),
+      GetMaterialApp(
+          home: LiveWorkoutPage(
+              sessionId: session.uuid, ports: Get.find<AppPorts>())),
     );
     await settle(tester);
 
@@ -651,7 +680,7 @@ void main() {
     await settle(tester);
 
     expect(find.text('Reps are required.'), findsOneWidget);
-    expect(find.text("I'm ready"), findsNothing);
+    expect(find.text("Skip"), findsNothing);
     final stored = await db(tester, () => repos.sessions.byId(session.id));
     expect(stored!.exerciseLogs.single.sets, isEmpty);
     expect(stored.status, SessionStatus.inProgress);
@@ -673,7 +702,9 @@ void main() {
     );
 
     await tester.pumpWidget(
-      GetMaterialApp(home: LiveWorkoutPage(sessionId: session.uuid, ports: Get.find<AppPorts>())),
+      GetMaterialApp(
+          home: LiveWorkoutPage(
+              sessionId: session.uuid, ports: Get.find<AppPorts>())),
     );
     await settle(tester);
 
@@ -688,13 +719,13 @@ void main() {
       find.text('Weight must be a number, or leave it empty.'),
       findsOneWidget,
     );
-    expect(find.text("I'm ready"), findsNothing);
+    expect(find.text("Skip"), findsNothing);
     final stored = await db(tester, () => repos.sessions.byId(session.id));
     expect(stored!.exerciseLogs.single.sets, isEmpty);
     expect(stored.status, SessionStatus.inProgress);
   });
 
-  testWidgets('Save set auto-starts rest and I’m ready returns to work', (
+  testWidgets('Save set auto-starts rest and Skip returns to work', (
     tester,
   ) async {
     final repos = await bootstrap(tester);
@@ -710,12 +741,14 @@ void main() {
     );
 
     await tester.pumpWidget(
-      GetMaterialApp(home: LiveWorkoutPage(sessionId: session.uuid, ports: Get.find<AppPorts>())),
+      GetMaterialApp(
+          home: LiveWorkoutPage(
+              sessionId: session.uuid, ports: Get.find<AppPorts>())),
     );
     await settle(tester);
 
     expect(find.text('Save set'), findsOneWidget);
-    expect(find.text("I'm ready"), findsNothing);
+    expect(find.text("Skip"), findsNothing);
 
     final save = find.text('Save set');
     await tester.ensureVisible(save);
@@ -724,16 +757,16 @@ void main() {
     await settle(tester);
 
     expect(find.byKey(const Key('rest-clock')), findsOneWidget);
-    expect(find.text("I'm ready"), findsOneWidget);
+    expect(find.text("Skip"), findsOneWidget);
     expect(find.text('Save set'), findsNothing);
     expect(find.text(LiveWorkoutCopy.restBreathe), findsOneWidget);
 
-    await tester.tap(find.text("I'm ready"));
+    await tester.tap(find.text("Skip"));
     await tester.pump();
     await settle(tester);
 
     expect(find.text('Save set'), findsOneWidget);
-    expect(find.text("I'm ready"), findsNothing);
+    expect(find.text("Skip"), findsNothing);
     expect(await db(tester, () => repos.sessions.byId(session.id)), isNotNull);
     expect(
       (await db(tester, () => repos.sessions.byId(session.id)))!.status,
@@ -755,7 +788,9 @@ void main() {
     );
 
     await tester.pumpWidget(
-      GetMaterialApp(home: LiveWorkoutPage(sessionId: session.uuid, ports: Get.find<AppPorts>())),
+      GetMaterialApp(
+          home: LiveWorkoutPage(
+              sessionId: session.uuid, ports: Get.find<AppPorts>())),
     );
     await settle(tester);
 
@@ -777,7 +812,9 @@ void main() {
     await bootstrap(tester);
 
     await tester.pumpWidget(
-      GetMaterialApp(home: LiveWorkoutPage(sessionId: 'missing-session', ports: Get.find<AppPorts>())),
+      GetMaterialApp(
+          home: LiveWorkoutPage(
+              sessionId: 'missing-session', ports: Get.find<AppPorts>())),
     );
     await settle(tester);
 
@@ -804,7 +841,9 @@ void main() {
     );
 
     await tester.pumpWidget(
-      GetMaterialApp(home: LiveWorkoutPage(sessionId: session.uuid, ports: Get.find<AppPorts>())),
+      GetMaterialApp(
+          home: LiveWorkoutPage(
+              sessionId: session.uuid, ports: Get.find<AppPorts>())),
     );
     await settle(tester);
 
@@ -816,7 +855,7 @@ void main() {
     await tester.tap(find.text('Log time'));
     await tester.pump();
     await settle(tester);
-    await tester.tap(find.text("I'm ready"));
+    await tester.tap(find.text("Skip"));
     await tester.pump();
     await settle(tester);
 
@@ -846,7 +885,9 @@ void main() {
     );
 
     await tester.pumpWidget(
-      GetMaterialApp(home: LiveWorkoutPage(sessionId: session.uuid, ports: Get.find<AppPorts>())),
+      GetMaterialApp(
+          home: LiveWorkoutPage(
+              sessionId: session.uuid, ports: Get.find<AppPorts>())),
     );
     await settle(tester);
 
@@ -873,7 +914,8 @@ void main() {
 
     await tester.pumpWidget(
       GetMaterialApp(
-        home: LiveWorkoutPage(sessionId: session.uuid, ports: Get.find<AppPorts>()),
+        home: LiveWorkoutPage(
+            sessionId: session.uuid, ports: Get.find<AppPorts>()),
       ),
     );
     await settle(tester);
@@ -881,6 +923,7 @@ void main() {
     await saveSetAndReady(tester);
     await saveSetAndReady(tester);
 
+    await openExtraLogging(tester);
     expect(find.text('set 3  ·  extra'), findsOneWidget);
     expect(find.textContaining('Your turn: Bodyweight squat'), findsOneWidget);
     expect(find.text('set 3 of 2'), findsNothing);
@@ -889,6 +932,7 @@ void main() {
 
     await saveSetAndReady(tester);
 
+    await openExtraLogging(tester);
     expect(find.text('set 4  ·  extra'), findsOneWidget);
     final stored = await db(tester, () => repos.sessions.byId(session.id));
     expect(stored!.status, SessionStatus.inProgress);
@@ -912,7 +956,9 @@ void main() {
       );
 
       await tester.pumpWidget(
-        GetMaterialApp(home: LiveWorkoutPage(sessionId: session.uuid, ports: Get.find<AppPorts>())),
+        GetMaterialApp(
+            home: LiveWorkoutPage(
+                sessionId: session.uuid, ports: Get.find<AppPorts>())),
       );
       await settle(tester);
 
@@ -931,6 +977,7 @@ void main() {
       await tester.enterText(find.byKey(const Key('weight-field')), '22.5');
       await saveSetAndReady(tester);
 
+      await openExtraLogging(tester);
       expect(find.text('set 3  ·  extra'), findsOneWidget);
       expect(find.text('How did that feel?'), findsOneWidget);
       final afterSecond = await db(
@@ -1025,7 +1072,9 @@ void main() {
     });
 
     await tester.pumpWidget(
-      GetMaterialApp(home: LiveWorkoutPage(sessionId: fractional.uuid, ports: Get.find<AppPorts>())),
+      GetMaterialApp(
+          home: LiveWorkoutPage(
+              sessionId: fractional.uuid, ports: Get.find<AppPorts>())),
     );
     await settle(tester);
 
@@ -1049,7 +1098,9 @@ void main() {
     });
 
     await tester.pumpWidget(
-      GetMaterialApp(home: LiveWorkoutPage(sessionId: fractional.uuid, ports: Get.find<AppPorts>())),
+      GetMaterialApp(
+          home: LiveWorkoutPage(
+              sessionId: fractional.uuid, ports: Get.find<AppPorts>())),
     );
     await settle(tester);
 

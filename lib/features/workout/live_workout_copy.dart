@@ -1,7 +1,7 @@
 /// Companion copy for the live logger (see docs/live-logger-comfort.md).
 abstract final class LiveWorkoutCopy {
   static const leaveReassurance =
-      'Leaving keeps this workout — Continue on Plans.';
+      'Leaving keeps this workout — continue on Plans.';
 
   static const saveSetPrompt = 'Done with this set? Save it.';
   static const saveSet = 'Save set';
@@ -9,9 +9,11 @@ abstract final class LiveWorkoutCopy {
 
   static const ratePrompt = 'How did that feel?';
   static const skipRating = 'Skip for now';
+  static const logExtraSet = 'Log an extra set';
 
   static const restBreathe = 'Breathe.';
-  static const imReady = "I'm ready";
+  static const restSkip = 'Skip';
+  static const restAdd15 = '+15s';
 
   static const ratedNext = 'This one is saved. Next up is below.';
 
