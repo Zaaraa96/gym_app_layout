@@ -344,7 +344,7 @@ Empty start (if reached) shows **Add an exercise first.** There is no Include-to
 Leaving keeps this workout — continue on Plans.
 3 of 8 · ~12 min left
 
-[ GIF / still ]
+[ catalog still ]
 
 Your turn: Kang squat
 then Leg extension
@@ -358,7 +358,7 @@ Done with this set? Save it.
   [ Save set ]
 ```
 
-Work vs rest are separate modes. **Save set** / **Log time** auto-starts rest. Rest takes over the screen (big clock, breathe / next-up copy, **Skip**) and hides the weight/reps form. Details: [live-logger-comfort.md](live-logger-comfort.md).
+Work vs rest are separate modes. **Save set** / **Log time** auto-starts rest. Rest takes over the screen (big clock, breathe / next-up copy, **+15s** / **Skip**) and hides the weight/reps form. Details: [live-logger-comfort.md](live-logger-comfort.md).
 
 A **superset is alternating sets**, not “finish A then B”. Both prescriptions stay visible; **active** is the next exercise in the block that still has unlogged prescribed sets, cycling in prescription order: A1 → B1 → A2 → B2 → … Weight may be empty (`null` = bodyweight). Reps are required for rep work.
 
@@ -368,7 +368,7 @@ A **superset is alternating sets**, not “finish A then B”. Both prescription
 
 Duration exercises replace weight/reps with a countdown from `prescribedDurationSeconds`, paused until Start. The countdown may run past 0 (overtime). **Log time** stores actual seconds: if the timer ran, elapsed (`prescribed − remaining`, remaining can be negative); if they log without starting, store the prescribed value. No separate control to type remaining.
 
-Header names the **active** exercise (“Your turn”) and set index. Quiet progress line: `N of M · ~T left`. Catalog GIF/still when the title matches.
+Header names the **active** exercise (“Your turn”) and set index. Quiet progress line: `N of M · ~T left`. Catalog still when the title matches.
 
 Persist every logged set immediately. App-bar back and system back leave the session `inProgress` with no extra prompt; reassurance copy notes continue on Plans.
 
