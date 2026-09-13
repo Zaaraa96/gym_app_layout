@@ -6,7 +6,6 @@ import '../app_theme.dart';
 abstract final class CueLiftBrandAssets {
   static const welcome = 'assets/image/brand/cuelift-welcome.png';
   static const icon = 'assets/image/brand/cuelift-icon.png';
-  static const lockup = 'assets/image/brand/cuelift-lockup.png';
   static const markLight = 'assets/image/brand/cuelift-mark-light.png';
 }
 

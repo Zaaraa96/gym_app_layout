@@ -117,7 +117,6 @@ No glow pulses.
 |---|---|
 | `assets/image/brand/cuelift-welcome.png` | Welcome / splash Flutter brand |
 | `assets/image/brand/cuelift-icon.png` | Launcher / splash mark source (coral C on navy) |
-| `assets/image/brand/cuelift-lockup.png` | Optional horizontal lockup |
 | `assets/image/brand/cuelift-mark-light.png` | App-bar / surface chrome (coral C on transparent) |
 
 Platform launcher icons and iOS launch images are generated from `cuelift-icon.png`.
