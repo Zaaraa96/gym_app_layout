@@ -169,10 +169,11 @@ Future<PlanProgress> loadPlanProgress({
           s.planDayId == mapped!.dayId &&
           sameLocalDay(s.startedAt.toLocal(), date),
     );
+    // Compare skip records using the strip cell's local Y-M-D as the calendar
+    // day label (same convention as utcCalendarDay for "which calendar day").
+    final cellDay = DateTime.utc(date.year, date.month, date.day);
     final skippedDay = skipRows.any(
-      (s) =>
-          s.dayId == mapped!.dayId &&
-          sameUtcDay(s.date, utcCalendarDay(date.toUtc())),
+      (s) => s.dayId == mapped!.dayId && sameUtcDay(s.date, cellDay),
     );
 
     if (trained) {
