@@ -6,9 +6,14 @@ import '../../domain/plan_progress.dart';
 
 /// Plan-scoped progress + simple charts for Plan preview.
 class PlanProgressSection extends StatelessWidget {
-  const PlanProgressSection({super.key, required this.progress});
+  const PlanProgressSection({
+    super.key,
+    required this.progress,
+    this.onRunAgain,
+  });
 
   final PlanProgress progress;
+  final VoidCallback? onRunAgain;
 
   @override
   Widget build(BuildContext context) {
@@ -25,6 +30,21 @@ class PlanProgressSection extends StatelessWidget {
               : progress.weekHeadline,
           style: theme.textTheme.titleSmall,
         ),
+        if (progress.isFinishedOnce) ...[
+          const SizedBox(height: 4),
+          Text(
+            'This Run once plan is finished and off the schedule.',
+            style: theme.textTheme.bodySmall,
+          ),
+          if (onRunAgain != null) ...[
+            const SizedBox(height: 8),
+            OutlinedButton(
+              key: const Key('run-once-again'),
+              onPressed: onRunAgain,
+              child: const Text('Run again'),
+            ),
+          ],
+        ],
         if (progress.lastTrainedAt != null) ...[
           const SizedBox(height: 4),
           Text(

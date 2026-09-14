@@ -54,41 +54,46 @@ const WorkoutPlanSchema = CollectionSchema(
       name: r'onSchedule',
       type: IsarType.bool,
     ),
-    r'scheduleMode': PropertySchema(
+    r'onceCycleStartedAt': PropertySchema(
       id: 7,
+      name: r'onceCycleStartedAt',
+      type: IsarType.dateTime,
+    ),
+    r'scheduleMode': PropertySchema(
+      id: 8,
       name: r'scheduleMode',
       type: IsarType.byte,
       enumMap: _WorkoutPlanscheduleModeEnumValueMap,
     ),
     r'source': PropertySchema(
-      id: 8,
+      id: 9,
       name: r'source',
       type: IsarType.byte,
       enumMap: _WorkoutPlansourceEnumValueMap,
     ),
     r'status': PropertySchema(
-      id: 9,
+      id: 10,
       name: r'status',
       type: IsarType.byte,
       enumMap: _WorkoutPlanstatusEnumValueMap,
     ),
     r'title': PropertySchema(
-      id: 10,
+      id: 11,
       name: r'title',
       type: IsarType.string,
     ),
     r'updatedAt': PropertySchema(
-      id: 11,
+      id: 12,
       name: r'updatedAt',
       type: IsarType.dateTime,
     ),
     r'uuid': PropertySchema(
-      id: 12,
+      id: 13,
       name: r'uuid',
       type: IsarType.string,
     ),
     r'weekdayMap': PropertySchema(
-      id: 13,
+      id: 14,
       name: r'weekdayMap',
       type: IsarType.objectList,
       target: r'DayWeekdayMap',
@@ -209,14 +214,15 @@ void _workoutPlanSerialize(
   writer.writeBool(offsets[4], object.dirty);
   writer.writeStringList(offsets[5], object.goalIds);
   writer.writeBool(offsets[6], object.onSchedule);
-  writer.writeByte(offsets[7], object.scheduleMode.index);
-  writer.writeByte(offsets[8], object.source.index);
-  writer.writeByte(offsets[9], object.status.index);
-  writer.writeString(offsets[10], object.title);
-  writer.writeDateTime(offsets[11], object.updatedAt);
-  writer.writeString(offsets[12], object.uuid);
+  writer.writeDateTime(offsets[7], object.onceCycleStartedAt);
+  writer.writeByte(offsets[8], object.scheduleMode.index);
+  writer.writeByte(offsets[9], object.source.index);
+  writer.writeByte(offsets[10], object.status.index);
+  writer.writeString(offsets[11], object.title);
+  writer.writeDateTime(offsets[12], object.updatedAt);
+  writer.writeString(offsets[13], object.uuid);
   writer.writeObjectList<DayWeekdayMap>(
-    offsets[13],
+    offsets[14],
     allOffsets,
     DayWeekdayMapSchema.serialize,
     object.weekdayMap,
@@ -250,20 +256,21 @@ WorkoutPlan _workoutPlanDeserialize(
   object.goalIds = reader.readStringList(offsets[5]) ?? [];
   object.id = id;
   object.onSchedule = reader.readBool(offsets[6]);
+  object.onceCycleStartedAt = reader.readDateTimeOrNull(offsets[7]);
   object.scheduleMode =
-      _WorkoutPlanscheduleModeValueEnumMap[reader.readByteOrNull(offsets[7])] ??
+      _WorkoutPlanscheduleModeValueEnumMap[reader.readByteOrNull(offsets[8])] ??
           ScheduleMode.once;
   object.source =
-      _WorkoutPlansourceValueEnumMap[reader.readByteOrNull(offsets[8])] ??
+      _WorkoutPlansourceValueEnumMap[reader.readByteOrNull(offsets[9])] ??
           PlanSource.imported;
   object.status =
-      _WorkoutPlanstatusValueEnumMap[reader.readByteOrNull(offsets[9])] ??
+      _WorkoutPlanstatusValueEnumMap[reader.readByteOrNull(offsets[10])] ??
           PlanStatus.active;
-  object.title = reader.readString(offsets[10]);
-  object.updatedAt = reader.readDateTime(offsets[11]);
-  object.uuid = reader.readString(offsets[12]);
+  object.title = reader.readString(offsets[11]);
+  object.updatedAt = reader.readDateTime(offsets[12]);
+  object.uuid = reader.readString(offsets[13]);
   object.weekdayMap = reader.readObjectList<DayWeekdayMap>(
-        offsets[13],
+        offsets[14],
         DayWeekdayMapSchema.deserialize,
         allOffsets,
         DayWeekdayMap(),
@@ -306,22 +313,24 @@ P _workoutPlanDeserializeProp<P>(
     case 6:
       return (reader.readBool(offset)) as P;
     case 7:
+      return (reader.readDateTimeOrNull(offset)) as P;
+    case 8:
       return (_WorkoutPlanscheduleModeValueEnumMap[
               reader.readByteOrNull(offset)] ??
           ScheduleMode.once) as P;
-    case 8:
+    case 9:
       return (_WorkoutPlansourceValueEnumMap[reader.readByteOrNull(offset)] ??
           PlanSource.imported) as P;
-    case 9:
+    case 10:
       return (_WorkoutPlanstatusValueEnumMap[reader.readByteOrNull(offset)] ??
           PlanStatus.active) as P;
-    case 10:
-      return (reader.readString(offset)) as P;
     case 11:
-      return (reader.readDateTime(offset)) as P;
-    case 12:
       return (reader.readString(offset)) as P;
+    case 12:
+      return (reader.readDateTime(offset)) as P;
     case 13:
+      return (reader.readString(offset)) as P;
+    case 14:
       return (reader.readObjectList<DayWeekdayMap>(
             offset,
             DayWeekdayMapSchema.deserialize,
@@ -1264,6 +1273,80 @@ extension WorkoutPlanQueryFilter
   }
 
   QueryBuilder<WorkoutPlan, WorkoutPlan, QAfterFilterCondition>
+      onceCycleStartedAtIsNull() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(const FilterCondition.isNull(
+        property: r'onceCycleStartedAt',
+      ));
+    });
+  }
+
+  QueryBuilder<WorkoutPlan, WorkoutPlan, QAfterFilterCondition>
+      onceCycleStartedAtIsNotNull() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(const FilterCondition.isNotNull(
+        property: r'onceCycleStartedAt',
+      ));
+    });
+  }
+
+  QueryBuilder<WorkoutPlan, WorkoutPlan, QAfterFilterCondition>
+      onceCycleStartedAtEqualTo(DateTime? value) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.equalTo(
+        property: r'onceCycleStartedAt',
+        value: value,
+      ));
+    });
+  }
+
+  QueryBuilder<WorkoutPlan, WorkoutPlan, QAfterFilterCondition>
+      onceCycleStartedAtGreaterThan(
+    DateTime? value, {
+    bool include = false,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.greaterThan(
+        include: include,
+        property: r'onceCycleStartedAt',
+        value: value,
+      ));
+    });
+  }
+
+  QueryBuilder<WorkoutPlan, WorkoutPlan, QAfterFilterCondition>
+      onceCycleStartedAtLessThan(
+    DateTime? value, {
+    bool include = false,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.lessThan(
+        include: include,
+        property: r'onceCycleStartedAt',
+        value: value,
+      ));
+    });
+  }
+
+  QueryBuilder<WorkoutPlan, WorkoutPlan, QAfterFilterCondition>
+      onceCycleStartedAtBetween(
+    DateTime? lower,
+    DateTime? upper, {
+    bool includeLower = true,
+    bool includeUpper = true,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.between(
+        property: r'onceCycleStartedAt',
+        lower: lower,
+        includeLower: includeLower,
+        upper: upper,
+        includeUpper: includeUpper,
+      ));
+    });
+  }
+
+  QueryBuilder<WorkoutPlan, WorkoutPlan, QAfterFilterCondition>
       scheduleModeEqualTo(ScheduleMode value) {
     return QueryBuilder.apply(this, (query) {
       return query.addFilterCondition(FilterCondition.equalTo(
@@ -1913,6 +1996,20 @@ extension WorkoutPlanQuerySortBy
     });
   }
 
+  QueryBuilder<WorkoutPlan, WorkoutPlan, QAfterSortBy>
+      sortByOnceCycleStartedAt() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addSortBy(r'onceCycleStartedAt', Sort.asc);
+    });
+  }
+
+  QueryBuilder<WorkoutPlan, WorkoutPlan, QAfterSortBy>
+      sortByOnceCycleStartedAtDesc() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addSortBy(r'onceCycleStartedAt', Sort.desc);
+    });
+  }
+
   QueryBuilder<WorkoutPlan, WorkoutPlan, QAfterSortBy> sortByScheduleMode() {
     return QueryBuilder.apply(this, (query) {
       return query.addSortBy(r'scheduleMode', Sort.asc);
@@ -2049,6 +2146,20 @@ extension WorkoutPlanQuerySortThenBy
     });
   }
 
+  QueryBuilder<WorkoutPlan, WorkoutPlan, QAfterSortBy>
+      thenByOnceCycleStartedAt() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addSortBy(r'onceCycleStartedAt', Sort.asc);
+    });
+  }
+
+  QueryBuilder<WorkoutPlan, WorkoutPlan, QAfterSortBy>
+      thenByOnceCycleStartedAtDesc() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addSortBy(r'onceCycleStartedAt', Sort.desc);
+    });
+  }
+
   QueryBuilder<WorkoutPlan, WorkoutPlan, QAfterSortBy> thenByScheduleMode() {
     return QueryBuilder.apply(this, (query) {
       return query.addSortBy(r'scheduleMode', Sort.asc);
@@ -2156,6 +2267,13 @@ extension WorkoutPlanQueryWhereDistinct
     });
   }
 
+  QueryBuilder<WorkoutPlan, WorkoutPlan, QDistinct>
+      distinctByOnceCycleStartedAt() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addDistinctBy(r'onceCycleStartedAt');
+    });
+  }
+
   QueryBuilder<WorkoutPlan, WorkoutPlan, QDistinct> distinctByScheduleMode() {
     return QueryBuilder.apply(this, (query) {
       return query.addDistinctBy(r'scheduleMode');
@@ -2243,6 +2361,13 @@ extension WorkoutPlanQueryProperty
   QueryBuilder<WorkoutPlan, bool, QQueryOperations> onScheduleProperty() {
     return QueryBuilder.apply(this, (query) {
       return query.addPropertyName(r'onSchedule');
+    });
+  }
+
+  QueryBuilder<WorkoutPlan, DateTime?, QQueryOperations>
+      onceCycleStartedAtProperty() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addPropertyName(r'onceCycleStartedAt');
     });
   }
 

@@ -1,4 +1,5 @@
 import 'models/models.dart';
+import 'once_plan_cycle.dart';
 import 'plan_repository.dart';
 import 'session_repository.dart';
 import 'skip_repository.dart';
@@ -51,12 +52,14 @@ bool sameUtcDay(DateTime a, DateTime b) {
 }
 
 bool _dayCompleted({
-  required String planId,
+  required WorkoutPlan plan,
   required String dayId,
   required List<WorkoutSession> completedNewestFirst,
 }) {
   for (final session in completedNewestFirst) {
-    if (session.planId == planId && session.planDayId == dayId) {
+    if (session.planId == plan.uuid &&
+        session.planDayId == dayId &&
+        sessionCountsForOnceCycle(plan, session)) {
       return true;
     }
   }
@@ -64,12 +67,16 @@ bool _dayCompleted({
 }
 
 bool _daySkippedOnce({
-  required String planId,
+  required WorkoutPlan plan,
   required String dayId,
   required List<PlanDaySkip> skips,
 }) {
   for (final skip in skips) {
-    if (skip.planId == planId && skip.dayId == dayId) return true;
+    if (skip.planId == plan.uuid &&
+        skip.dayId == dayId &&
+        skipCountsForOnceCycle(plan, skip)) {
+      return true;
+    }
   }
   return false;
 }
@@ -126,12 +133,12 @@ TodayItem? dueItemForOncePlan({
   PlanDay? next;
   for (final day in startable) {
     final done = _dayCompleted(
-      planId: plan.uuid,
+      plan: plan,
       dayId: day.dayId,
       completedNewestFirst: completedNewestFirst,
     );
     final skipped = _daySkippedOnce(
-      planId: plan.uuid,
+      plan: plan,
       dayId: day.dayId,
       skips: skips,
     );
@@ -349,6 +356,16 @@ Future<HomeOverview> loadHomeOverview({
   final skipRows = skips == null ? <PlanDaySkip>[] : await skips.all();
   for (final plan in items) {
     ensurePlanScheduleDefaults(plan);
+    if (plan.scheduleMode == ScheduleMode.once &&
+        plan.onSchedule &&
+        oncePlanIsFinished(
+          plan: plan,
+          completedNewestFirst: completed,
+          skips: skipRows,
+        )) {
+      plan.onSchedule = false;
+      await plans.save(plan);
+    }
   }
   return HomeOverview(
     plans: items,
