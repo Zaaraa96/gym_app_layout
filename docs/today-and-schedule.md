@@ -28,7 +28,11 @@ Turning **On schedule** off parks a finished plan in the library without deletin
 
 ### Run once (`once`)
 
-Ordered days (workout and optional Rest). Advance to the next incomplete day after each completed session for that plan. After the last day is done → plan is **finished** (off Today, or show Completed on Plan preview). Does **not** wrap.
+Ordered days. Advance to the next incomplete day after each completed session for that plan. After the last day is done → plan is **finished** (off Today, or show Completed on Plan preview). Does **not** wrap.
+
+**Not calendar-based.** The next incomplete day is always the due item until the plan finishes — ignoring what weekday it is. Taking a day off in real life does **not** create a Rest tile.
+
+**Rest only if explicit.** Run once may include Rest days in the sequence only when the user adds them (**Add rest day** on Review / Plan preview). We never invent Rest from empty calendar days, gaps between sessions, or “they didn’t train today.”
 
 ### Week schedule (`week`)
 
@@ -36,15 +40,20 @@ User maps each plan day to one or more weekdays. The map **repeats every calenda
 
 - A weekday with a mapped **workout** day → that workout is due.
 - A weekday with a mapped **Rest** day → Rest tile for that plan.
-- A weekday with **no** mapping → rest for that plan (no day row required).
+- A weekday with **no** mapping → rest for that plan (no day row required). **This inferred rest is OK for Week only** — show empty slots as Rest on the week strip.
 
 Do **not** also offer “Repeat: after last day, start over.” That duplicates Week schedule badly and hides rest.
 
 ## Rest
 
-1. **Explicit Rest days** in the day list (`kind: rest`, no blocks). Used in `once` sequences and optionally on `week` maps.
-2. **Empty weekdays** on `week` (unmapped) → rest for that plan.
-3. **Today Rest tile** when the due item is rest, or when every on-schedule plan has no workout due.
+| Mode | How rest is known | How we show it |
+| --- | --- | --- |
+| **Week** | Unmapped weekdays (and optional explicit Rest days on the map) | Gray **Rest** on the week strip + Today Rest tile. No need to ask “add rest day” for gaps. |
+| **Run once** | **Only** explicit Rest days in the day list | Rest row in the sequence + Today Rest tile when that Rest day is the next incomplete day. **Never** infer rest from the calendar. |
+
+1. **Explicit Rest days** (`kind: rest`, no blocks) — required for rest in `once`; optional on `week`.
+2. **Empty weekdays** — **`week` only.** Forbidden as a rest signal for `once`.
+3. **Today Rest tile** — when a plan’s due item is an explicit Rest day, or when a **week** plan has no workout mapped today. Do **not** show a Rest tile for an `once` plan merely because the user skipped a calendar day; keep showing the next incomplete workout (or explicit Rest) until finished.
 
 Actions on a Rest tile: **Rested** (marks the rest slot done for `once` advancement / ack for `week`) and optional **Train anyway** (does not skip the slot unless they mark rest done).
 
@@ -58,13 +67,14 @@ On **Review & create**, before **Finish plan**:
 
 1. **On schedule** toggle (default on).
 2. **How you follow this plan:** **Run once** | **Week schedule** (exactly one).
-3. If **Week schedule:** weekday map for each day (Finish stays disabled until every workout day has ≥1 weekday). Empty weekdays are rest.
+3. If **Week schedule:** weekday map for each day (Finish stays disabled until every workout day has ≥1 weekday). Empty weekdays are rest (shown on the strip).
+4. If **Run once:** optional **Add rest day** to insert Rest into the sequence. Skipping this means the plan has **no** rest days — Today will only show workout days until finished.
 
 Starters: land as **On schedule + Week schedule** with a sensible default map (e.g. Beginner 2-day: Day A Mon+Thu, Day B Tue+Fri — or Mon/Thu only; document the chosen defaults in product-plan). No silent infinite wrap without a calendar.
 
 ### After create (edit)
 
-Plan preview → **Schedule** section: same controls + **Add rest day**. Progress block lives on the same preview (see below).
+Plan preview → **Schedule** section: same controls. **Add rest day** matters most for **Run once** (only way to get Rest in that mode). On Week, gaps already read as Rest. Progress block lives on the same preview (see below).
 
 ```mermaid
 flowchart TD
@@ -83,16 +93,17 @@ Inputs: on-schedule active plans + completed sessions + schedule mode + week map
 
 Per plan, compute today’s item (or none):
 
-- **`once`:** next incomplete day in order; if none left → not due (finished).
-- **`week`:** days mapped to today’s weekday; if none → that plan contributes rest implicitly (no workout tile).
+- **`once`:** next incomplete day in order (workout or explicit Rest); if none left → not due (finished). Ignore the calendar.
+- **`week`:** days mapped to today’s weekday; if none → that plan contributes **inferred** rest (Week only).
 
 Aggregate:
 
 | Situation | UI |
 | --- | --- |
 | 0 on-schedule plans | Banner: Import / New / Beginner — no fake Today |
-| ≥1 on-schedule, 0 workout due | Horizontal Rest tile(s) (or one aggregated Rest card) |
-| ≥1 workout due | Horizontal list: one card per due workout (+ rest tiles if another plan is resting) |
+| Only `week` plans with no workout mapped today (and/or explicit Rest due) | Horizontal Rest tile(s) (or one aggregated Rest card) |
+| `once` plan still in progress | Always show its next incomplete day (workout Start, or Rest only if that day is an explicit Rest) — never a calendar-inferred Rest |
+| ≥1 workout due | Horizontal list: one card per due workout (+ Week rest tiles if another plan is resting) |
 
 One in-progress session rule unchanged (conflict dialog on start).
 

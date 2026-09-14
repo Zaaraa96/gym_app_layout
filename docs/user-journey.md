@@ -44,7 +44,8 @@ Tapping the same starter twice does not duplicate it (same title is reused). Aft
 6. On **Review & create**, set **Schedule** before finishing:
    - **On schedule** (default on) — plan can appear in Today.
    - **Run once** or **Week schedule** (exactly one; there is no separate Repeat).
-   - If **Week schedule**, map each workout day to at least one weekday. Unmapped weekdays are rest.
+   - If **Week schedule**, map each workout day to at least one weekday. Unmapped weekdays are rest (shown on the week strip).
+   - If **Run once**, rest is **not** inferred from the calendar. Optional **Add rest day** inserts Rest into the sequence; otherwise Today only advances through workout days.
 7. **Finish plan** is disabled until every workout day has a valid block **and** Schedule is valid (weekday map complete when Week). After finish, the active plan preview opens. **Start workout** is disabled until that day has a block.
 
 ### 2c. Import a plan
@@ -64,7 +65,7 @@ Returning users land here. Bottom nav (**Plans** | **Exercises** | **Month**) is
 - **Continue workout** banner if a live session exists (title **Continue workout**, subtitle is the day name). Tap to resume logging.
 - **Today** **horizontal list**: every due item from **on-schedule active** plans (not “newest plan wins”). Drafts and off-schedule plans never appear. Rules: [today-and-schedule.md](today-and-schedule.md).
   - Workout due: card with plan + day, prompt naming the first exercise, **Start today's workout** (or per-card Start).
-  - Rest due / no workout due: Rest tile (**Rested** / optional **Train anyway**).
+  - Rest due: Rest tile (**Rested** / optional **Train anyway**) — from a **Week** gap/explicit Rest, or an explicit Rest day that is next on **Run once**. Never invent Rest for Run once just because they skipped a calendar day.
   - Zero on-schedule plans: Import / New / Beginner banner instead of Today.
 - **Your plans** list (title + “1 day” / “N days”). Newest first. Tap a row to open the plan. Drafts show a **Draft** badge with **Resume** / **Delete**. Empty names list as **Untitled plan**.
 - Bottom buttons when plans exist: **Import**, **New**, and **Beginner** (reopens starter templates). **Beginner** is not on the empty-home row; that state uses a single **Start with a beginner plan** action instead.
