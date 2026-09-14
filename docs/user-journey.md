@@ -45,7 +45,7 @@ Tapping the same starter twice does not duplicate it (same title is reused). Aft
    - **On schedule** (default on) — plan can appear in Today.
    - **Run once** or **Week schedule** (exactly one; there is no separate Repeat).
    - If **Week schedule**, map each workout day to at least one weekday. Unmapped weekdays are rest (shown on the week strip).
-   - If **Run once**, rest is **not** inferred from the calendar. Optional **Add rest day** inserts Rest into the sequence; otherwise Today only advances through workout days.
+   - If **Run once**, there is **no Rest** — only workout days until the plan finishes. Rest is Week-only (empty weekdays).
 7. **Finish plan** is disabled until every workout day has a valid block **and** Schedule is valid (weekday map complete when Week). After finish, the active plan preview opens. **Start workout** is disabled until that day has a block.
 
 ### 2c. Import a plan
@@ -65,7 +65,7 @@ Returning users land here. Bottom nav (**Plans** | **Exercises** | **Month**) is
 - **Continue workout** banner if a live session exists (title **Continue workout**, subtitle is the day name). Tap to resume logging.
 - **Today** **horizontal list**: every due item from **on-schedule active** plans (not “newest plan wins”). Drafts and off-schedule plans never appear. Rules: [today-and-schedule.md](today-and-schedule.md).
   - Workout due: card with plan + day, prompt naming the first exercise, **Start today's workout** (or per-card Start).
-  - Rest due: Rest tile (**Rested** / optional **Train anyway**) — from a **Week** gap/explicit Rest, or an explicit Rest day that is next on **Run once**. Never invent Rest for Run once just because they skipped a calendar day.
+  - Rest due: Rest tile only for **Week schedule** when today has no mapped workout (**Train anyway** optional). **Run once** never shows Rest.
   - Zero on-schedule plans: Import / New / Beginner banner instead of Today.
 - **Your plans** list (title + “1 day” / “N days”). Newest first. Tap a row to open the plan. Drafts show a **Draft** badge with **Resume** / **Delete**. Empty names list as **Untitled plan**.
 - Bottom buttons when plans exist: **Import**, **New**, and **Beginner** (reopens starter templates). **Beginner** is not on the empty-home row; that state uses a single **Start with a beginner plan** action instead.
@@ -78,9 +78,9 @@ Deleting the last plan (overflow on plan preview) lands on empty home: **No plan
 
 1. Tap a plan.
 2. Plan preview (no bottom nav):
-   - **Schedule** section: On schedule, **Run once** | **Week schedule**, weekday map when Week, **Add rest day**. Same controls as Review; edits apply to Today.
+   - **Schedule** section: On schedule, **Run once** | **Week schedule**, weekday map when Week. Same controls as Review; edits apply to Today. No Add rest day.
    - **Progress** section: plan-scoped completion / adherence, last trained, simple charts (weight over sessions; weekly volume).
-   - Info day cards (no cycling photos). Details: [plan-day-cards.md](plan-day-cards.md). Rest days show as Rest (no Start).
+   - Info day cards (no cycling photos). Details: [plan-day-cards.md](plan-day-cards.md). Day list is workout days; Week Rest is empty weekdays, not day cards.
    - App bar: back, title, **Rename plan** (pencil), **Add day**, overflow **More** → **Export plan** (Full package or Lite JSON) / **Delete plan**.
    - Confirm: **Delete this plan?** / **Workouts already logged stay on Month.** **Cancel** or **Delete**. Delete returns to Plans.
    - Each day card: title, optional focus/summary, target-area chips, `~N min` estimate, exercise count, **Delete day**. Catalog/stored stills rotate on the right when a movement has media; unmatched custom exercises stay text-only.

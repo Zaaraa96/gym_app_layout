@@ -97,7 +97,7 @@ The review step shows a compact summary, not duplicate exercise forms:
   - **On schedule** toggle (default on).
   - **How you follow this plan:** **Run once** | **Week schedule** (exactly one). There is **no** separate Repeat option — recurring training uses **Week schedule**.
   - If **Week schedule:** map each workout day to ≥1 weekday. Unmapped weekdays are rest for this plan (label gaps Rest on the strip). Finish stays disabled until the map is complete.
-  - If **Run once:** optional **Add rest day** to put Rest in the sequence. Do **not** treat calendar gaps as rest — Run once has no inferred rest.
+  - If **Run once:** no rest UI — workout days only until finished. Rest is Week-only (empty weekdays).
 - **Add another day** in the Review column; tapping it inserts a day and opens that step.
 - Disabled **Finish plan** while required issues remain (including incomplete Week map).
 - **Exit for now**, with copy confirming that the draft was saved.
@@ -128,7 +128,7 @@ The builder may save incomplete data, but an active plan requires all of the fol
 - Non-empty plan name.
 - At least one day.
 - Non-empty day name for every day.
-- At least one exercise block in every **workout** day (rest days have empty blocks).
+- At least one exercise block in every day.
 - Single blocks contain exactly one exercise.
 - Superset blocks contain at least two exercises.
 - Every exercise has a non-empty name.

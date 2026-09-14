@@ -64,8 +64,8 @@ Isar still stores an empty `commonSections` list so old rows can be read and con
 | `dayId` | `String` | UUID |
 | `title` | `String` | e.g. `day 1- 4sar` or `Rest` |
 | `summary` | `String` | Optional |
-| `kind` | `DayKind` | `workout` or `rest`. Rest days have empty `blocks` and are not startable as workouts |
-| `blocks` | `List<ExerciseBlock>` | Ordered; empty when `kind == rest` |
+| `kind` | `DayKind` | `workout` for v1 schedule UX. Week Rest comes from empty weekdays, not Rest day rows |
+| `blocks` | `List<ExerciseBlock>` | Ordered workout blocks |
 
 ### `DayWeekdayMap` (embedded)
 
@@ -341,7 +341,7 @@ There is **no** all-in-one post-create plan editor. Creation uses the stepper. A
 
 **Create plan.** Vertical stepper: Plan details (name, description, goals), one step per day (exercises, supersets, target areas), Review & create. Auto-save status in the app bar. Import lands here as a draft, with a banner when something did not parse cleanly. **Review** includes **Schedule**: On schedule toggle, **Run once** | **Week schedule**, and weekday map when Week is selected. **Finish plan** stays disabled until required validation passes (including weekday map when Week). **Add another day** is in the Review column and opens the new day step. **EXIT FOR NOW** keeps the draft.
 
-**Plan preview.** Info cards (no cycling photos). Title, optional focus, target-area chips, `~N min` estimate, volume; rotating catalog/stored stills only when a movement has real media. See [plan-day-cards.md](plan-day-cards.md). **Schedule** section (edit onSchedule, once|week, weekday map, **Add rest day**). **Progress** section (plan-scoped completion / adherence, last trained, simple charts). App bar: title, edit icon **renames** the plan, add-day icon, overflow **Export plan** (full `.gymplan` or lite JSON) and **Delete plan** (confirm: “Workouts already logged stay on Month.”; sessions stay, per Step 2). Add day from the app bar / FAB. Card tap opens Day preview. Day cards can delete that day.
+**Plan preview.** Info cards (no cycling photos). Title, optional focus, target-area chips, `~N min` estimate, volume; rotating catalog/stored stills only when a movement has real media. See [plan-day-cards.md](plan-day-cards.md). **Schedule** section (edit onSchedule, once|week, weekday map, ). **Progress** section (plan-scoped completion / adherence, last trained, simple charts). App bar: title, edit icon **renames** the plan, add-day icon, overflow **Export plan** (full `.gymplan` or lite JSON) and **Delete plan** (confirm: “Workouts already logged stay on Month.”; sessions stay, per Step 2). Add day from the app bar / FAB. Card tap opens Day preview. Day cards can delete that day.
 
 **Day preview.** Keep alternating summary rows (SVG, names × reps or duration, set/round badge). **Edit day** opens the day editor. Bottom: Start workout.
 
@@ -518,7 +518,7 @@ Historical build order (already shipped):
 The first useful session should not require JSON or a blank plan editor.
 
 - **Beginner defaults.** Bundled programs in `assets/json/beginner-full-body.json` (3 days + abs/mobility imported as extra days) and `beginner-two-day.json` (A/B). Welcome’s primary button opens `/starters`. Plans home also opens `/starters` via **Beginner** when the list is not empty (empty home uses **Start with a beginner plan**). One tap writes a real `WorkoutPlan` (`PlanSource.imported`) and lands on home. Installing the same title twice reuses the stored plan.
-- **Today list.** Home shows every due item from **on-schedule active** plans in a horizontal list (not “newest plan wins”). Drafts and off-schedule plans are ignored. Mode **once**: next incomplete day (calendar-agnostic), then finished (no wrap); Rest only if that day is an **explicit** Rest day — never inferred from skipped calendar days. Mode **week**: due from weekday map; empty weekdays are rest (OK to show without asking). See [today-and-schedule.md](today-and-schedule.md).
+- **Today list.** Home shows every due item from **on-schedule active** plans in a horizontal list (not “newest plan wins”). Drafts and off-schedule plans are ignored. Mode **once**: next incomplete workout (calendar-agnostic), then finished (no wrap); **no Rest** for Once. Mode **week**: due from weekday map; empty weekdays are Rest (no Add rest day). See [today-and-schedule.md](today-and-schedule.md).
 - **Start from Today.** Same start flow as day preview (in-progress conflict, live logger). No need to open the plan first.
 - **Schedule on create.** Review chooses **Run once** or **Week schedule** before Finish. Starters default to Week schedule with a mapped week. Editable later on Plan preview.
 - **Reminder.** One app-level workout reminder (toggle + time). Fires only when a workout (not rest-only) is due.
