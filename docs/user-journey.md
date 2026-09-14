@@ -64,8 +64,8 @@ Returning users land here. Bottom nav (**Plans** | **Exercises** | **Month**) is
 
 - **Continue workout** banner if a live session exists (title **Continue workout**, subtitle is the day name). Tap to resume logging.
 - **Today** **horizontal list**: every due item from **on-schedule active** plans (not “newest plan wins”). Drafts and off-schedule plans never appear. Rules: [today-and-schedule.md](today-and-schedule.md).
-  - Workout due: card with plan + day, prompt naming the first exercise, **Start today's workout** (or per-card Start).
-  - Rest due: Rest tile only for **Week schedule** when today has no mapped workout (**Train anyway** optional). **Run once** never shows Rest.
+  - Workout due: card with plan + day, prompt naming the first exercise, **Start today's workout** (or per-card Start), plus secondary **Skip day** (no session; advances Once / clears Week due for today). Skip ≠ Rest.
+  - Rest due: Rest tile only for **Week schedule** when today has no mapped workout (**Train anyway** optional). **Run once** never shows Rest. No Skip on Rest tiles.
   - Zero on-schedule plans: Import / New / Beginner banner instead of Today.
 - **Your plans** list (title + “1 day” / “N days”). Newest first. Tap a row to open the plan. Drafts show a **Draft** badge with **Resume** / **Delete**. Empty names list as **Untitled plan**.
 - Bottom buttons when plans exist: **Import**, **New**, and **Beginner** (reopens starter templates). **Beginner** is not on the empty-home row; that state uses a single **Start with a beginner plan** action instead.
@@ -79,7 +79,7 @@ Deleting the last plan (overflow on plan preview) lands on empty home: **No plan
 1. Tap a plan.
 2. Plan preview (no bottom nav):
    - **Schedule** section: On schedule, **Run once** | **Week schedule**, weekday map when Week. Same controls as Review; edits apply to Today. No Add rest day.
-   - **Progress** section: plan-scoped completion / adherence, last trained, simple charts (weight over sessions; weekly volume).
+   - **Progress** section: Once = done/skipped/left; Week = trained/skipped/Rest strip; last trained; simple charts (weight over sessions; weekly volume).
    - Info day cards (no cycling photos). Details: [plan-day-cards.md](plan-day-cards.md). Day list is workout days; Week Rest is empty weekdays, not day cards.
    - App bar: back, title, **Rename plan** (pencil), **Add day**, overflow **More** → **Export plan** (Full package or Lite JSON) / **Delete plan**.
    - Confirm: **Delete this plan?** / **Workouts already logged stay on Month.** **Cancel** or **Delete**. Delete returns to Plans.

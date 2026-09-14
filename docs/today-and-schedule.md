@@ -14,6 +14,7 @@ Today currently picks the **newest** startable **active** plan and always wraps 
 - Multi-plan Today: **horizontal list** of every due item.
 - **Rest is Week-only.** Empty weekdays are Rest. There is **no Add rest day** control — the app does not offer a way to insert Rest days into a plan.
 - **Run once has no Rest.** Workout sequence only until finished.
+- **Skip day** is allowed on a due **workout** card (both modes). Skip ≠ Rest.
 - One simple reminder: toggle + time; fires only when ≥1 **workout** is due.
 
 ## Status vs schedule (two axes)
@@ -33,7 +34,7 @@ Ordered **workout** days only. Advance to the next incomplete workout after each
 
 **Not calendar-based.** The next incomplete workout is always the due item until the plan finishes — ignoring what weekday it is.
 
-**No rest in this mode.** No Rest tiles, no Rest rows, no **Add rest day**. Taking a day off in real life is outside the plan; Today keeps offering the next workout until they finish the sequence (or turn the plan off schedule).
+**No rest in this mode.** No Rest tiles, no Rest rows, no **Add rest day**. To pass a workout without logging it, use **Skip day** (advances the pointer).
 
 ### Week schedule (`week`)
 
@@ -56,6 +57,21 @@ Rest is a **Week schedule** concept only. There is no way (and no need) to “ad
 Today Rest tile: only for a **week** plan with no workout mapped today. Never for Run once.
 
 Reminders: **workout due only**, never rest-only.
+
+## Skip day
+
+Secondary action on a **Today workout card** (not on Rest tiles): **Skip day**.
+
+Skip means “I’m not doing this workout” — no session is logged. It is **not** Rest (Rest = Week empty weekday).
+
+| Mode | What Skip does | Progress |
+| --- | --- | --- |
+| **Run once** | Marks that plan day **skipped** and advances to the next incomplete workout (same as completing for pointer purposes). If it was the last day → plan finished. | List shows Done / Skipped / Left. Headline e.g. `2 of 4 done · 1 skipped`. Completion % uses **done / total** (skips are not “done”). |
+| **Week** | Marks today’s mapped workout **skipped for that calendar date**. That slot is no longer due today. | Week strip shows Skipped on that day. Headline e.g. `This week: 2 trained · 1 skipped · 0 left` among mapped workout days. Adherence = trained / mapped; skips are labeled, not counted as trained. |
+
+After Skip on Once, Today may show the **next** workout the same day (like “Next up” after already training). After Skip on Week, that plan contributes nothing else today unless another weekday mapping applies (it doesn’t on the same date).
+
+No undo required in v1 (keep simple). Skips are stored as lightweight records (`planId`, `dayId`, `date` UTC day) — not workout sessions.
 
 ## Where the user sets this
 
@@ -91,8 +107,8 @@ Inputs: on-schedule active plans + completed sessions + schedule mode + week map
 
 Per plan, compute today’s item (or none):
 
-- **`once`:** next incomplete **workout** day in order; if none left → not due (finished). Ignore the calendar. Never emit Rest.
-- **`week`:** days mapped to today’s weekday; if none → that plan contributes **Rest**.
+- **`once`:** next workout day that is neither **completed** nor **skipped** in order; if none left → not due (finished). Ignore the calendar. Never emit Rest.
+- **`week`:** days mapped to today’s weekday; if that day was **skipped today** → not due; if none mapped → **Rest**.
 
 Aggregate:
 
@@ -100,8 +116,8 @@ Aggregate:
 | --- | --- |
 | 0 on-schedule plans | Banner: Import / New / Beginner — no fake Today |
 | Only `week` plans with no workout mapped today | Horizontal Rest tile(s) (or one aggregated Rest card) |
-| `once` plan still in progress | Always show its next workout Start — never a Rest tile for that plan |
-| ≥1 workout due | Horizontal list: one card per due workout (+ Week Rest tiles if another plan has an empty weekday today) |
+| `once` plan still in progress | Next uncompleted/unskipped workout — Start + **Skip day**; never a Rest tile for that plan |
+| ≥1 workout due | Horizontal list: one card per due workout with Start + **Skip day** (+ Week Rest tiles if another plan has an empty weekday today) |
 
 One in-progress session rule unchanged (conflict dialog on start).
 
@@ -109,11 +125,12 @@ One in-progress session rule unchanged (conflict dialog on start).
 
 On Plan preview (below Schedule / days):
 
-- Completion for current `once` run, or adherence for current week on `week`
+- **Once:** `N of M done` plus skipped count; day list Done / Skipped / Left
+- **Week:** this week trained / skipped / remaining among mapped workout days; week strip marks trained, skipped, Rest (empty)
 - Last trained
 - Plan-scoped exercise trends + simple charts (weight over sessions; weekly volume/session count)
 
-Month tab stays the **cross-plan** calendar.
+Month tab stays the **cross-plan** calendar. Skips do not create Month dots (no session).
 
 ## Notifications
 
@@ -130,16 +147,20 @@ On `WorkoutPlan` (names illustrative):
 - `weekdayMap: List<{ dayId, weekdays: List<int> }>` (used when `week`; Mon=1…Sun=7 or app convention)
 - Optional reminder prefs are **app-level**, not per plan: `reminderEnabled`, `reminderTimeLocal`
 
+Skip records (collection or embedded list; names illustrative):
+
+- `planId`, `dayId`, `date` (UTC calendar day of the skip)
+
 Plan days stay workout prescriptions for v1 schedule UX. Week Rest comes from empty weekday slots, not from Rest day rows. (No `DayKind.rest` required for this design.)
 
 Migration: existing active plans → `onSchedule: true`, `scheduleMode: week`, map days in order onto Mon… until days run out (or product picks starter-like defaults); do **not** migrate to a silent Repeat enum.
 
 ## Implementation phases (follow-on agent)
 
-1. **Model + migration** — fields above; migrate active plans to on-schedule + week defaults
-2. **Today engine** — multi-due list; Week Rest vs workout; empty banner; drop newest-active wrap; Once never emits Rest
+1. **Model + migration** — schedule fields + skip records; migrate active plans to on-schedule + week defaults
+2. **Today engine** — multi-due list; Week Rest vs workout; Skip day; empty banner; drop newest-active wrap; Once never emits Rest
 3. **Schedule on Review + Plan preview** — once|week, map, onSchedule (no Add rest day)
-4. **Per-plan Progress + charts**
+4. **Per-plan Progress + charts** (including skipped)
 5. **Reminder** — workout-due only
 6. **Tests + journey / patrol** updates
 
@@ -150,3 +171,4 @@ Migration: existing active plans → `onSchedule: true`, `scheduleMode: week`, m
 - Per-day reminder times
 - Accounts / sync changes
 - Explicit Rest day rows / **Add rest day** UI
+- Undo skip / edit skip history UI
