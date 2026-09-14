@@ -65,7 +65,7 @@ Returning users land here. Bottom nav (**Plans** | **Exercises** | **Month**) is
 - **Continue workout** banner if a live session exists (title **Continue workout**, subtitle is the day name). Tap to resume logging.
 - **Today** **horizontal list**: every due item from **on-schedule active** plans (not “newest plan wins”). Drafts and off-schedule plans never appear. Rules: [today-and-schedule.md](today-and-schedule.md).
   - Workout due: card with plan + day, prompt naming the first exercise, **Start today's workout** (or per-card Start), plus secondary **Skip day** (no session; advances Once / clears Week due for today). Skip ≠ Rest.
-  - Rest due: Rest tile only for **Week schedule** when today has no mapped workout (**Train anyway** optional). **Run once** never shows Rest. No Skip on Rest tiles.
+  - Rest due: Rest tile only for **Week schedule** when today has no mapped workout. **Run once** never shows Rest. No Skip on Rest tiles.
   - Zero on-schedule plans: Import / New / Beginner banner instead of Today.
 - **Your plans** list (title + “1 day” / “N days”). Newest first. Tap a row to open the plan. Drafts show a **Draft** badge with **Resume** / **Delete**. Empty names list as **Untitled plan**.
 - Bottom buttons when plans exist: **Import**, **New**, and **Beginner** (reopens starter templates). **Beginner** is not on the empty-home row; that state uses a single **Start with a beginner plan** action instead.
