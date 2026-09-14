@@ -215,7 +215,7 @@ TodayItem? dueItemForWeekPlan({
       day: null,
       kind: TodayItemKind.rest,
       headline: '${plan.displayTitle}: Rest',
-      prompt: 'No workout mapped for today. Recover, or train anyway from the plan.',
+      prompt: 'No workout mapped for today. Recover, or open the plan if you want to train.',
     );
   }
 
