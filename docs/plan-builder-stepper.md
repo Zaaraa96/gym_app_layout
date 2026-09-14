@@ -93,11 +93,17 @@ The review step shows a compact summary, not duplicate exercise forms:
 - **Edit** on complete days.
 - **Fix this** on incomplete days.
 - A total count of required issues.
+- **Schedule** (required before Finish):
+  - **On schedule** toggle (default on).
+  - **How you follow this plan:** **Run once** | **Week schedule** (exactly one). There is **no** separate Repeat option — recurring training uses **Week schedule**.
+  - If **Week schedule:** map each workout day to ≥1 weekday. Unmapped weekdays are rest for this plan. Finish stays disabled until the map is complete.
 - **Add another day** in the Review column; tapping it inserts a day and opens that step.
-- Disabled **Finish plan** while required issues remain.
+- Disabled **Finish plan** while required issues remain (including incomplete Week map).
 - **Exit for now**, with copy confirming that the draft was saved.
 
 **Edit** and **Fix this** collapse Review and open the corresponding step in place. When all required issues are resolved, **Finish plan** becomes enabled.
+
+Schedule can be changed later on Plan preview; choosing it on Review is the default path so Today has a clear rule from the first finish. See [today-and-schedule.md](today-and-schedule.md).
 
 ## Step order and interaction
 
@@ -121,12 +127,14 @@ The builder may save incomplete data, but an active plan requires all of the fol
 - Non-empty plan name.
 - At least one day.
 - Non-empty day name for every day.
-- At least one exercise block in every day.
+- At least one exercise block in every **workout** day (rest days have empty blocks).
 - Single blocks contain exactly one exercise.
 - Superset blocks contain at least two exercises.
 - Every exercise has a non-empty name.
 - `prescribedSets >= 1`.
 - Exactly one of reps or duration is set and greater than zero.
+- Schedule chosen: `scheduleMode` is `once` or `week`.
+- If `week`: every workout day has ≥1 weekday in `weekdayMap`.
 
 These fields are optional and never block creation:
 
