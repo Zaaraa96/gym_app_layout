@@ -1,3 +1,6 @@
+import 'dart:convert';
+import 'dart:io';
+
 import 'package:isar/isar.dart';
 
 import 'isar/plan_day_skip.dart' as isar_skip;
@@ -12,17 +15,55 @@ class IsarSkipRepository implements SkipRepository {
 
   final Isar _isar;
 
+  // #region agent log
+  void _dbg(String hyp, String loc, String msg, Map<String, Object?> data) {
+    try {
+      File('/opt/cursor/logs/debug.log').writeAsStringSync(
+        '${jsonEncode({
+          'hypothesisId': hyp,
+          'location': loc,
+          'message': msg,
+          'data': data,
+          'timestamp': DateTime.now().millisecondsSinceEpoch,
+        })}\n',
+        mode: FileMode.append,
+      );
+    } catch (_) {}
+  }
+  // #endregion
+
   @override
   Future<List<PlanDaySkip>> all() async {
     final rows = await _isar.planDaySkips.where().findAll();
-    return [for (final row in rows) skipFromIsar(row)];
+    final out = [for (final row in rows) skipFromIsar(row)];
+    // #region agent log
+    _dbg('A', 'isar_skip_repository.dart:all', 'skips.all', {
+      'count': out.length,
+      'planIds': [for (final s in out) s.planId],
+      'dayIds': [for (final s in out) s.dayId],
+      'ids': [for (final s in out) s.id],
+    });
+    // #endregion
+    return out;
   }
 
   @override
   Future<List<PlanDaySkip>> forPlan(String planId) async {
     final rows =
         await _isar.planDaySkips.filter().planIdEqualTo(planId).findAll();
-    return [for (final row in rows) skipFromIsar(row)];
+    final out = [for (final row in rows) skipFromIsar(row)];
+    // #region agent log
+    final allRows = await _isar.planDaySkips.where().findAll();
+    _dbg('A', 'isar_skip_repository.dart:forPlan', 'skips.forPlan', {
+      'queryPlanId': planId,
+      'count': out.length,
+      'dayIds': [for (final s in out) s.dayId],
+      'allCount': allRows.length,
+      'allPlanIds': [for (final r in allRows) r.planId],
+      'allDayIds': [for (final r in allRows) r.dayId],
+    });
+    // #endregion
+    return out;
   }
 
   @override
@@ -30,9 +71,27 @@ class IsarSkipRepository implements SkipRepository {
     if (skip.uuid.isEmpty) skip.uuid = newUuid();
     skip.date = utcCalendarDay(skip.date);
     final row = skipToIsar(skip);
+    // #region agent log
+    _dbg('B', 'isar_skip_repository.dart:save:before', 'skip save before put', {
+      'planId': skip.planId,
+      'dayId': skip.dayId,
+      'uuid': skip.uuid,
+      'domainId': skip.id,
+      'rowId': row.id,
+      'date': skip.date.toIso8601String(),
+    });
+    // #endregion
     return _isar.writeTxn(() async {
       final id = await _isar.planDaySkips.put(row);
       skip.id = id;
+      // #region agent log
+      _dbg('B', 'isar_skip_repository.dart:save:after', 'skip save after put', {
+        'assignedId': id,
+        'planId': skip.planId,
+        'dayId': skip.dayId,
+        'collectionCount': await _isar.planDaySkips.count(),
+      });
+      // #endregion
       return id;
     });
   }

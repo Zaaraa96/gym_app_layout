@@ -1,4 +1,6 @@
 import 'dart:async';
+import 'dart:convert';
+import 'dart:io';
 
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
@@ -459,6 +461,29 @@ class _PlansHomePageState extends State<PlansHomePage> {
   Future<void> _skipDay(TodayItem today) async {
     final day = today.day;
     if (day == null) return;
+    // #region agent log
+    try {
+      // ignore: avoid_relative_lib_imports
+      final payload = {
+        'hypothesisId': 'C',
+        'location': 'plans_home_page.dart:_skipDay',
+        'message': 'UI skip day',
+        'data': {
+          'planId': today.plan.uuid,
+          'dayId': day.dayId,
+          'scheduleMode': today.plan.scheduleMode.name,
+          'onSchedule': today.plan.onSchedule,
+          'planDayIds': [for (final d in today.plan.days) d.dayId],
+        },
+        'timestamp': DateTime.now().millisecondsSinceEpoch,
+      };
+      // ignore: depend_on_referenced_packages
+      await File('/opt/cursor/logs/debug.log').writeAsString(
+        '${jsonEncode(payload)}\n',
+        mode: FileMode.append,
+      );
+    } catch (_) {}
+    // #endregion
     await _skips.save(
       PlanDaySkip.create(
         planId: today.plan.uuid,

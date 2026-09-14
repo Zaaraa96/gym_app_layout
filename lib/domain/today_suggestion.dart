@@ -1,3 +1,6 @@
+import 'dart:convert';
+import 'dart:io';
+
 import 'models/models.dart';
 import 'once_plan_cycle.dart';
 import 'plan_repository.dart';
@@ -363,6 +366,25 @@ Future<HomeOverview> loadHomeOverview({
           completedNewestFirst: completed,
           skips: skipRows,
         )) {
+      // #region agent log
+      try {
+        File('/opt/cursor/logs/debug.log').writeAsStringSync(
+          '${jsonEncode({
+            'hypothesisId': 'E',
+            'location': 'today_suggestion.dart:loadHomeOverview',
+            'message': 'parking via loadHomeOverview all()',
+            'data': {
+              'planId': plan.uuid,
+              'skipCount': skipRows.length,
+              'skipDayIds': [for (final s in skipRows) s.dayId],
+              'skipPlanIds': [for (final s in skipRows) s.planId],
+            },
+            'timestamp': DateTime.now().millisecondsSinceEpoch,
+          })}\n',
+          mode: FileMode.append,
+        );
+      } catch (_) {}
+      // #endregion
       plan.onSchedule = false;
       await plans.save(plan);
     }

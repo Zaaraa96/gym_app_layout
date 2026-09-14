@@ -1,3 +1,6 @@
+import 'dart:convert';
+import 'dart:io';
+
 import 'models/models.dart';
 import 'plan_repository.dart';
 import 'session_repository.dart';
@@ -111,6 +114,32 @@ Future<void> parkOncePlanByIdIfFinished({
   if (plan.scheduleMode != ScheduleMode.once) return;
   final completed = await sessions.completedNewestFirst(planId: planId);
   final skipRows = await skips.forPlan(planId);
+  final finished = oncePlanIsFinished(
+    plan: plan,
+    completedNewestFirst: completed,
+    skips: skipRows,
+  );
+  // #region agent log
+  try {
+    File('/opt/cursor/logs/debug.log').writeAsStringSync(
+      '${jsonEncode({
+        'hypothesisId': 'E',
+        'location': 'once_plan_cycle.dart:parkById',
+        'message': 'parkOncePlanByIdIfFinished',
+        'data': {
+          'planId': planId,
+          'onScheduleBefore': plan.onSchedule,
+          'finished': finished,
+          'skipCount': skipRows.length,
+          'skipDayIds': [for (final s in skipRows) s.dayId],
+          'dayIds': [for (final d in plan.days) d.dayId],
+        },
+        'timestamp': DateTime.now().millisecondsSinceEpoch,
+      })}\n',
+      mode: FileMode.append,
+    );
+  } catch (_) {}
+  // #endregion
   await parkOncePlanIfFinished(
     plan: plan,
     plans: plans,

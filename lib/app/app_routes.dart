@@ -9,6 +9,7 @@ import '../domain/catalog_repository.dart';
 import '../domain/plan_repository.dart';
 import '../domain/session_lifecycle.dart';
 import '../domain/session_repository.dart';
+import '../domain/skip_repository.dart';
 import '../features/catalog/catalog_exercise_detail_page.dart';
 import '../features/catalog/catalog_exercise_editor_page.dart';
 import '../features/plans/add_plan_page.dart';
@@ -29,6 +30,9 @@ AppPorts resolveAppPorts() {
   return AppPorts(
     plans: Get.find<PlanRepository>(),
     sessions: Get.find<SessionRepository>(),
+    skips: Get.isRegistered<SkipRepository>()
+        ? Get.find<SkipRepository>()
+        : null,
     catalog: Get.isRegistered<CatalogRepository>()
         ? Get.find<CatalogRepository>()
         : null,

@@ -1,3 +1,6 @@
+import 'dart:convert';
+import 'dart:io';
+
 import 'models/models.dart';
 import 'once_plan_cycle.dart';
 import 'session_repository.dart';
@@ -120,6 +123,31 @@ Future<PlanProgress> loadPlanProgress({
       final isSkipped = skipRows.any(
         (s) => s.dayId == day.dayId && skipCountsForOnceCycle(plan, s),
       );
+      // #region agent log
+      try {
+        File('/opt/cursor/logs/debug.log').writeAsStringSync(
+          '${jsonEncode({
+            'hypothesisId': 'C',
+            'location': 'plan_progress.dart:onceDay',
+            'message': 'once day progress classify',
+            'data': {
+              'dayId': day.dayId,
+              'isDone': isDone,
+              'isSkipped': isSkipped,
+              'skipRowDayIds': [for (final s in skipRows) s.dayId],
+              'skipRowPlanIds': [for (final s in skipRows) s.planId],
+              'onceCycleStartedAt': plan.onceCycleStartedAt?.toIso8601String(),
+              'skipCounts': [
+                for (final s in skipRows)
+                  if (s.dayId == day.dayId) skipCountsForOnceCycle(plan, s),
+              ],
+            },
+            'timestamp': DateTime.now().millisecondsSinceEpoch,
+          })}\n',
+          mode: FileMode.append,
+        );
+      } catch (_) {}
+      // #endregion
       if (isDone) {
         dayStates[day.dayId] = PlanDayProgressState.done;
         done += 1;
