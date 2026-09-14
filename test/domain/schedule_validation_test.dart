@@ -107,4 +107,84 @@ void main() {
     expect(map[0].weekdays, [1, 3, 4, 6]);
     expect(map[1].weekdays, [2, 5, 7]);
   });
+
+  test('assigning a weekday moves it off any other day', () {
+    final plan = WorkoutPlan.create(
+      title: 'Overlap',
+      source: PlanSource.created,
+      scheduleMode: ScheduleMode.week,
+      createdAt: DateTime.utc(2026, 1, 1),
+      updatedAt: DateTime.utc(2026, 1, 1),
+      days: [
+        PlanDay.create(dayId: 'd1', title: 'Day 1'),
+        PlanDay.create(dayId: 'd3', title: 'Day 3'),
+      ],
+      weekdayMap: [
+        DayWeekdayMap(dayId: 'd1', weekdays: const [1, 4]),
+        DayWeekdayMap(dayId: 'd3', weekdays: const [3]),
+      ],
+    );
+
+    setWeekdaysForDay(plan, 'd3', const [1, 3]);
+
+    expect(weekdaysForDay(plan, 'd1'), [4]);
+    expect(weekdaysForDay(plan, 'd3'), [1, 3]);
+  });
+
+  test('unassignedWorkoutDays lists training days with no weekday', () {
+    final plan = WorkoutPlan.create(
+      title: 'Gaps',
+      source: PlanSource.created,
+      scheduleMode: ScheduleMode.week,
+      createdAt: DateTime.utc(2026, 1, 1),
+      updatedAt: DateTime.utc(2026, 1, 1),
+      days: [
+        PlanDay.create(
+          dayId: 'd1',
+          title: 'Day 1',
+          blocks: [
+            ExerciseBlock.create(
+              blockId: 'b',
+              kind: BlockKind.single,
+              exercises: [
+                ExercisePrescription.create(
+                  prescriptionId: 'p',
+                  title: 'squat',
+                  prescribedSets: 3,
+                  prescribedReps: 10,
+                ),
+              ],
+            ),
+          ],
+        ),
+        PlanDay.create(
+          dayId: 'd2',
+          title: 'Day 2',
+          blocks: [
+            ExerciseBlock.create(
+              blockId: 'b2',
+              kind: BlockKind.single,
+              exercises: [
+                ExercisePrescription.create(
+                  prescriptionId: 'p2',
+                  title: 'press',
+                  prescribedSets: 3,
+                  prescribedReps: 10,
+                ),
+              ],
+            ),
+          ],
+        ),
+      ],
+      weekdayMap: [DayWeekdayMap(dayId: 'd1', weekdays: const [1])],
+    );
+
+    final missing = unassignedWorkoutDays(plan);
+    expect(missing, hasLength(1));
+    expect(missing.single.title, 'Day 2');
+    expect(
+      requiredIssuesFor(plan).any((i) => i.message.contains('Day 2')),
+      isTrue,
+    );
+  });
 }

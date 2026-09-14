@@ -206,10 +206,14 @@ List<PlanIssue> requiredIssuesFor(WorkoutPlan plan) {
     issues.addAll(issuesForDay(day));
   }
   if (plan.scheduleMode == ScheduleMode.week && !weekdayMapIsComplete(plan)) {
+    final missing = unassignedWorkoutDays(plan);
+    final detail = missing.length == 1
+        ? '“${missing.first.title}” needs a weekday.'
+        : 'Map every workout day to at least one weekday.';
     issues.add(
-      const PlanIssue(
+      PlanIssue(
         stepKey: reviewStepKey,
-        message: 'Map every workout day to at least one weekday.',
+        message: detail,
       ),
     );
   }

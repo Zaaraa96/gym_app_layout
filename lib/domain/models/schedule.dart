@@ -96,14 +96,18 @@ List<DayWeekdayMap> starterFullBodyWeekdayMap(List<PlanDay> days) {
 }
 
 /// True when every startable workout day has ≥1 weekday in [plan.weekdayMap].
-bool weekdayMapIsComplete(WorkoutPlan plan) {
-  if (plan.scheduleMode != ScheduleMode.week) return true;
+bool weekdayMapIsComplete(WorkoutPlan plan) =>
+    unassignedWorkoutDays(plan).isEmpty;
+
+/// Workout days (with blocks) that still need a weekday on Week schedule.
+List<PlanDay> unassignedWorkoutDays(WorkoutPlan plan) {
+  if (plan.scheduleMode != ScheduleMode.week) return const [];
+  final missing = <PlanDay>[];
   for (final day in plan.days) {
     if (day.blocks.isEmpty) continue;
-    final entry = plan.weekdayMap.where((m) => m.dayId == day.dayId);
-    if (entry.isEmpty || entry.first.weekdays.isEmpty) return false;
+    if (weekdaysForDay(plan, day.dayId).isEmpty) missing.add(day);
   }
-  return true;
+  return missing;
 }
 
 /// Fills missing schedule defaults without overwriting an explicit map.
@@ -135,21 +139,27 @@ List<int> weekdaysForDay(WorkoutPlan plan, String dayId) {
   return const [];
 }
 
+/// Sets weekdays for [dayId]. Any weekday newly claimed is removed from other
+/// days so each calendar weekday maps to at most one workout day.
 void setWeekdaysForDay(WorkoutPlan plan, String dayId, List<int> weekdays) {
   final next = weekdays.toSet().toList()..sort();
-  final index = plan.weekdayMap.indexWhere((m) => m.dayId == dayId);
-  if (index < 0) {
-    plan.weekdayMap = [
-      ...plan.weekdayMap,
-      DayWeekdayMap(dayId: dayId, weekdays: next),
+  final claimed = next.toSet();
+  final updated = <DayWeekdayMap>[];
+  var sawTarget = false;
+  for (final entry in plan.weekdayMap) {
+    if (entry.dayId == dayId) {
+      updated.add(DayWeekdayMap(dayId: dayId, weekdays: next));
+      sawTarget = true;
+      continue;
+    }
+    final remaining = [
+      for (final w in entry.weekdays)
+        if (!claimed.contains(w)) w,
     ];
-  } else {
-    plan.weekdayMap = [
-      for (var i = 0; i < plan.weekdayMap.length; i++)
-        if (i == index)
-          DayWeekdayMap(dayId: dayId, weekdays: next)
-        else
-          plan.weekdayMap[i],
-    ];
+    updated.add(DayWeekdayMap(dayId: entry.dayId, weekdays: remaining));
   }
+  if (!sawTarget) {
+    updated.add(DayWeekdayMap(dayId: dayId, weekdays: next));
+  }
+  plan.weekdayMap = updated;
 }
