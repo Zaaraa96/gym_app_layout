@@ -74,7 +74,7 @@ void main() {
   testWidgets(
       'trailing-comma JSON opens Create plan; sample then activates',
       (tester) async {
-    tester.view.physicalSize = const Size(800, 1400);
+    tester.view.physicalSize = const Size(800, 2400);
     tester.view.devicePixelRatio = 1;
     addTearDown(tester.view.resetPhysicalSize);
 

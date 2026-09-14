@@ -147,12 +147,12 @@ void main() {
     await db(tester, () => plans.save(samplePlan()));
     await launch(tester, AppRoutes.home);
 
-    await tester.tap(find.text('Push week'));
+    await openPlanFromHome(tester, 'Push week');
     await tester.pump();
     await settle(tester);
 
     expect(Get.currentRoute, AppRoutes.plan);
-    expect(find.text('Day 1'), findsOneWidget);
+    expect(find.byKey(const Key('day-card-day-1')), findsOneWidget);
     expect(find.text('chest'), findsOneWidget);
 
     await tester.tap(find.byKey(const Key('add-day')));
@@ -201,10 +201,11 @@ void main() {
     await db(tester, () => plans.save(samplePlan()));
     await launch(tester, AppRoutes.home);
 
-    await tester.tap(find.text('Push week'));
+    await openPlanFromHome(tester, 'Push week');
     await tester.pump();
     await settle(tester);
 
+    await tester.ensureVisible(find.byKey(const Key('day-card-day-1')));
     await tester.tap(find.byKey(const Key('day-card-day-1')));
     await tester.pump();
     await settle(tester);
@@ -264,9 +265,10 @@ void main() {
     await db(tester, () => plans.save(samplePlan()));
     await launch(tester, AppRoutes.home);
 
-    await tester.tap(find.text('Push week'));
+    await openPlanFromHome(tester, 'Push week');
     await tester.pump();
     await settle(tester);
+    await tester.ensureVisible(find.byKey(const Key('day-card-day-1')));
     await tester.tap(find.byKey(const Key('day-card-day-1')));
     await tester.pump();
     await settle(tester);
@@ -290,9 +292,10 @@ void main() {
     await db(tester, () => plans.save(samplePlan()));
     await launch(tester, AppRoutes.home);
 
-    await tester.tap(find.text('Push week'));
+    await openPlanFromHome(tester, 'Push week');
     await tester.pump();
     await settle(tester);
+    await tester.ensureVisible(find.byKey(const Key('day-card-day-1')));
     await tester.tap(find.byKey(const Key('day-card-day-1')));
     await tester.pump();
     await settle(tester);
@@ -329,9 +332,10 @@ void main() {
     await db(tester, () => plans.save(samplePlan()));
     await launch(tester, AppRoutes.home);
 
-    await tester.tap(find.text('Push week'));
+    await openPlanFromHome(tester, 'Push week');
     await tester.pump();
     await settle(tester);
+    await tester.ensureVisible(find.byKey(const Key('day-card-day-1')));
     await tester.tap(find.byKey(const Key('day-card-day-1')));
     await tester.pump();
     await settle(tester);
@@ -374,7 +378,7 @@ void main() {
     await db(tester, () => plans.save(samplePlan()));
     await launch(tester, AppRoutes.home);
 
-    await tester.tap(find.text('Push week'));
+    await openPlanFromHome(tester, 'Push week');
     await tester.pump();
     await settle(tester);
 
@@ -419,9 +423,10 @@ void main() {
     await db(tester, () => plans.save(samplePlan()));
     await launch(tester, AppRoutes.home);
 
-    await tester.tap(find.text('Push week'));
+    await openPlanFromHome(tester, 'Push week');
     await tester.pump();
     await settle(tester);
+    await tester.ensureVisible(find.byKey(const Key('day-card-day-1')));
     await tester.tap(find.byKey(const Key('day-card-day-1')));
     await tester.pump();
     await settle(tester);
@@ -460,9 +465,10 @@ void main() {
     await db(tester, () => plans.save(samplePlan()));
     await launch(tester, AppRoutes.home);
 
-    await tester.tap(find.text('Push week'));
+    await openPlanFromHome(tester, 'Push week');
     await tester.pump();
     await settle(tester);
+    await tester.ensureVisible(find.byKey(const Key('day-card-day-1')));
     await tester.tap(find.byKey(const Key('day-card-day-1')));
     await tester.pump();
     await settle(tester);
@@ -553,9 +559,10 @@ void main() {
     );
 
     await launch(tester, AppRoutes.home);
-    await tester.tap(find.text('Push week'));
+    await openPlanFromHome(tester, 'Push week');
     await tester.pump();
     await settle(tester);
+    await tester.ensureVisible(find.byKey(const Key('day-card-day-1')));
     await tester.tap(find.byKey(const Key('day-card-day-1')));
     await tester.pump();
     await settle(tester);
@@ -588,18 +595,18 @@ void main() {
     await db(tester, () => plans.save(samplePlan()));
     await launch(tester, AppRoutes.home);
 
-    await tester.tap(find.text('Push week'));
+    await openPlanFromHome(tester, 'Push week');
     await tester.pump();
     await settle(tester);
 
-    expect(find.text('Day 1'), findsOneWidget);
+    expect(find.byKey(const Key('day-card-day-1')), findsOneWidget);
     await tester.tap(find.byTooltip('Delete day'));
     await tester.pump();
     await tester.tap(find.widgetWithText(TextButton, 'Cancel'));
     await tester.pump();
     await settle(tester);
 
-    expect(find.text('Day 1'), findsOneWidget);
+    expect(find.byKey(const Key('day-card-day-1')), findsOneWidget);
     expect(find.text('chest'), findsOneWidget);
     final stored = await db(tester, plans.all);
     expect(stored.single.days, hasLength(1));
@@ -611,9 +618,10 @@ void main() {
     await db(tester, () => plans.save(samplePlan()));
     await launch(tester, AppRoutes.home);
 
-    await tester.tap(find.text('Push week'));
+    await openPlanFromHome(tester, 'Push week');
     await tester.pump();
     await settle(tester);
+    await tester.ensureVisible(find.byKey(const Key('day-card-day-1')));
     await tester.tap(find.byKey(const Key('day-card-day-1')));
     await tester.pump();
     await settle(tester);
@@ -640,9 +648,10 @@ void main() {
     await db(tester, () => plans.save(samplePlan()));
     await launch(tester, AppRoutes.home);
 
-    await tester.tap(find.text('Push week'));
+    await openPlanFromHome(tester, 'Push week');
     await tester.pump();
     await settle(tester);
+    await tester.ensureVisible(find.byKey(const Key('day-card-day-1')));
     await tester.tap(find.byKey(const Key('day-card-day-1')));
     await tester.pump();
     await settle(tester);
@@ -689,9 +698,10 @@ void main() {
     await db(tester, () => plans.save(samplePlan()));
     await launch(tester, AppRoutes.home);
 
-    await tester.tap(find.text('Push week'));
+    await openPlanFromHome(tester, 'Push week');
     await tester.pump();
     await settle(tester);
+    await tester.ensureVisible(find.byKey(const Key('day-card-day-1')));
     await tester.tap(find.byKey(const Key('day-card-day-1')));
     await tester.pump();
     await settle(tester);
@@ -731,7 +741,7 @@ void main() {
     await db(tester, () => plans.save(samplePlan()));
     await launch(tester, AppRoutes.home);
 
-    await tester.tap(find.text('Push week'));
+    await openPlanFromHome(tester, 'Push week');
     await tester.pump();
     await settle(tester);
 
@@ -765,7 +775,7 @@ void main() {
     await db(tester, () => plans.save(samplePlan()));
     await launch(tester, AppRoutes.home);
 
-    await tester.tap(find.text('Push week'));
+    await openPlanFromHome(tester, 'Push week');
     await tester.pump();
     await settle(tester);
 
@@ -785,7 +795,7 @@ void main() {
     await settle(tester);
 
     expect(find.text('Should not save'), findsNothing);
-    expect(find.text('Day 1'), findsOneWidget);
+    expect(find.byKey(const Key('day-card-day-1')), findsOneWidget);
     final stored = await db(tester, plans.all);
     expect(stored.single.days, hasLength(1));
     expect(stored.single.days.single.title, 'Day 1');
@@ -799,9 +809,10 @@ void main() {
     await db(tester, () => plans.save(samplePlan()));
     await launch(tester, AppRoutes.home);
 
-    await tester.tap(find.text('Push week'));
+    await openPlanFromHome(tester, 'Push week');
     await tester.pump();
     await settle(tester);
+    await tester.ensureVisible(find.byKey(const Key('day-card-day-1')));
     await tester.tap(find.byKey(const Key('day-card-day-1')));
     await tester.pump();
     await settle(tester);
@@ -861,9 +872,10 @@ void main() {
     );
 
     await launch(tester, AppRoutes.home);
-    await tester.tap(find.text('Push week'));
+    await openPlanFromHome(tester, 'Push week');
     await tester.pump();
     await settle(tester);
+    await tester.ensureVisible(find.byKey(const Key('day-card-day-1')));
     await tester.tap(find.byKey(const Key('day-card-day-1')));
     await tester.pump();
     await settle(tester);
@@ -894,7 +906,7 @@ void main() {
     await db(tester, () => plans.save(samplePlan()));
     await launch(tester, AppRoutes.home);
 
-    await tester.tap(find.text('Push week'));
+    await openPlanFromHome(tester, 'Push week');
     await tester.pump();
     await settle(tester);
 
@@ -931,9 +943,10 @@ void main() {
     await db(tester, () => plans.save(samplePlan()));
     await launch(tester, AppRoutes.home);
 
-    await tester.tap(find.text('Push week'));
+    await openPlanFromHome(tester, 'Push week');
     await tester.pump();
     await settle(tester);
+    await tester.ensureVisible(find.byKey(const Key('day-card-day-1')));
     await tester.tap(find.byKey(const Key('day-card-day-1')));
     await tester.pump();
     await settle(tester);
@@ -995,9 +1008,10 @@ void main() {
     );
 
     await launch(tester, AppRoutes.home);
-    await tester.tap(find.text('Push week'));
+    await openPlanFromHome(tester, 'Push week');
     await tester.pump();
     await settle(tester);
+    await tester.ensureVisible(find.byKey(const Key('day-card-day-1')));
     await tester.tap(find.byKey(const Key('day-card-day-1')));
     await tester.pump();
     await settle(tester);
@@ -1030,7 +1044,7 @@ void main() {
     await db(tester, () => plans.save(samplePlan()));
     await launch(tester, AppRoutes.home);
 
-    await tester.tap(find.text('Push week'));
+    await openPlanFromHome(tester, 'Push week');
     await tester.pump();
     await settle(tester);
 
@@ -1054,7 +1068,7 @@ void main() {
     await db(tester, () => plans.save(samplePlan()));
     await launch(tester, AppRoutes.home);
 
-    await tester.tap(find.text('Push week'));
+    await openPlanFromHome(tester, 'Push week');
     await tester.pump();
     await settle(tester);
 
@@ -1069,7 +1083,7 @@ void main() {
 
     expect(Get.currentRoute, AppRoutes.plan);
     expect(find.text('Push week'), findsWidgets);
-    expect(find.text('Day 1'), findsOneWidget);
+    expect(find.byKey(const Key('day-card-day-1')), findsOneWidget);
     expect(await db(tester, plans.count), 1);
     final stored = await db(tester, plans.all);
     expect(stored.single.title, 'Push week');
@@ -1111,7 +1125,7 @@ void main() {
     );
 
     await launch(tester, AppRoutes.home);
-    await tester.tap(find.text('Push week'));
+    await openPlanFromHome(tester, 'Push week');
     await tester.pump();
     await settle(tester);
     await confirmDeletePlan(tester);
@@ -1164,7 +1178,7 @@ void main() {
     await launch(tester, AppRoutes.home);
     expect(find.byKey(const Key('continue-banner')), findsOneWidget);
 
-    await tester.tap(find.text('Push week'));
+    await openPlanFromHome(tester, 'Push week');
     await tester.pump();
     await settle(tester);
     await confirmDeletePlan(tester);

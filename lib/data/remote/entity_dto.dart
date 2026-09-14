@@ -28,6 +28,17 @@ class PlanDto {
         goalIds = List<String>.from(plan.goalIds),
         source = plan.source.name,
         status = plan.status.name,
+        onSchedule = plan.onSchedule,
+        scheduleMode = plan.scheduleMode.name,
+        weekdayMap = [
+          for (final entry in plan.weekdayMap)
+            {
+              'dayId': entry.dayId,
+              'weekdays': List<int>.from(entry.weekdays),
+            },
+        ],
+        onceCycleStartedAt =
+            plan.onceCycleStartedAt == null ? null : _iso(plan.onceCycleStartedAt!),
         createdAt = _iso(plan.createdAt),
         updatedAt = _iso(plan.updatedAt),
         days = [for (final day in plan.days) _dayToJson(day)],
@@ -43,6 +54,10 @@ class PlanDto {
         ],
         source = json['source'] as String,
         status = json['status'] as String? ?? PlanStatus.active.name,
+        onSchedule = json['onSchedule'] as bool? ?? true,
+        scheduleMode = json['scheduleMode'] as String? ?? ScheduleMode.week.name,
+        weekdayMap = _asMaps(json['weekdayMap']),
+        onceCycleStartedAt = json['onceCycleStartedAt'] as String?,
         createdAt = json['createdAt'] as String,
         updatedAt = json['updatedAt'] as String,
         days = _asMaps(json['days']),
@@ -54,6 +69,10 @@ class PlanDto {
   final List<String> goalIds;
   final String source;
   final String status;
+  final bool onSchedule;
+  final String scheduleMode;
+  final List<Map<String, dynamic>> weekdayMap;
+  final String? onceCycleStartedAt;
   final String createdAt;
   final String updatedAt;
   final List<Map<String, dynamic>> days;
@@ -66,6 +85,10 @@ class PlanDto {
         'goalIds': goalIds,
         'source': source,
         'status': status,
+        'onSchedule': onSchedule,
+        'scheduleMode': scheduleMode,
+        'weekdayMap': weekdayMap,
+        if (onceCycleStartedAt != null) 'onceCycleStartedAt': onceCycleStartedAt,
         'createdAt': createdAt,
         'updatedAt': updatedAt,
         'days': days,
@@ -77,7 +100,7 @@ class PlanDto {
     final sections = [
       for (final section in commonSections) _sectionFromJson(section),
     ];
-    return WorkoutPlan.create(
+    final plan = WorkoutPlan.create(
       uuid: id,
       dirty: false,
       title: title,
@@ -85,10 +108,25 @@ class PlanDto {
       goalIds: canonicalizeGoalIds(goalIds),
       source: _enum(PlanSource.values, source, PlanSource.created),
       status: _enum(PlanStatus.values, status, PlanStatus.active),
+      onSchedule: onSchedule,
+      scheduleMode: _enum(ScheduleMode.values, scheduleMode, ScheduleMode.week),
+      weekdayMap: [
+        for (final entry in weekdayMap)
+          DayWeekdayMap(
+            dayId: entry['dayId'] as String? ?? '',
+            weekdays: [
+              for (final w in entry['weekdays'] as List? ?? const [])
+                if (w is int) w,
+            ],
+          ),
+      ],
+      onceCycleStartedAt: _date(onceCycleStartedAt),
       createdAt: _date(createdAt)!,
       updatedAt: _date(updatedAt)!,
       days: migrateCommonSectionsToDays(days: parsedDays, sections: sections),
     );
+    ensurePlanScheduleDefaults(plan);
+    return plan;
   }
 }
 

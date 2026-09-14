@@ -11,12 +11,16 @@ import '../../data/app_ports.dart';
 import '../../data/plan_export.dart';
 import '../../domain/models/models.dart';
 import '../../domain/new_id.dart';
+import '../../domain/once_plan_cycle.dart';
 import '../../domain/plan_catalog.dart';
+import '../../domain/plan_progress.dart';
 import '../../domain/plan_repository.dart';
 import 'day_card_summary.dart';
 import 'day_editor_page.dart';
 import 'day_preview_page.dart';
+import 'plan_progress_section.dart';
 import 'rotating_exercise_thumbnail.dart';
+import 'schedule_editor.dart';
 
 /// One plan: rename it, add days, open a day to edit its workout.
 class PlanPage extends StatefulWidget {
@@ -33,21 +37,28 @@ class PlanPage extends StatefulWidget {
 class _PlanPageState extends State<PlanPage> {
   PlanRepository get _plans => widget.ports.plans;
   WorkoutPlan? _plan;
+  PlanProgress? _progress;
   bool _loading = true;
   String? _error;
   int _loadId = 0;
   StreamSubscription<void>? _watch;
+  StreamSubscription<void>? _sessionWatch;
+  StreamSubscription<void>? _skipWatch;
 
   @override
   void initState() {
     super.initState();
     _load();
     _watch = _plans.watch().listen((_) => _load());
+    _sessionWatch = widget.ports.sessions.watch().listen((_) => _load());
+    _skipWatch = widget.ports.skips.watch().listen((_) => _load());
   }
 
   @override
   void dispose() {
     _watch?.cancel();
+    _sessionWatch?.cancel();
+    _skipWatch?.cancel();
     super.dispose();
   }
 
@@ -55,9 +66,19 @@ class _PlanPageState extends State<PlanPage> {
     final id = ++_loadId;
     try {
       final plan = await _plans.byUuid(widget.planId);
+      PlanProgress? progress;
+      if (plan != null) {
+        ensurePlanScheduleDefaults(plan);
+        progress = await loadPlanProgress(
+          plan: plan,
+          sessions: widget.ports.sessions,
+          skips: widget.ports.skips,
+        );
+      }
       if (!mounted || id != _loadId) return;
       setState(() {
         _plan = plan;
+        _progress = progress;
         _loading = false;
         _error = null;
       });
@@ -82,6 +103,21 @@ class _PlanPageState extends State<PlanPage> {
 
   Future<void> _save(WorkoutPlan plan) async {
     await _plans.save(plan);
+    await _load();
+  }
+
+  Future<void> _runOnceAgain(WorkoutPlan plan) async {
+    await restartOncePlan(
+      plan: plan,
+      plans: _plans,
+      skips: widget.ports.skips,
+    );
+    if (!mounted) return;
+    ScaffoldMessenger.of(context).showSnackBar(
+      const SnackBar(
+        content: Text('Plan is available on Today again. It will leave the schedule when you finish.'),
+      ),
+    );
     await _load();
   }
 
@@ -342,37 +378,59 @@ class _PlanPageState extends State<PlanPage> {
   }
 
   Widget _daysBody(BuildContext context, WorkoutPlan plan) {
-    return ListView(
+    // Column (not ListView children) so Schedule/Progress never leave day
+    // cards unbuilt below the fold — widget tests and Semantics need them.
+    return SingleChildScrollView(
       padding: const EdgeInsets.fromLTRB(20, 12, 20, 88),
-      children: [
-        if (plan.days.isEmpty)
-          Padding(
-            padding: const EdgeInsets.symmetric(vertical: 24),
-            child: Column(
-              children: [
-                const AppText(
-                  'No days yet. Add a day, then fill it with exercises.',
-                  style: subtitleTextStyle,
-                  textAlign: TextAlign.center,
-                ),
-                const SizedBox(height: 16),
-                FilledButton.icon(
-                  onPressed: _addDay,
-                  icon: const Icon(Icons.add),
-                  label: const Text('Add day'),
-                ),
-              ],
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          ScheduleEditor(
+            plan: plan,
+            onChanged: () => _save(plan),
+          ),
+          const SizedBox(height: 24),
+          if (_progress != null) ...[
+            PlanProgressSection(
+              progress: _progress!,
+              onRunAgain: _progress!.isFinishedOnce &&
+                      plan.scheduleMode == ScheduleMode.once
+                  ? () => _runOnceAgain(plan)
+                  : null,
             ),
-          )
-        else
-          for (var index = 0; index < plan.days.length; index++)
-            _DayCard(
-              key: Key('day-card-${plan.days[index].dayId}'),
-              day: plan.days[index],
-              onOpen: () => _openDay(plan.days[index]),
-              onDelete: () => _deleteDay(plan.days[index]),
-            ),
-      ],
+            const SizedBox(height: 24),
+          ],
+          const AppText('Days', style: TextStyle(fontWeight: FontWeight.w600)),
+          const SizedBox(height: 8),
+          if (plan.days.isEmpty)
+            Padding(
+              padding: const EdgeInsets.symmetric(vertical: 24),
+              child: Column(
+                children: [
+                  const AppText(
+                    'No days yet. Add a day, then fill it with exercises.',
+                    style: subtitleTextStyle,
+                    textAlign: TextAlign.center,
+                  ),
+                  const SizedBox(height: 16),
+                  FilledButton.icon(
+                    onPressed: _addDay,
+                    icon: const Icon(Icons.add),
+                    label: const Text('Add day'),
+                  ),
+                ],
+              ),
+            )
+          else
+            for (var index = 0; index < plan.days.length; index++)
+              _DayCard(
+                key: Key('day-card-${plan.days[index].dayId}'),
+                day: plan.days[index],
+                onOpen: () => _openDay(plan.days[index]),
+                onDelete: () => _deleteDay(plan.days[index]),
+              ),
+        ],
+      ),
     );
   }
 }

@@ -69,7 +69,7 @@ void main() {
       ]),
     );
 
-    expect(find.text('Day 1'), findsOneWidget);
+    expect(find.byKey(const Key('day-card-day-1')), findsOneWidget);
     expect(find.byKey(const Key('day-card-thumbnails')), findsNothing);
     expect(find.byKey(const Key('day-card-focus')), findsNothing);
     expect(find.byKey(const Key('day-card-chip-abs')), findsNothing);

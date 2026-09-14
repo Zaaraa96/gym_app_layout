@@ -7,11 +7,14 @@ void main() {
       () {
     final idLiteral = RegExp(r'id:\s*(-?\d+)\s*,');
     const maxSafe = 9007199254740991;
-    final files = [
-      File('lib/data/isar/workout_plan.g.dart'),
-      File('lib/data/isar/workout_session.g.dart'),
-      File('lib/data/isar/user_catalog_exercise.g.dart'),
-    ];
+    final dir = Directory('lib/data/isar');
+    final files = dir
+        .listSync()
+        .whereType<File>()
+        .where((f) => f.path.endsWith('.g.dart'))
+        .toList()
+      ..sort((a, b) => a.path.compareTo(b.path));
+    expect(files, isNotEmpty, reason: 'expected generated Isar schemas');
     final offenders = <String>[];
     for (final file in files) {
       for (final match in idLiteral.allMatches(file.readAsStringSync())) {

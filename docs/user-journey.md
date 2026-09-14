@@ -30,7 +30,7 @@ Three full-width actions, no bottom nav:
    - **Beginner full body** (badge **Recommended**) — three training days plus abs and mobility, imported as extra days
    - **Beginner 2-day** — A/B
 3. Tap **Use this plan**.
-4. The plan is saved locally. The app jumps to **Plans** (Today card + Your plans). It does **not** open the plan preview.
+4. The plan is saved locally as **on-schedule + Week schedule** with a default weekday map. The app jumps to **Plans** (Today list + Your plans). It does **not** open the plan preview.
 
 Tapping the same starter twice does not duplicate it (same title is reused). After the first save, **Beginner** on Plans reopens the same picker so a second template can still be added.
 
@@ -41,14 +41,19 @@ Tapping the same starter twice does not duplicate it (same title is reused). Aft
 3. Plan details: **Plan name** (required), optional description (120 chars), optional goals. **CONTINUE** stays on details until the name is filled.
 4. Each day has one **Add exercise** action. It opens a full-screen editor where the user chooses **Single exercise** or **Superset**, then commits with **ADD EXERCISE** / **ADD SUPERSET**. **Add another day** lives in **Review & create** with **Finish plan**; tapping it inserts a day and opens that day step.
 5. Back or **EXIT FOR NOW** returns to Plans. The row shows a **Draft** badge with **Resume** / **Delete**. Empty names list as **Untitled plan**.
-6. **Finish plan** is disabled until every day has a valid block. After finish, the active plan preview opens. **Start workout** is disabled until that day has a block.
+6. On **Review & create**, set **Schedule** before finishing:
+   - **On schedule** (default on) — plan can appear in Today.
+   - **Run once** or **Week schedule** (exactly one; there is no separate Repeat).
+   - If **Week schedule**, map each workout day to at least one weekday. Unmapped weekdays are rest (shown on the week strip).
+   - If **Run once**, there is **no Rest** — only workout days until the plan finishes. Rest is Week-only (empty weekdays).
+7. **Finish plan** is disabled until every workout day has a valid block **and** Schedule is valid (weekday map complete when Week). After finish, the active plan preview opens. **Start workout** is disabled until that day has a block.
 
 ### 2c. Import a plan
 
 1. Tap **Import a plan** (Welcome) or **Import** (Plans).
 2. Pick a `.gymplan`, `.zip`, or `.json` file (`name`, `basic-plan`, optional `common-plan`, optional media). Linux desktop needs a file-dialog helper (`zenity`, `qarma`, or `kdialog`).
 3. Unreadable files (not zip or JSON) stay on the current screen with a snackbar.
-4. Everything else opens **Create plan** as a **draft**. Days, exercises, and media that parse are filled in. If something was missing or messy, a banner says **Import didn’t go as planned.** with **This is a draft. Check each day, fix what’s missing, then create the plan.** Review lists the issues. **Finish plan** activates the plan. **EXIT FOR NOW** keeps the draft on Plans.
+4. Everything else opens **Create plan** as a **draft**. Days, exercises, and media that parse are filled in. If something was missing or messy, a banner says **Import didn’t go as planned.** with **This is a draft. Check each day, fix what’s missing, then create the plan.** Review lists the issues. User still sets **Schedule** on Review (defaults: On schedule + Week schedule with a suggested map). **Finish plan** activates the plan. **EXIT FOR NOW** keeps the draft on Plans.
 5. Same title as an existing plan still creates a **new** draft.
 
 Checked-in sample: `assets/json/plan.json` (`plan 1`, one training day plus abs and corrective imported as extra days).
@@ -58,9 +63,10 @@ Checked-in sample: `assets/json/plan.json` (`plan 1`, one training day plus abs 
 Returning users land here. Bottom nav (**Plans** | **Exercises** | **Month**) is on this shell only.
 
 - **Continue workout** banner if a live session exists (title **Continue workout**, subtitle is the day name). Tap to resume logging.
-- **Today** card: the next startable day on the **newest** startable **active** plan (`updatedAt`). Drafts never appear here. A blank created plan does not steal the card; an imported plan with exercises does.
-  - No completed session yet: headline **Today: {day}**, prompt **Start with {first exercise}, then log what you did.**, button **Start today's workout**.
-  - Already completed a session today: headline **Next up: {day}**, prompt **You already trained today…**, button **Start next day**.
+- **Today** **horizontal list**: every due item from **on-schedule active** plans (not “newest plan wins”). Drafts and off-schedule plans never appear. Rules: [today-and-schedule.md](today-and-schedule.md).
+  - Workout due: card with plan + day, prompt naming the first exercise, **Start today's workout** (or per-card Start), plus secondary **Skip day** (no session; advances Once / clears Week due for today). Skip ≠ Rest.
+  - Rest due: Rest tile only for **Week schedule** when today has no mapped workout. **Run once** never shows Rest. No Skip on Rest tiles.
+  - Zero on-schedule plans: Import / New / Beginner banner instead of Today.
 - **Your plans** list (title + “1 day” / “N days”). Newest first. Tap a row to open the plan. Drafts show a **Draft** badge with **Resume** / **Delete**. Empty names list as **Untitled plan**.
 - Bottom buttons when plans exist: **Import**, **New**, and **Beginner** (reopens starter templates). **Beginner** is not on the empty-home row; that state uses a single **Start with a beginner plan** action instead.
 
@@ -72,18 +78,20 @@ Deleting the last plan (overflow on plan preview) lands on empty home: **No plan
 
 1. Tap a plan.
 2. Plan preview (no bottom nav):
-   - Info day cards (no cycling photos). Details: [plan-day-cards.md](plan-day-cards.md).
+   - **Schedule** section: On schedule, **Run once** | **Week schedule**, weekday map when Week. Same controls as Review; edits apply to Today. No Add rest day.
+   - **Progress** section: Once = done/skipped/left; Week = trained/skipped/Rest strip; last trained; simple charts (weight over sessions; weekly volume).
+   - Info day cards (no cycling photos). Details: [plan-day-cards.md](plan-day-cards.md). Day list is workout days; Week Rest is empty weekdays, not day cards.
    - App bar: back, title, **Rename plan** (pencil), **Add day**, overflow **More** → **Export plan** (Full package or Lite JSON) / **Delete plan**.
    - Confirm: **Delete this plan?** / **Workouts already logged stay on Month.** **Cancel** or **Delete**. Delete returns to Plans.
    - Each day card: title, optional focus/summary, target-area chips, `~N min` estimate, exercise count, **Delete day**. Catalog/stored stills rotate on the right when a movement has media; unmatched custom exercises stay text-only.
    - FAB **Add day** when at least one day exists.
-3. Tap a day card → **read-only day preview** (SVG, names × reps or duration, set badge; supersets on one row).
+3. Tap a workout day card → **read-only day preview** (SVG, names × reps or duration, set badge; supersets on one row).
 4. **Edit day** opens the same day layout as Create plan (day name, summary, block cards with edit/delete/reorder, Add exercise). List delete asks **Remove this exercise from the day?** then saves immediately.
-5. **Start workout** on the preview starts or resumes that day. Disabled when the day has no blocks or the plan is still a draft.
+5. **Start workout** on the preview starts or resumes that day. Disabled when the day has no blocks, the day is Rest, or the plan is still a draft.
 
 ## 5. Start a workout
 
-Same flow from the Today card or from day preview.
+Same flow from a Today workout card or from day preview.
 
 1. If another **different** day is already live, a dialog:
    - Title **A workout is already in progress**

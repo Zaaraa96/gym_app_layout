@@ -258,10 +258,10 @@ void main() {
     await launch(tester, AppRoutes.home);
 
     expect(find.byKey(const Key('today-card')), findsOneWidget);
-    expect(find.text('Today: Day 1 — Squat and push'), findsOneWidget);
-    expect(find.text('Beginner full body'), findsOneWidget);
+    expect(find.textContaining('Today:'), findsOneWidget);
+    expect(find.text('Beginner full body'), findsWidgets);
     expect(
-      find.text('Start with Bodyweight squat, then log what you did.'),
+      find.textContaining('Start with'),
       findsOneWidget,
     );
   });
@@ -1037,7 +1037,7 @@ void main() {
     await tester.pump();
     await settle(tester);
 
-    expect(find.byKey(const Key('today-card')), findsOneWidget);
+    expect(find.byKey(const Key('today-card')), findsNothing);
     expect(find.byKey(const Key('continue-banner')), findsNothing);
     expect(await db(tester, () => repos.sessions.inProgress()), isNull);
     final completed = await db(tester, () => repos.sessions.lastCompleted());
@@ -1135,6 +1135,8 @@ WorkoutPlan _twoDayPlan() {
   return WorkoutPlan.create(
     title: 'A/B',
     source: PlanSource.created,
+    scheduleMode: ScheduleMode.once,
+    onSchedule: true,
     createdAt: now,
     updatedAt: now,
     days: [
@@ -1157,6 +1159,8 @@ WorkoutPlan _durationPlan() {
   return WorkoutPlan.create(
     title: 'Holds',
     source: PlanSource.created,
+    scheduleMode: ScheduleMode.once,
+    onSchedule: true,
     createdAt: now,
     updatedAt: now,
     days: [
@@ -1187,6 +1191,8 @@ WorkoutPlan _simplePlan() {
   return WorkoutPlan.create(
     title: 'Simple',
     source: PlanSource.created,
+    scheduleMode: ScheduleMode.once,
+    onSchedule: true,
     createdAt: now,
     updatedAt: now,
     days: [

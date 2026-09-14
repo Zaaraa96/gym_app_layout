@@ -44,16 +44,21 @@ class PlanBuilderController extends ChangeNotifier {
     DateTime Function()? clock,
   }) {
     final now = (clock ?? DateTime.now)().toUtc();
-    return WorkoutPlan.create(
+    final dayId = newId();
+    final plan = WorkoutPlan.create(
       title: '',
       source: PlanSource.created,
       status: PlanStatus.draft,
+      onSchedule: true,
+      scheduleMode: ScheduleMode.week,
       createdAt: now,
       updatedAt: now,
       days: [
-        PlanDay.create(dayId: newId(), title: 'Day 1'),
+        PlanDay.create(dayId: dayId, title: 'Day 1'),
       ],
+      weekdayMap: [DayWeekdayMap(dayId: dayId, weekdays: const [1])],
     );
+    return plan;
   }
 
   static Future<PlanBuilderController> openNew(PlanRepository plans) async {
@@ -166,10 +171,22 @@ class PlanBuilderController extends ChangeNotifier {
 
   void addDay() {
     final nextNumber = _plan.days.length + 1;
+    final dayId = makeId();
     _plan.days = [
       ..._plan.days,
-      PlanDay.create(dayId: makeId(), title: 'Day $nextNumber'),
+      PlanDay.create(dayId: dayId, title: 'Day $nextNumber'),
     ];
+    if (_plan.scheduleMode == ScheduleMode.week) {
+      // Reserve next free weekday when possible; empty until exercises exist.
+      final used = claimedWeekdays(_plan);
+      var weekday = 1;
+      while (weekday <= 7 && used.contains(weekday)) {
+        weekday += 1;
+      }
+      if (weekday <= 7) {
+        setWeekdaysForDay(_plan, dayId, [weekday]);
+      }
+    }
     currentStepIndex = _plan.days.length;
     unawaited(flush());
     notifyListeners();
@@ -188,6 +205,10 @@ class PlanBuilderController extends ChangeNotifier {
       remaining.add(day);
     }
     _plan.days = remaining;
+    _plan.weekdayMap = [
+      for (final entry in _plan.weekdayMap)
+        if (remaining.any((d) => d.dayId == entry.dayId)) entry,
+    ];
     currentStepIndex = firstIncompleteStepIndex(_plan);
     unawaited(flush());
     notifyListeners();
@@ -235,6 +256,7 @@ class PlanBuilderController extends ChangeNotifier {
 
   Future<bool> activate() async {
     await flush();
+    ensurePlanScheduleDefaults(_plan);
     if (!planCanActivate(_plan)) return false;
     _plan.status = PlanStatus.active;
     try {
