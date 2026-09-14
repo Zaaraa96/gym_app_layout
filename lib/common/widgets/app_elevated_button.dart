@@ -22,24 +22,31 @@ class AppElevatedButton extends StatefulWidget {
 }
 
 class _AppElevatedButtonState extends State<AppElevatedButton> {
-  late final WidgetStatesController _states = WidgetStatesController();
+  bool _pressed = false;
+
+  bool get _enabled => widget.onPressed != null;
+
+  void _setPressed(bool value) {
+    if (_pressed == value) return;
+    setState(() => _pressed = value);
+  }
 
   @override
-  void dispose() {
-    _states.dispose();
-    super.dispose();
+  void didUpdateWidget(covariant AppElevatedButton oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    if (!_enabled && _pressed) {
+      _pressed = false;
+    }
   }
 
   @override
   Widget build(BuildContext context) {
     final child = widget.outlined
         ? OutlinedButton(
-            statesController: _states,
             onPressed: widget.onPressed,
             child: Text(widget.data),
           )
         : ElevatedButton(
-            statesController: _states,
             onPressed: widget.onPressed,
             child: Text(widget.data),
           );
@@ -47,18 +54,21 @@ class _AppElevatedButtonState extends State<AppElevatedButton> {
     // Primary CTA only — outlined actions stay flat.
     if (widget.outlined) return child;
 
-    return ListenableBuilder(
-      listenable: _states,
-      builder: (context, _) {
-        final pressed = _states.value.contains(WidgetState.pressed) &&
-            widget.onPressed != null;
-        return AnimatedScale(
-          scale: pressed ? CueLiftMotion.ctaPressScale : 1,
-          duration: CueLiftMotion.ctaPress,
-          curve: CueLiftMotion.ctaCurve,
-          child: child,
-        );
-      },
+    // Drive press scale from pointer events instead of WidgetStatesController.
+    // Material buttons update disabled on the controller during mount; listening
+    // to that from an ancestor ListenableBuilder marks AnimatedScale dirty
+    // mid-build (setState during build) when onPressed is null.
+    return Listener(
+      behavior: HitTestBehavior.translucent,
+      onPointerDown: _enabled ? (_) => _setPressed(true) : null,
+      onPointerUp: (_) => _setPressed(false),
+      onPointerCancel: (_) => _setPressed(false),
+      child: AnimatedScale(
+        scale: _pressed && _enabled ? CueLiftMotion.ctaPressScale : 1,
+        duration: CueLiftMotion.ctaPress,
+        curve: CueLiftMotion.ctaCurve,
+        child: child,
+      ),
     );
   }
 }
