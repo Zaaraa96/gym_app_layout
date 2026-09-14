@@ -20,6 +20,7 @@ class ScheduleEditor extends StatelessWidget {
   Widget build(BuildContext context) {
     ensurePlanScheduleDefaults(plan);
     final theme = Theme.of(context);
+    final unassigned = unassignedWorkoutDays(plan);
     return Column(
       key: const Key('schedule-editor'),
       crossAxisAlignment: CrossAxisAlignment.stretch,
@@ -83,18 +84,41 @@ class ScheduleEditor extends StatelessWidget {
           Text('Weekday map', style: theme.textTheme.titleSmall),
           const SizedBox(height: 4),
           Text(
-            'Tap weekdays for each workout day. Unmapped weekdays are Rest.',
+            'Each weekday belongs to one workout. Picking a day already used moves it here. Unmapped weekdays are Rest.',
             style: theme.textTheme.bodySmall,
           ),
           const SizedBox(height: 8),
           for (final day in plan.days)
             if (day.blocks.isNotEmpty) _dayMapRow(context, day),
-          if (!weekdayMapIsComplete(plan)) ...[
+          if (unassigned.isNotEmpty) ...[
             const SizedBox(height: 8),
-            Text(
-              'Map every workout day to at least one weekday.',
-              style: theme.textTheme.bodySmall?.copyWith(
-                color: theme.colorScheme.error,
+            Material(
+              key: const Key('unassigned-weekday-warning'),
+              color: theme.colorScheme.errorContainer,
+              borderRadius: BorderRadius.circular(12),
+              child: Padding(
+                padding: const EdgeInsets.all(12),
+                child: Row(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Icon(
+                      Icons.warning_amber_rounded,
+                      color: theme.colorScheme.onErrorContainer,
+                    ),
+                    const SizedBox(width: 8),
+                    Expanded(
+                      child: Text(
+                        unassigned.length == 1
+                            ? '“${unassigned.first.title}” needs a weekday.'
+                            : '${unassigned.length} workouts need a weekday: '
+                                '${unassigned.map((d) => d.title).join(', ')}.',
+                        style: theme.textTheme.bodySmall?.copyWith(
+                          color: theme.colorScheme.onErrorContainer,
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
               ),
             ),
           ],
@@ -106,13 +130,15 @@ class ScheduleEditor extends StatelessWidget {
   }
 
   Widget _dayMapRow(BuildContext context, PlanDay day) {
+    final theme = Theme.of(context);
     final selected = weekdaysForDay(plan, day.dayId).toSet();
+    final missing = selected.isEmpty;
     return Padding(
       padding: const EdgeInsets.only(bottom: 12),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Text(day.title, style: Theme.of(context).textTheme.bodyMedium),
+          Text(day.title, style: theme.textTheme.bodyMedium),
           const SizedBox(height: 6),
           Wrap(
             spacing: 6,
@@ -136,6 +162,16 @@ class ScheduleEditor extends StatelessWidget {
                 ),
             ],
           ),
+          if (missing) ...[
+            const SizedBox(height: 4),
+            Text(
+              'Assign at least one weekday.',
+              key: Key('unassigned-day-${day.dayId}'),
+              style: theme.textTheme.bodySmall?.copyWith(
+                color: theme.colorScheme.error,
+              ),
+            ),
+          ],
         ],
       ),
     );

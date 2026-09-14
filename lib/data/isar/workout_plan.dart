@@ -39,6 +39,9 @@ class WorkoutPlan {
 
   List<DayWeekdayMap> weekdayMap = [];
 
+  /// Start of the current Run-once cycle. Null = all history counts.
+  DateTime? onceCycleStartedAt;
+
   late DateTime createdAt;
 
   @Index()
@@ -63,6 +66,7 @@ class WorkoutPlan {
     this.onSchedule = true,
     this.scheduleMode = ScheduleMode.week,
     List<DayWeekdayMap>? weekdayMap,
+    this.onceCycleStartedAt,
     required this.createdAt,
     required this.updatedAt,
     List<PlanDay>? days,

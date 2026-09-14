@@ -11,6 +11,7 @@ import '../../common/widgets/app_text.dart';
 import '../../common/widgets/app_text_field.dart';
 import '../../data/app_ports.dart';
 import '../../domain/models/models.dart';
+import '../../domain/once_plan_cycle.dart';
 import '../plans/exercise_media.dart';
 import '../plans/exercise_media_thumbnail.dart';
 import 'live_session_progress.dart';
@@ -220,11 +221,23 @@ class _LiveWorkoutPageState extends State<LiveWorkoutPage> {
     );
     if (action == _EndAction.finish) {
       await _controller.finish();
+      await _parkOncePlanIfNeeded();
     } else if (action == _EndAction.discard) {
       await _controller.discard();
       if (!mounted) return;
       _leave();
     }
+  }
+
+  Future<void> _parkOncePlanIfNeeded() async {
+    final session = _controller.session;
+    if (session == null) return;
+    await parkOncePlanByIdIfFinished(
+      planId: session.planId,
+      plans: widget.ports.plans,
+      sessions: widget.ports.sessions,
+      skips: widget.ports.skips,
+    );
   }
 
   void _leave() {
@@ -300,6 +313,7 @@ class _LiveWorkoutPageState extends State<LiveWorkoutPage> {
         ),
         onContinue: () async {
           await controller.acknowledgeSessionDone();
+          await _parkOncePlanIfNeeded();
         },
       );
     }

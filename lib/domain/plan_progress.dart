@@ -1,4 +1,5 @@
 import 'models/models.dart';
+import 'once_plan_cycle.dart';
 import 'session_repository.dart';
 import 'skip_repository.dart';
 import 'today_suggestion.dart';
@@ -20,6 +21,7 @@ class PlanProgress {
     this.lastTrainedAt,
     this.weightTrend = const [],
     this.weeklySessionCounts = const [],
+    this.isFinishedOnce = false,
   });
 
   final ScheduleMode mode;
@@ -43,7 +45,15 @@ class PlanProgress {
   /// Last several local weeks: week-start → completed session count.
   final List<PlanChartPoint> weeklySessionCounts;
 
+  /// Run-once cycle has no days left.
+  final bool isFinishedOnce;
+
   String get onceHeadline {
+    if (isFinishedOnce) {
+      final skipBit =
+          skippedCount == 0 ? '' : ' · $skippedCount skipped';
+      return 'Completed · $doneCount of $totalWorkoutDays done$skipBit';
+    }
     final skipBit =
         skippedCount == 0 ? '' : ' · $skippedCount skipped';
     return '$doneCount of $totalWorkoutDays done$skipBit';
@@ -103,8 +113,13 @@ Future<PlanProgress> loadPlanProgress({
 
   if (plan.scheduleMode == ScheduleMode.once) {
     for (final day in workoutDays) {
-      final isDone = completed.any((s) => s.planDayId == day.dayId);
-      final isSkipped = skipRows.any((s) => s.dayId == day.dayId);
+      final isDone = completed.any(
+        (s) =>
+            s.planDayId == day.dayId && sessionCountsForOnceCycle(plan, s),
+      );
+      final isSkipped = skipRows.any(
+        (s) => s.dayId == day.dayId && skipCountsForOnceCycle(plan, s),
+      );
       if (isDone) {
         dayStates[day.dayId] = PlanDayProgressState.done;
         done += 1;
@@ -264,6 +279,7 @@ Future<PlanProgress> loadPlanProgress({
     lastTrainedAt: lastTrained,
     weightTrend: weightTrend,
     weeklySessionCounts: weekly,
+    isFinishedOnce: plan.scheduleMode == ScheduleMode.once && left == 0 && workoutDays.isNotEmpty,
   );
 }
 

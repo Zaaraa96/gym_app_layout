@@ -24,6 +24,7 @@ WorkoutPlan planToIsar(domain.WorkoutPlan plan) {
     ..weekdayMap = [
       for (final entry in plan.weekdayMap) _weekdayMapToIsar(entry),
     ]
+    ..onceCycleStartedAt = plan.onceCycleStartedAt
     ..createdAt = plan.createdAt
     ..updatedAt = plan.updatedAt
     ..days = [for (final day in plan.days) _dayToIsar(day)]
@@ -49,6 +50,7 @@ domain.WorkoutPlan planFromIsar(WorkoutPlan row) {
     weekdayMap: [
       for (final entry in row.weekdayMap) _weekdayMapFromIsar(entry),
     ],
+    onceCycleStartedAt: row.onceCycleStartedAt,
     createdAt: row.createdAt,
     updatedAt: row.updatedAt,
     days: migrateCommonSectionsToDays(days: days, sections: sections),

@@ -11,6 +11,7 @@ import '../../data/app_ports.dart';
 import '../../data/plan_export.dart';
 import '../../domain/models/models.dart';
 import '../../domain/new_id.dart';
+import '../../domain/once_plan_cycle.dart';
 import '../../domain/plan_catalog.dart';
 import '../../domain/plan_progress.dart';
 import '../../domain/plan_repository.dart';
@@ -102,6 +103,21 @@ class _PlanPageState extends State<PlanPage> {
 
   Future<void> _save(WorkoutPlan plan) async {
     await _plans.save(plan);
+    await _load();
+  }
+
+  Future<void> _runOnceAgain(WorkoutPlan plan) async {
+    await restartOncePlan(
+      plan: plan,
+      plans: _plans,
+      skips: widget.ports.skips,
+    );
+    if (!mounted) return;
+    ScaffoldMessenger.of(context).showSnackBar(
+      const SnackBar(
+        content: Text('Plan is available on Today again. It will leave the schedule when you finish.'),
+      ),
+    );
     await _load();
   }
 
@@ -371,7 +387,13 @@ class _PlanPageState extends State<PlanPage> {
         ),
         const SizedBox(height: 24),
         if (_progress != null) ...[
-          PlanProgressSection(progress: _progress!),
+          PlanProgressSection(
+            progress: _progress!,
+            onRunAgain: _progress!.isFinishedOnce &&
+                    plan.scheduleMode == ScheduleMode.once
+                ? () => _runOnceAgain(plan)
+                : null,
+          ),
           const SizedBox(height: 24),
         ],
         const AppText('Days', style: TextStyle(fontWeight: FontWeight.w600)),

@@ -13,6 +13,7 @@ import '../../common/widgets/cuelift_brand.dart';
 import '../../common/widgets/theme_mode_button.dart';
 import '../../data/app_ports.dart';
 import '../../domain/models/models.dart';
+import '../../domain/once_plan_cycle.dart';
 import '../../domain/plan_repository.dart';
 import '../../domain/session_repository.dart';
 import '../../domain/skip_repository.dart';
@@ -464,6 +465,12 @@ class _PlansHomePageState extends State<PlansHomePage> {
         dayId: day.dayId,
         date: DateTime.now(),
       ),
+    );
+    await parkOncePlanByIdIfFinished(
+      planId: today.plan.uuid,
+      plans: _plans,
+      sessions: _sessions,
+      skips: _skips,
     );
   }
 
