@@ -42,6 +42,13 @@ class IsarSkipRepository implements SkipRepository {
       _isar.writeTxn(() => _isar.planDaySkips.delete(id));
 
   @override
+  Future<void> deleteForPlan(String planId) {
+    return _isar.writeTxn(() async {
+      await _isar.planDaySkips.filter().planIdEqualTo(planId).deleteAll();
+    });
+  }
+
+  @override
   Stream<void> watch({bool fireImmediately = false}) =>
       _isar.planDaySkips.watchLazy(fireImmediately: fireImmediately);
 }

@@ -38,6 +38,19 @@ class MemorySkipRepository implements SkipRepository {
   }
 
   @override
+  Future<void> deleteForPlan(String planId) async {
+    final ids = [
+      for (final entry in _byId.entries)
+        if (entry.value.planId == planId) entry.key,
+    ];
+    if (ids.isEmpty) return;
+    for (final id in ids) {
+      _byId.remove(id);
+    }
+    _changes.add(null);
+  }
+
+  @override
   Stream<void> watch({bool fireImmediately = false}) async* {
     if (fireImmediately) yield null;
     yield* _changes.stream;

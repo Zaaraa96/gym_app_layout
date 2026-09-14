@@ -42,6 +42,10 @@ class WorkoutPlan {
   /// Day id → weekdays. Required when [scheduleMode] is [ScheduleMode.week].
   List<DayWeekdayMap> weekdayMap = [];
 
+  /// Start of the current Run-once cycle. Sessions/skips before this do not
+  /// count toward once progress. Null = use all history (legacy rows).
+  DateTime? onceCycleStartedAt;
+
   late DateTime createdAt;
 
   late DateTime updatedAt;
@@ -62,6 +66,7 @@ class WorkoutPlan {
     this.onSchedule = true,
     this.scheduleMode = ScheduleMode.week,
     List<DayWeekdayMap>? weekdayMap,
+    this.onceCycleStartedAt,
     required this.createdAt,
     required this.updatedAt,
     List<PlanDay>? days,
