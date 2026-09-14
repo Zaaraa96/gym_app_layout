@@ -190,12 +190,123 @@ class GymApp {
     await expectPlansHomeWith(fullBodyTitle);
   }
 
+  Future<void> installTwoDayFromWelcome() async {
+    await waitForWelcome();
+    await openBeginnerFromWelcome();
+    await expectVisible(fullBodyTitle);
+    await expectVisible(twoDayTitle);
+    await useStarterTwoDay();
+    await expectPlansHomeWith(twoDayTitle);
+  }
+
   Future<void> expectPlansHomeWith(String planTitle) async {
     await $(const Key('today-card')).waitUntilVisible();
     expect($('Your plans'), findsOneWidget);
     expect($(planTitle), findsWidgets);
     expect($('Import'), findsOneWidget);
     expect($('New'), findsOneWidget);
+  }
+
+  /// Schedule journeys: Today list, Skip day, Schedule editor, Run again.
+
+  Future<void> expectTodayList() async {
+    await $(const Key('today-list')).waitUntilVisible();
+    await $(const Key('today-card')).waitUntilVisible();
+    expect($('Skip day'), findsWidgets);
+  }
+
+  Future<void> skipTodaysWorkout() async {
+    await expectVisible('Skip day');
+    await tapText('Skip day', settle: SettlePolicy.noSettle);
+    await pumpQuiet(const Duration(milliseconds: 800));
+  }
+
+  Future<void> openReminderSettings() async {
+    await tapKey('open-reminder-settings');
+    await $(const Key('reminder-enabled')).waitUntilVisible();
+    expect($(const Key('reminder-time')), findsOneWidget);
+  }
+
+  Future<void> closeReminderSettings() async {
+    await back();
+    await pumpQuiet(const Duration(milliseconds: 400));
+  }
+
+  Future<void> expectScheduleEditor() async {
+    await $(const Key('schedule-editor')).waitUntilVisible();
+    expect($(const Key('on-schedule-toggle')), findsOneWidget);
+    expect($(const Key('schedule-mode')), findsOneWidget);
+  }
+
+  Future<void> selectRunOnceMode() async {
+    await expectScheduleEditor();
+    await tapText('Run once', settle: SettlePolicy.trySettle);
+    await pumpQuiet(const Duration(milliseconds: 400));
+    expect(
+      find.textContaining('Workout sequence only until finished'),
+      findsOneWidget,
+    );
+  }
+
+  Future<void> selectWeekScheduleMode() async {
+    await expectScheduleEditor();
+    await tapText('Week schedule', settle: SettlePolicy.trySettle);
+    await pumpQuiet(const Duration(milliseconds: 400));
+    expect($('Weekday map'), findsOneWidget);
+  }
+
+  Future<void> toggleOnSchedule() async {
+    await expectScheduleEditor();
+    await tapKey('on-schedule-toggle');
+    await pumpQuiet(const Duration(milliseconds: 500));
+  }
+
+  Future<void> expectNothingOnScheduleBanner() async {
+    await $(const Key('today-empty-banner')).waitUntilVisible();
+    expect($('Nothing on schedule'), findsOneWidget);
+  }
+
+  Future<void> expectPlanProgress() async {
+    await $(const Key('plan-progress')).waitUntilVisible();
+  }
+
+  Future<void> runOnceAgainFromPreview() async {
+    await $(const Key('run-once-again')).waitUntilVisible();
+    await tapKey('run-once-again');
+    await pumpQuiet(const Duration(milliseconds: 800));
+  }
+
+  /// Day ids present on weekday FilterChips under the Schedule editor.
+  List<String> weekdayMapDayIds() {
+    final ids = <String>{};
+    final re = RegExp(r'^weekday-(.+)-([1-7])$');
+    for (final element in find.byType(FilterChip).evaluate()) {
+      final key = element.widget.key;
+      if (key is! ValueKey) continue;
+      final value = key.value;
+      if (value is! String) continue;
+      final match = re.firstMatch(value);
+      if (match == null) continue;
+      ids.add(match.group(1)!);
+    }
+    return ids.toList();
+  }
+
+  Future<void> tapWeekdayChip(String dayId, int weekday) async {
+    await tapKey('weekday-$dayId-$weekday');
+    await pumpQuiet(const Duration(milliseconds: 300));
+  }
+
+  /// Clears every selected weekday chip for [dayId] (Week schedule).
+  Future<void> clearWeekdaysForDay(String dayId) async {
+    for (var weekday = 1; weekday <= 7; weekday++) {
+      final chip = find.byKey(Key('weekday-$dayId-$weekday'));
+      if (chip.evaluate().isEmpty) continue;
+      final widget = $.tester.widget<FilterChip>(chip);
+      if (widget.selected) {
+        await tapKey('weekday-$dayId-$weekday');
+      }
+    }
   }
 
   Future<void> openStartersFromHome() async {

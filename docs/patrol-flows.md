@@ -35,6 +35,9 @@ uses the vertical stepper and auto-saves a **Draft**. Import salvages
 | `flow_4_export_plan_test.dart` | §4 overflow **Export plan** (Full package / Lite), then Cancel |
 | `flow_8_first_week_loop_test.dart` | §8 happy path, own reset |
 | `flow_9_6_beginner_two_day_test.dart` | §2a other starter (Beginner 2-day) |
+| `flow_schedule_today_skip_preview_test.dart` | Schedule: Today list, Schedule/Progress, reminder, On schedule off, Skip day |
+| `flow_schedule_once_run_again_test.dart` | Schedule: Run once → Skip to finish → park → **Run again** |
+| `flow_schedule_review_week_map_test.dart` | Schedule: Review weekday map required + exclusive weekday claim |
 
 Shared robot: `support/gym_app.dart`.
 
@@ -74,6 +77,11 @@ patrol test -t integration_test/flows/flow_8_first_week_loop_test.dart
 
 # Two-day starter
 patrol test -t integration_test/flows/flow_9_6_beginner_two_day_test.dart
+
+# Schedule journeys (Today / Skip / once Run again / Review weekday map)
+patrol test -t integration_test/flows/flow_schedule_today_skip_preview_test.dart
+patrol test -t integration_test/flows/flow_schedule_once_run_again_test.dart
+patrol test -t integration_test/flows/flow_schedule_review_week_map_test.dart
 ```
 
 Pin the AVD with `-d emulator-5554` if Flutter still lists another device.
