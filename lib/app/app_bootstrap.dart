@@ -14,9 +14,11 @@ import '../data/isar_catalog_repository.dart';
 import '../data/isar_plan_repository.dart';
 import '../data/isar_service.dart';
 import '../data/isar_session_repository.dart';
+import '../data/isar_skip_repository.dart';
 import '../data/memory_catalog_repository.dart';
 import '../data/memory_plan_repository.dart';
 import '../data/memory_session_repository.dart';
+import '../data/memory_skip_repository.dart';
 import '../data/remote/http_remote_plan_data_source.dart';
 import '../data/remote/http_remote_session_data_source.dart';
 import '../data/remote/remote_plan_data_source.dart';
@@ -26,6 +28,7 @@ import '../domain/catalog_repository.dart';
 import '../domain/plan_repository.dart';
 import '../domain/session_lifecycle.dart';
 import '../domain/session_repository.dart';
+import '../domain/skip_repository.dart';
 import '../features/plans/exercise_media_picker.dart';
 import '../features/plans/plan_import_picker.dart';
 import 'app_routes.dart';
@@ -45,12 +48,14 @@ Future<String> bootApp() async {
   late final PlanRepository plans;
   late final SessionRepository sessions;
   late final CatalogRepository catalog;
+  late final SkipRepository skips;
   if (kIsWeb) {
     // Isar 3.1 refuses to open on web (`openIsar` throws). Keep the same
     // repository interfaces so the UI does not change.
     plans = Get.put<PlanRepository>(MemoryPlanRepository());
     sessions = Get.put<SessionRepository>(MemorySessionRepository());
     catalog = Get.put<CatalogRepository>(MemoryCatalogRepository());
+    skips = Get.put<SkipRepository>(MemorySkipRepository());
   } else {
     final isarService = Get.put(await IsarService.init());
     plans = Get.put<PlanRepository>(
@@ -62,6 +67,9 @@ Future<String> bootApp() async {
     catalog = Get.put<CatalogRepository>(
       IsarCatalogRepository(isarService.isar),
     );
+    skips = Get.put<SkipRepository>(
+      IsarSkipRepository(isarService.isar),
+    );
   }
   Get.put(SessionLifecycle(sessions));
   final picker = FilePickerPlanImportPicker();
@@ -70,6 +78,7 @@ Future<String> bootApp() async {
     AppPorts(
       plans: plans,
       sessions: sessions,
+      skips: skips,
       catalog: catalog,
       lifecycle: Get.find<SessionLifecycle>(),
       picker: picker,

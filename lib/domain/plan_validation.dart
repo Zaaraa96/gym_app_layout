@@ -1,4 +1,5 @@
 import 'models/enums.dart';
+import 'models/schedule.dart';
 import 'models/workout_plan.dart';
 import 'plan_catalog.dart';
 
@@ -182,6 +183,7 @@ List<PlanIssue> issuesForExercise(
 }
 
 List<PlanIssue> requiredIssuesFor(WorkoutPlan plan) {
+  ensurePlanScheduleDefaults(plan);
   final issues = <PlanIssue>[];
   if (!detailsIsComplete(plan)) {
     issues.add(
@@ -202,6 +204,14 @@ List<PlanIssue> requiredIssuesFor(WorkoutPlan plan) {
   }
   for (final day in plan.days) {
     issues.addAll(issuesForDay(day));
+  }
+  if (plan.scheduleMode == ScheduleMode.week && !weekdayMapIsComplete(plan)) {
+    issues.add(
+      const PlanIssue(
+        stepKey: reviewStepKey,
+        message: 'Map every workout day to at least one weekday.',
+      ),
+    );
   }
   return issues;
 }

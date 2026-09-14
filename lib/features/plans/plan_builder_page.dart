@@ -17,6 +17,7 @@ import 'day_step_body.dart';
 import 'exercise_asset_catalog.dart' as catalog;
 import 'exercise_editor_page.dart';
 import 'plan_builder_controller.dart';
+import 'schedule_editor.dart';
 
 /// Arguments for `/new-plan`: resume a draft and optional import issues.
 class PlanBuilderArgs {
@@ -759,6 +760,11 @@ class _ReviewStep extends StatelessWidget {
         ],
         const SizedBox(height: 12),
         for (final day in plan.days) _reviewDay(context, day, issues),
+        const SizedBox(height: 16),
+        ScheduleEditor(
+          plan: plan,
+          onChanged: controller.refresh,
+        ),
         if (issues.isNotEmpty) ...[
           const SizedBox(height: 8),
           Material(
