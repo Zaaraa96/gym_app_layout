@@ -149,7 +149,7 @@ class MyApp extends StatelessWidget {
 
   Widget _materialApp(ThemeMode themeMode) {
     return GetMaterialApp(
-      title: 'My Awesome Gym App',
+      title: 'CueLift',
       debugShowCheckedModeBanner: false,
       theme: lightTheme,
       darkTheme: darkTheme,

@@ -31,12 +31,17 @@ class ExerciseMediaThumbnail extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final resolved = media ?? resolveBlockMedia(_block!);
+    final scheme = Theme.of(context).colorScheme;
+    // Transparent exercise art sits on theme surface (dark navy / light gray).
     return ClipRRect(
       borderRadius: BorderRadius.circular(borderRadius),
-      child: SizedBox(
-        width: size,
-        height: size,
-        child: _MediaBody(media: resolved),
+      child: ColoredBox(
+        color: scheme.surface,
+        child: SizedBox(
+          width: size,
+          height: size,
+          child: _MediaBody(media: resolved),
+        ),
       ),
     );
   }

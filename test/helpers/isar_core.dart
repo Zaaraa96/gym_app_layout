@@ -95,8 +95,8 @@ void _putAppPorts() {
 
 /// Finish a GetX page transition and let a real Isar read land.
 ///
-/// `pumpAndSettle` is unusable on Welcome: the Lottie never stops.
-/// One frame of `pump()` only advances ~16ms, so 12 frames leave the
+/// Prefer timed pumps over a blind `pumpAndSettle` during route changes:
+/// one frame of `pump()` only advances ~16ms, so 12 frames leave the
 /// incoming route mid-slide and AppBar actions sit past the 800px view.
 /// Starting a session does an extra in-progress read plus a write, then the
 /// live page reads again, so we yield to the host more times than a single

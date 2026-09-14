@@ -1,11 +1,11 @@
 {
-    "name": "gym_app",
-    "short_name": "gym_app",
+    "name": "CueLift",
+    "short_name": "CueLift",
     "start_url": ".",
     "display": "standalone",
-    "background_color": "#0175C2",
-    "theme_color": "#0175C2",
-    "description": "let's make your gym app easier to catch up with",
+    "background_color": "#0B1D36",
+    "theme_color": "#FF4D3D",
+    "description": "Your training assistant — plans, live sessions, and month progress.",
     "orientation": "portrait-primary",
     "prefer_related_applications": false,
     "icons": [

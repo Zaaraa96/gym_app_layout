@@ -8,6 +8,7 @@ import '../common/app_theme.dart';
 import '../common/theme_controller.dart';
 import '../common/widgets/app_load_error.dart';
 import '../common/widgets/app_scaffold.dart';
+import '../common/widgets/cuelift_brand.dart';
 import '../data/app_ports.dart';
 import '../data/isar_catalog_repository.dart';
 import '../data/isar_plan_repository.dart';
@@ -133,17 +134,24 @@ class _AppBootstrapState extends State<AppBootstrap> {
         ? Get.find<ThemeController>().mode.value
         : ThemeMode.system;
     return MaterialApp(
-      title: 'My Awesome Gym App',
+      title: 'CueLift',
       debugShowCheckedModeBanner: false,
       theme: lightTheme,
       darkTheme: darkTheme,
       themeMode: themeMode,
-      home: AppScaffold(
-        body: _error == null
-            ? const Center(
-                child: CircularProgressIndicator(key: Key('app-boot')),
-              )
-            : AppLoadError(message: _error!, onRetry: _start),
+      home: Theme(
+        data: welcomeBrandTheme(),
+        child: AppScaffold(
+          backgroundColor: CueLiftColors.navy,
+          body: _error == null
+              ? const Center(
+                  child: CueLiftWelcomeBrand(
+                    height: 240,
+                    showLoader: true,
+                  ),
+                )
+              : AppLoadError(message: _error!, onRetry: _start),
+        ),
       ),
     );
   }

@@ -8,6 +8,7 @@ import 'package:gym_app/data/memory_session_repository.dart';
 import 'package:gym_app/domain/plan_repository.dart';
 import 'package:gym_app/domain/session_repository.dart';
 import 'package:gym_app/common/app_routes.dart';
+import 'package:gym_app/features/welcome/welcome_page.dart';
 import 'package:gym_app/main.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
@@ -56,7 +57,8 @@ void main() {
     await tester.pump();
 
     expect(calls, 2);
-    expect(find.text('Welcome To the Amazing Gym app'), findsOneWidget);
+    expect(find.byType(WelcomePage), findsOneWidget);
+    expect(find.text('Start with a beginner plan'), findsOneWidget);
   });
 
   testWidgets('saved dark preference themes the boot loader', (tester) async {

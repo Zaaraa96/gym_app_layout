@@ -8,9 +8,8 @@ on `flutter test --concurrency=1`.
 `test_directory` is `integration_test/flows/`. Do not pass
 `integration_test/*.dart` to `patrol test`.
 
-Never `pumpAndSettle` on Welcome: the Lottie animation does not stop. The
-shared robot uses `SettlePolicy.trySettle` with a short timeout, and
-`noSettle` on first-run taps.
+The shared robot uses `SettlePolicy.trySettle` with a short timeout, and
+`noSettle` on first-run taps, instead of a blind `pumpAndSettle`.
 
 AndroidX Test Orchestrator is on with `clearPackageData`. Each `patrolTest`
 starts from an empty database. Files that need a beginner plan install it

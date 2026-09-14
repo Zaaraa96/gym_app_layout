@@ -27,12 +27,17 @@ class CatalogMediaThumbnail extends StatelessWidget {
     final useGif = playGif && gif != null && gif.isNotEmpty;
     final uri = useGif ? gif : exercise.mediaUri;
     final kind = useGif ? ExerciseMediaKind.gif : exercise.mediaKind;
+    final scheme = Theme.of(context).colorScheme;
+    // Transparent exercise art sits on theme surface (dark navy / light gray).
     return ClipRRect(
       borderRadius: BorderRadius.circular(borderRadius),
-      child: SizedBox(
-        width: size,
-        height: size,
-        child: _body(context, uri, kind, exercise.mediaSource),
+      child: ColoredBox(
+        color: scheme.surface,
+        child: SizedBox(
+          width: size,
+          height: size,
+          child: _body(context, uri, kind, exercise.mediaSource),
+        ),
       ),
     );
   }

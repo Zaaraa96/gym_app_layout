@@ -33,7 +33,7 @@ Welcome (/)  →  Beginner plans / Create plan (import or new)
               Month calendar → session log
 ```
 
-1. **Welcome** — Lottie gym animation, three actions: Start with a beginner plan, Import a plan, Create a plan. Skipped once any plan exists.
+1. **Welcome** — CueLift navy brand stack, three actions: Start with a beginner plan, Import a plan, Create a plan. Skipped once any plan exists.
 2. **Plans** — Continue banner if a session is live, Today card (next startable day on the newest startable plan), plan list, Import | New | Beginner (Beginner only when a plan exists).
 3. **Exercises** — Catalog of supported movements with pictures, region/muscle filters, and user-added custom exercises.
 4. **Plan / day** — Info day cards with optional rotating stills, read-only day preview, editor, Start workout.
@@ -42,7 +42,7 @@ Welcome (/)  →  Beginner plans / Create plan (import or new)
 
 ## Architecture
 
-- **UI:** Flutter Material 3, seed color `Colors.deepPurple`, with light / dark / system theme (toggle on Welcome and Plans).
+- **UI:** Flutter Material 3 with CueLift navy/coral tokens (see `docs/design-system.md`), light / dark / system theme (toggle on Welcome and Plans).
 - **Navigation:** GetX named routes. Plan and session ids on routes are **uuids**.
 - **Domain:** `lib/domain` — models, repository interfaces, start/progress rules. No Isar imports.
 - **Data:** Isar 3 adapters, JSON importer, in-memory stand-ins for web/tests, optional HTTP remotes.
@@ -106,7 +106,6 @@ dart run build_runner build --delete-conflicting-outputs
 | `get` | Routing and live-workout controller |
 | `isar` / `isar_flutter_libs` | Local persistence (native) |
 | `isar_generator` + `build_runner` | Isar codegen |
-| `lottie` | Welcome animation (`assets/json/gym.json`) |
 | `flutter_svg` | Exercise-group icons |
 | `file_picker` | Plan package / JSON import and desktop export |
 | `archive` | `.gymplan` zip encode/decode |

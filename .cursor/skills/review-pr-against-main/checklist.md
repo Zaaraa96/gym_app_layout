@@ -46,7 +46,7 @@ Confirm `test/data/architecture_imports_test.dart` still matches the tree the PR
 ## Tests and test helpers
 
 - New product rules have tests next to existing ones (`test/data/`, `test/features/`).
-- Widget tests that change routes use `settleApp`, not `pumpAndSettle` on Welcome.
+- Widget tests that change routes use `settleApp` / timed pumps, not a blind `pumpAndSettle`.
 - Host tests that open Isar call `ensureIsarCore()` first.
 - Run `flutter analyze` and `flutter test --concurrency=1` on the PR head when Dart changed.
 

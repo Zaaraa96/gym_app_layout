@@ -67,7 +67,7 @@ Use `--concurrency=1` for Isar host tests. If only docs/skills changed, skip Flu
 
 Widget-test traps:
 
-- Do **not** `pumpAndSettle` on Welcome — Lottie never stops.
+- Prefer `settleApp` / timed pumps over a blind `pumpAndSettle` during route changes.
 - Use `settleApp` from `test/helpers/isar_core.dart` after GetX route changes (~400ms + Isar yield).
 - Default test surface is 800px; AppBar actions miss taps until the transition finishes.
 
