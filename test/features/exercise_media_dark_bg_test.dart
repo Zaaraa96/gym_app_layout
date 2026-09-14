@@ -109,7 +109,7 @@ void main() {
     for (final entry in bundledExerciseAssets) {
       await _assertAssetHasNoWhiteCanvas(entry.assetPath);
       final gif = entry.gifPath;
-      if (gif != null && gif.isNotEmpty) {
+      if (gif.isNotEmpty) {
         await _assertAssetHasNoWhiteCanvas(gif);
       }
     }
