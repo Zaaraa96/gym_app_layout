@@ -14,9 +14,9 @@ extension GetUserCatalogExerciseCollection on Isar {
       this.collection();
 }
 
-final UserCatalogExerciseSchema = CollectionSchema(
+const UserCatalogExerciseSchema = CollectionSchema(
   name: r'UserCatalogExercise',
-  id: int.parse('2308038730620676887'),
+  id: 2308038730620676887,
   properties: {
     r'aliases': PropertySchema(
       id: 0,
@@ -99,7 +99,7 @@ final UserCatalogExerciseSchema = CollectionSchema(
   idName: r'id',
   indexes: {
     r'uuid': IndexSchema(
-      id: int.parse('2134397340427724972'),
+      id: 2134397340427724972,
       name: r'uuid',
       unique: false,
       replace: false,

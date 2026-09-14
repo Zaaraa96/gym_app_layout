@@ -1,5 +1,6 @@
 import '../new_id.dart';
 import 'enums.dart';
+import 'schedule.dart';
 
 /// Local adapter key. `0` means the row is not persisted yet.
 /// Product identity is [WorkoutPlan.uuid], not this field.
@@ -32,6 +33,19 @@ class WorkoutPlan {
   /// Drafts stay in the builder; only [PlanStatus.active] can start a workout.
   PlanStatus status = PlanStatus.active;
 
+  /// Participates in Today when active. Default on for Finish / starters.
+  bool onSchedule = true;
+
+  /// [ScheduleMode.once] or [ScheduleMode.week]. No separate repeat mode.
+  ScheduleMode scheduleMode = ScheduleMode.week;
+
+  /// Day id → weekdays. Required when [scheduleMode] is [ScheduleMode.week].
+  List<DayWeekdayMap> weekdayMap = [];
+
+  /// Start of the current Run-once cycle. Sessions/skips before this do not
+  /// count toward once progress. Null = use all history (legacy rows).
+  DateTime? onceCycleStartedAt;
+
   late DateTime createdAt;
 
   late DateTime updatedAt;
@@ -49,11 +63,16 @@ class WorkoutPlan {
     List<String>? goalIds,
     required this.source,
     this.status = PlanStatus.active,
+    this.onSchedule = true,
+    this.scheduleMode = ScheduleMode.week,
+    List<DayWeekdayMap>? weekdayMap,
+    this.onceCycleStartedAt,
     required this.createdAt,
     required this.updatedAt,
     List<PlanDay>? days,
   })  : uuid = uuid ?? newUuid(),
         goalIds = goalIds ?? [],
+        weekdayMap = weekdayMap ?? [],
         days = days ?? [];
 
   /// List and app-bar title. Empty names stay invalid in the builder.
@@ -63,6 +82,8 @@ class WorkoutPlan {
   }
 
   bool get isDraft => status == PlanStatus.draft;
+
+  bool get feedsToday => status == PlanStatus.active && onSchedule;
 }
 
 class PlanDay {

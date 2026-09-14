@@ -9,6 +9,7 @@ import 'workout_session.dart';
 
 /// Maps product [domain.WorkoutPlan] graphs onto Isar collection rows.
 WorkoutPlan planToIsar(domain.WorkoutPlan plan) {
+  domain.ensurePlanScheduleDefaults(plan);
   final row = WorkoutPlan()
     ..id = plan.id == domain.unassignedLocalId ? Isar.autoIncrement : plan.id
     ..uuid = plan.uuid
@@ -18,6 +19,12 @@ WorkoutPlan planToIsar(domain.WorkoutPlan plan) {
     ..goalIds = canonicalizeGoalIds(plan.goalIds)
     ..source = plan.source
     ..status = plan.status
+    ..onSchedule = plan.onSchedule
+    ..scheduleMode = plan.scheduleMode
+    ..weekdayMap = [
+      for (final entry in plan.weekdayMap) _weekdayMapToIsar(entry),
+    ]
+    ..onceCycleStartedAt = plan.onceCycleStartedAt
     ..createdAt = plan.createdAt
     ..updatedAt = plan.updatedAt
     ..days = [for (final day in plan.days) _dayToIsar(day)]
@@ -30,7 +37,7 @@ domain.WorkoutPlan planFromIsar(WorkoutPlan row) {
   final sections = [
     for (final section in row.commonSections) _sectionFromIsar(section),
   ];
-  return domain.WorkoutPlan.create(
+  final plan = domain.WorkoutPlan.create(
     uuid: row.uuid,
     dirty: row.dirty,
     title: row.title,
@@ -38,10 +45,31 @@ domain.WorkoutPlan planFromIsar(WorkoutPlan row) {
     goalIds: canonicalizeGoalIds(row.goalIds),
     source: row.source,
     status: row.status,
+    onSchedule: row.onSchedule,
+    scheduleMode: row.scheduleMode,
+    weekdayMap: [
+      for (final entry in row.weekdayMap) _weekdayMapFromIsar(entry),
+    ],
+    onceCycleStartedAt: row.onceCycleStartedAt,
     createdAt: row.createdAt,
     updatedAt: row.updatedAt,
     days: migrateCommonSectionsToDays(days: days, sections: sections),
   )..id = row.id;
+  domain.ensurePlanScheduleDefaults(plan);
+  return plan;
+}
+
+DayWeekdayMap _weekdayMapToIsar(domain.DayWeekdayMap entry) {
+  return DayWeekdayMap()
+    ..dayId = entry.dayId
+    ..weekdays = List<int>.from(entry.weekdays);
+}
+
+domain.DayWeekdayMap _weekdayMapFromIsar(DayWeekdayMap entry) {
+  return domain.DayWeekdayMap(
+    dayId: entry.dayId,
+    weekdays: List<int>.from(entry.weekdays),
+  );
 }
 
 PlanDay _dayToIsar(domain.PlanDay day) {

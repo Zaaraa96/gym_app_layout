@@ -100,6 +100,8 @@ WorkoutPlan _plan() {
     uuid: 'plan-uuid',
     title: 'Push',
     source: PlanSource.created,
+    scheduleMode: ScheduleMode.once,
+    onSchedule: true,
     createdAt: DateTime.utc(2026, 8, 1),
     updatedAt: DateTime.utc(2026, 8, 1),
     days: [

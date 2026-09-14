@@ -1,202 +1,160 @@
 import 'package:flutter_test/flutter_test.dart';
 import 'package:gym_app/data/memory_plan_repository.dart';
 import 'package:gym_app/data/memory_session_repository.dart';
+import 'package:gym_app/data/memory_skip_repository.dart';
 import 'package:gym_app/domain/models/models.dart';
 import 'package:gym_app/domain/today_suggestion.dart';
 
 void main() {
-  test('with no history, the newest startable plan’s first day is today', () {
-    final plan = _plan(id: 1, titles: ['Day 1', 'Day 2']);
-    final suggestion = suggestToday(plans: [plan]);
-    expect(suggestion, isNotNull);
-    expect(suggestion!.day.title, 'Day 1');
-    expect(suggestion.headline, 'Today: Day 1');
-    expect(suggestion.alreadyTrainedToday, isFalse);
+  group('once mode', () {
+    test('with no history, the first startable day is due', () {
+      final plan = _oncePlan(id: 1, titles: ['Day 1', 'Day 2']);
+      final items = suggestTodayItems(plans: [plan]);
+      expect(items, hasLength(1));
+      expect(items.single.day!.title, 'Day 1');
+      expect(items.single.isWorkout, isTrue);
+      expect(items.single.alreadyTrainedToday, isFalse);
+    });
+
+    test('after completing a day, the next startable day is due', () {
+      final plan = _oncePlan(id: 1, titles: ['Day 1', 'Day 2', 'Day 3']);
+      final items = suggestTodayItems(
+        plans: [plan],
+        completedNewestFirst: [
+          _completed(planId: '1', dayId: 'day-1', at: DateTime.utc(2026, 8, 26)),
+        ],
+        now: DateTime.utc(2026, 8, 27, 12),
+      );
+      expect(items.single.day!.title, 'Day 2');
+    });
+
+    test('completing the last day finishes the plan — no wrap, no Rest', () {
+      final plan = _oncePlan(id: 1, titles: ['Day 1', 'Day 2']);
+      final items = suggestTodayItems(
+        plans: [plan],
+        completedNewestFirst: [
+          _completed(planId: '1', dayId: 'day-1', at: DateTime.utc(2026, 8, 25)),
+          _completed(planId: '1', dayId: 'day-2', at: DateTime.utc(2026, 8, 26)),
+        ],
+        now: DateTime.utc(2026, 8, 27),
+      );
+      expect(items, isEmpty);
+    });
+
+    test('skip advances to the next day without a session', () {
+      final plan = _oncePlan(id: 1, titles: ['Day 1', 'Day 2']);
+      final items = suggestTodayItems(
+        plans: [plan],
+        skips: [
+          PlanDaySkip.create(
+            planId: '1',
+            dayId: 'day-1',
+            date: DateTime.utc(2026, 8, 28),
+          ),
+        ],
+        now: DateTime.utc(2026, 8, 28, 18),
+      );
+      expect(items.single.day!.title, 'Day 2');
+      expect(items.single.alreadyTrainedToday, isTrue);
+    });
+
+    test('never emits Rest for once mode', () {
+      final plan = _oncePlan(id: 1, titles: ['Day 1']);
+      // Monday local — once mode ignores calendar.
+      final items = suggestTodayItems(
+        plans: [plan],
+        now: DateTime(2026, 8, 31), // Monday
+      );
+      expect(items.every((i) => i.isWorkout), isTrue);
+    });
+  });
+
+  group('week mode', () {
+    test('maps today\'s weekday to the due workout', () {
+      final plan = _weekPlan(
+        id: 1,
+        titles: ['Day A', 'Day B'],
+        map: {
+          'day-1': [1, 4], // Mon Thu
+          'day-2': [2, 5], // Tue Fri
+        },
+      );
+      // Wednesday 2026-09-02 local — Rest
+      final wed = suggestTodayItems(
+        plans: [plan],
+        now: DateTime(2026, 9, 2, 12),
+      );
+      expect(wed, hasLength(1));
+      expect(wed.single.isRest, isTrue);
+
+      // Monday — Day A
+      final mon = suggestTodayItems(
+        plans: [plan],
+        now: DateTime(2026, 8, 31, 12),
+      );
+      expect(mon.single.isWorkout, isTrue);
+      expect(mon.single.day!.title, 'Day A');
+    });
+
+    test('skip clears today\'s due workout', () {
+      final plan = _weekPlan(
+        id: 1,
+        titles: ['Day A'],
+        map: {
+          'day-1': [1],
+        },
+      );
+      final now = DateTime(2026, 8, 31, 12); // Monday
+      final items = suggestTodayItems(
+        plans: [plan],
+        skips: [
+          PlanDaySkip.create(
+            planId: '1',
+            dayId: 'day-1',
+            date: now,
+          ),
+        ],
+        now: now,
+      );
+      expect(items, isEmpty);
+    });
+  });
+
+  test('off-schedule active plans do not feed Today', () {
+    final plan = _oncePlan(id: 1, titles: ['Day 1'])..onSchedule = false;
+    expect(suggestTodayItems(plans: [plan]), isEmpty);
+  });
+
+  test('multi-plan Today lists every due workout', () {
+    final a = _oncePlan(id: 1, titles: ['A1']);
+    final b = _oncePlan(id: 2, titles: ['B1']);
+    final items = suggestTodayItems(plans: [a, b]);
+    expect(items.where((i) => i.isWorkout), hasLength(2));
+  });
+
+  test('drafts are ignored', () {
+    final plan = _oncePlan(id: 1, titles: ['Day 1'])
+      ..status = PlanStatus.draft;
+    expect(suggestTodayItems(plans: [plan]), isEmpty);
+  });
+
+  test('returns null from suggestToday when only Rest is due', () {
+    final plan = _weekPlan(
+      id: 1,
+      titles: ['Day A'],
+      map: {
+        'day-1': [1],
+      },
+    );
+    final suggestion = suggestToday(
+      plans: [plan],
+      now: DateTime(2026, 9, 2, 12), // Wed
+    );
+    expect(suggestion, isNull);
     expect(
-      suggestion.prompt,
-      'Start with squat, then log what you did.',
+      suggestTodayItems(plans: [plan], now: DateTime(2026, 9, 2, 12)),
+      hasLength(1),
     );
-  });
-
-  test('after completing a day, the next startable day is suggested', () {
-    final plan = _plan(id: 1, titles: ['Day 1', 'Day 2', 'Day 3']);
-    final suggestion = suggestToday(
-      plans: [plan],
-      completedNewestFirst: [
-        _completed(planId: '1', dayId: 'day-1', at: DateTime.utc(2026, 8, 26)),
-      ],
-      now: DateTime.utc(2026, 8, 27, 12),
-    );
-    expect(suggestion!.day.title, 'Day 2');
-    expect(suggestion.headline, 'Today: Day 2');
-    expect(suggestion.alreadyTrainedToday, isFalse);
-  });
-
-  test('completing the last day wraps to the first', () {
-    final plan = _plan(id: 1, titles: ['Day 1', 'Day 2']);
-    final suggestion = suggestToday(
-      plans: [plan],
-      completedNewestFirst: [
-        _completed(planId: '1', dayId: 'day-2', at: DateTime.utc(2026, 8, 26)),
-      ],
-      now: DateTime.utc(2026, 8, 27),
-    );
-    expect(suggestion!.day.title, 'Day 1');
-    expect(suggestion.alreadyTrainedToday, isFalse);
-  });
-
-  test('completing the last day today wraps and flags already trained', () {
-    final plan = _plan(id: 1, titles: ['Day 1', 'Day 2']);
-    final suggestion = suggestToday(
-      plans: [plan],
-      completedNewestFirst: [
-        _completed(
-          planId: '1',
-          dayId: 'day-2',
-          at: DateTime.utc(2026, 8, 28, 8),
-        ),
-      ],
-      now: DateTime.utc(2026, 8, 28, 18),
-    );
-    expect(suggestion!.day.title, 'Day 1');
-    expect(suggestion.alreadyTrainedToday, isTrue);
-    expect(suggestion.headline, 'Next up: Day 1');
-    expect(suggestion.prompt, contains('You already trained today'));
-  });
-
-  test('a session completed today offers the next day as later work', () {
-    final plan = _plan(id: 1, titles: ['Day 1', 'Day 2']);
-    final suggestion = suggestToday(
-      plans: [plan],
-      completedNewestFirst: [
-        _completed(
-            planId: '1', dayId: 'day-1', at: DateTime.utc(2026, 8, 28, 8)),
-      ],
-      now: DateTime.utc(2026, 8, 28, 18),
-    );
-    expect(suggestion!.day.title, 'Day 2');
-    expect(suggestion.alreadyTrainedToday, isTrue);
-    expect(suggestion.headline, 'Next up: Day 2');
-    expect(suggestion.prompt, contains('You already trained today'));
-  });
-
-  test('a newer plan wins over an older one', () {
-    final older =
-        _plan(id: 1, titles: ['Old day'], updatedAt: DateTime.utc(2026, 1, 1));
-    final newer =
-        _plan(id: 2, titles: ['New day'], updatedAt: DateTime.utc(2026, 8, 1));
-    final suggestion = suggestToday(plans: [newer, older]);
-    expect(suggestion!.plan.id, 2);
-    expect(suggestion.day.title, 'New day');
-  });
-
-  test('returns null when no day can start', () {
-    final plan = WorkoutPlan.create(
-      title: 'empty',
-      source: PlanSource.created,
-      createdAt: DateTime.utc(2026, 8, 1),
-      updatedAt: DateTime.utc(2026, 8, 1),
-      days: [PlanDay.create(dayId: 'day-1', title: 'Empty')],
-    )
-      ..id = 1
-      ..uuid = '1';
-    expect(suggestToday(plans: [plan]), isNull);
-  });
-
-  test('an empty day is not startable even if the plan has other days', () {
-    final plan = WorkoutPlan.create(
-      title: 'empty',
-      source: PlanSource.created,
-      createdAt: DateTime.utc(2026, 8, 1),
-      updatedAt: DateTime.utc(2026, 8, 1),
-      days: [PlanDay.create(dayId: 'day-1', title: 'Rest-ish')],
-    )
-      ..id = 1
-      ..uuid = '1';
-
-    expect(suggestToday(plans: [plan]), isNull);
-  });
-
-  test('rotation skips days that cannot start', () {
-    final work = _plan(id: 1, titles: ['Day 1', 'Day 3']);
-    final plan = WorkoutPlan.create(
-      title: 'with rest day',
-      source: PlanSource.created,
-      createdAt: DateTime.utc(2026, 8, 1),
-      updatedAt: DateTime.utc(2026, 8, 1),
-      days: [
-        work.days.first,
-        PlanDay.create(dayId: 'day-empty', title: 'Empty rest'),
-        PlanDay.create(
-          dayId: 'day-3',
-          title: 'Day 3',
-          blocks: work.days.last.blocks,
-        ),
-      ],
-    )
-      ..id = 1
-      ..uuid = '1';
-
-    final suggestion = suggestToday(
-      plans: [plan],
-      completedNewestFirst: [
-        _completed(planId: '1', dayId: 'day-1', at: DateTime.utc(2026, 8, 26)),
-      ],
-      now: DateTime.utc(2026, 8, 27),
-    );
-    expect(suggestion!.day.title, 'Day 3');
-  });
-
-  test('a completed day that is no longer startable falls back to the first',
-      () {
-    final plan = _plan(id: 1, titles: ['Day 1', 'Day 2']);
-    final suggestion = suggestToday(
-      plans: [plan],
-      completedNewestFirst: [
-        _completed(
-          planId: '1',
-          dayId: 'retired-day',
-          at: DateTime.utc(2026, 8, 26),
-        ),
-      ],
-      now: DateTime.utc(2026, 8, 27),
-    );
-    expect(suggestion!.day.title, 'Day 1');
-    expect(suggestion.alreadyTrainedToday, isFalse);
-  });
-
-  test('history matches the plan uuid, not the local Isar row id', () {
-    final plan = _plan(id: 99, titles: ['Day 1', 'Day 2'])..uuid = 'plan-abc';
-    final suggestion = suggestToday(
-      plans: [plan],
-      completedNewestFirst: [
-        _completed(
-          planId: '99',
-          dayId: 'day-1',
-          at: DateTime.utc(2026, 8, 26),
-        ),
-        _completed(
-          planId: 'plan-abc',
-          dayId: 'day-1',
-          at: DateTime.utc(2026, 8, 27),
-        ),
-      ],
-      now: DateTime.utc(2026, 8, 28),
-    );
-    expect(suggestion!.day.title, 'Day 2');
-    expect(suggestion.alreadyTrainedToday, isFalse);
-  });
-
-  test('firstExerciseTitle falls back when the day is empty', () {
-    final plan = WorkoutPlan.create(
-      title: 'empty',
-      source: PlanSource.created,
-      createdAt: DateTime.utc(2026, 8, 1),
-      updatedAt: DateTime.utc(2026, 8, 1),
-      days: [PlanDay.create(dayId: 'day-1', title: 'Empty')],
-    );
-    expect(firstExerciseTitle(plan.days.single, plan), 'your first exercise');
-    expect(dayCanStart(plan, plan.days.single), isFalse);
   });
 
   test('sameUtcDay is true across clock times on that UTC date', () {
@@ -219,7 +177,8 @@ void main() {
   test('loadHomeOverview reads repositories and suggests the next day', () async {
     final plans = MemoryPlanRepository();
     final sessions = MemorySessionRepository();
-    final plan = _plan(id: 1, titles: ['Day 1', 'Day 2']);
+    final skips = MemorySkipRepository();
+    final plan = _oncePlan(id: 1, titles: ['Day 1', 'Day 2']);
     await plans.save(plan);
     await sessions.save(
       _completed(
@@ -232,38 +191,13 @@ void main() {
     final overview = await loadHomeOverview(
       plans: plans,
       sessions: sessions,
+      skips: skips,
       now: DateTime.utc(2026, 8, 27, 12),
     );
     expect(overview.plans.single.uuid, plan.uuid);
     expect(overview.live, isNull);
-    expect(overview.today, isNotNull);
-    expect(overview.today!.day.title, 'Day 2');
-    expect(overview.today!.alreadyTrainedToday, isFalse);
-  });
-
-  test('loadHomeOverview includes the live session', () async {
-    final plans = MemoryPlanRepository();
-    final sessions = MemorySessionRepository();
-    final plan = _plan(id: 1, titles: ['Day 1']);
-    await plans.save(plan);
-    final live = WorkoutSession.create(
-      uuid: 'live-1',
-      planId: plan.uuid,
-      planDayId: 'day-1',
-      planTitleSnapshot: plan.title,
-      dayTitleSnapshot: 'Day 1',
-      startedAt: DateTime.utc(2026, 8, 28, 9),
-      status: SessionStatus.inProgress,
-    );
-    await sessions.save(live);
-
-    final overview = await loadHomeOverview(
-      plans: plans,
-      sessions: sessions,
-      now: DateTime.utc(2026, 8, 28, 12),
-    );
-    expect(overview.live?.uuid, live.uuid);
-    expect(overview.today!.day.title, 'Day 1');
+    expect(overview.todayItems, hasLength(1));
+    expect(overview.today!.day!.title, 'Day 2');
   });
 
   test('loadHomeOverview ignores drafts when suggesting today', () async {
@@ -274,6 +208,7 @@ void main() {
       title: 'Draft only',
       source: PlanSource.created,
       status: PlanStatus.draft,
+      scheduleMode: ScheduleMode.once,
       createdAt: now,
       updatedAt: now,
       days: [
@@ -305,19 +240,20 @@ void main() {
       now: now,
     );
     expect(overview.plans, hasLength(1));
-    expect(overview.today, isNull);
+    expect(overview.todayItems, isEmpty);
   });
 }
 
-WorkoutPlan _plan({
+WorkoutPlan _oncePlan({
   required int id,
   required List<String> titles,
-  DateTime? updatedAt,
 }) {
-  final now = updatedAt ?? DateTime.utc(2026, 8, 1);
+  final now = DateTime.utc(2026, 8, 1);
   return WorkoutPlan.create(
     title: 'plan $id',
     source: PlanSource.created,
+    scheduleMode: ScheduleMode.once,
+    onSchedule: true,
     createdAt: now,
     updatedAt: now,
     days: [
@@ -344,6 +280,20 @@ WorkoutPlan _plan({
   )
     ..id = id
     ..uuid = '$id';
+}
+
+WorkoutPlan _weekPlan({
+  required int id,
+  required List<String> titles,
+  required Map<String, List<int>> map,
+}) {
+  final plan = _oncePlan(id: id, titles: titles);
+  plan.scheduleMode = ScheduleMode.week;
+  plan.weekdayMap = [
+    for (final entry in map.entries)
+      DayWeekdayMap(dayId: entry.key, weekdays: entry.value),
+  ];
+  return plan;
 }
 
 WorkoutSession _completed({

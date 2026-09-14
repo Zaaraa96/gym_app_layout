@@ -67,6 +67,12 @@ Future<WorkoutPlan> installStarterPlan(
     importer: importer,
     loadAsset: loadAsset,
   );
+  plan.onSchedule = true;
+  plan.scheduleMode = ScheduleMode.week;
+  plan.weekdayMap = spec.id == starterTwoDay.id
+      ? starterTwoDayWeekdayMap(plan.days)
+      : starterFullBodyWeekdayMap(plan.days);
+  ensurePlanScheduleDefaults(plan);
   plan.id = await plans.save(plan);
   return plan;
 }

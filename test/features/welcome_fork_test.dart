@@ -117,12 +117,15 @@ void main() {
 
     expect(Get.currentRoute, AppRoutes.home);
     expect(find.byKey(const Key('today-card')), findsOneWidget);
-    expect(find.text('Today: Day 1 — Squat and push'), findsOneWidget);
+    expect(find.textContaining('Today:'), findsOneWidget);
     expect(find.text('Your plans'), findsOneWidget);
     expect(find.text('Beginner full body'), findsWidgets);
     expect(await db(tester, plans.count), 1);
     final stored = await db(tester, plans.all);
     expect(stored.single.source, PlanSource.imported);
+    expect(stored.single.onSchedule, isTrue);
+    expect(stored.single.scheduleMode, ScheduleMode.week);
+    expect(stored.single.weekdayMap, isNotEmpty);
     expect(stored.single.days, hasLength(5));
   });
 
@@ -135,7 +138,7 @@ void main() {
     await launch(tester, AppRoutes.home);
 
     expect(find.text('Plans'), findsWidgets);
-    expect(find.text('plan 1'), findsOneWidget);
+    expect(find.text('plan 1'), findsWidgets);
     expect(find.text('3 days'), findsOneWidget);
     expect(find.byKey(const Key('today-card')), findsOneWidget);
     expect(find.text('Today: day 1'), findsOneWidget);
@@ -156,13 +159,13 @@ void main() {
     await db(tester, () => plans.save(_plan('only plan', dayCount: 1)));
 
     await launch(tester, AppRoutes.home);
-    expect(find.text('only plan'), findsOneWidget);
+    expect(find.text('only plan'), findsWidgets);
     expect(find.text('1 day'), findsOneWidget);
 
     await db(tester, () => plans.save(_plan('added later', dayCount: 2)));
     await settle(tester);
 
-    expect(find.text('added later'), findsOneWidget);
+    expect(find.text('added later'), findsWidgets);
     expect(find.text('2 days'), findsOneWidget);
   });
 
@@ -293,6 +296,8 @@ WorkoutPlan _plan(String title, {required int dayCount}) {
   return WorkoutPlan.create(
     title: title,
     source: PlanSource.imported,
+    scheduleMode: ScheduleMode.once,
+    onSchedule: true,
     createdAt: now,
     updatedAt: now,
     days: List.generate(

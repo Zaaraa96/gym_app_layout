@@ -2,6 +2,7 @@ import 'package:get/get.dart';
 import 'package:isar/isar.dart';
 import 'package:path_provider/path_provider.dart';
 
+import 'isar/plan_day_skip.dart';
 import 'isar/user_catalog_exercise.dart';
 import 'isar/workout_plan.dart';
 import 'isar/workout_session.dart';
@@ -19,6 +20,7 @@ class IsarService extends GetxService {
     WorkoutPlanSchema,
     WorkoutSessionSchema,
     UserCatalogExerciseSchema,
+    PlanDaySkipSchema,
   ];
 
   static Future<IsarService> init({

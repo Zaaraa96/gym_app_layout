@@ -1,6 +1,7 @@
 import 'package:isar/isar.dart';
 
 import '../../domain/models/enums.dart';
+import '../../domain/models/schedule.dart';
 import '../../domain/new_id.dart';
 
 part 'workout_plan.g.dart';
@@ -30,6 +31,17 @@ class WorkoutPlan {
   @enumerated
   PlanStatus status = PlanStatus.active;
 
+  /// Feeds Today when active. Missing Isar field deserializes as true via default.
+  bool onSchedule = true;
+
+  @enumerated
+  ScheduleMode scheduleMode = ScheduleMode.week;
+
+  List<DayWeekdayMap> weekdayMap = [];
+
+  /// Start of the current Run-once cycle. Null = all history counts.
+  DateTime? onceCycleStartedAt;
+
   late DateTime createdAt;
 
   @Index()
@@ -51,14 +63,32 @@ class WorkoutPlan {
     List<String>? goalIds,
     required this.source,
     this.status = PlanStatus.active,
+    this.onSchedule = true,
+    this.scheduleMode = ScheduleMode.week,
+    List<DayWeekdayMap>? weekdayMap,
+    this.onceCycleStartedAt,
     required this.createdAt,
     required this.updatedAt,
     List<PlanDay>? days,
     List<CommonSection>? commonSections,
   })  : uuid = uuid ?? newUuid(),
         goalIds = goalIds ?? [],
+        weekdayMap = weekdayMap ?? [],
         days = days ?? [],
         commonSections = commonSections ?? [];
+}
+
+@embedded
+class DayWeekdayMap {
+  late String dayId;
+  List<int> weekdays = [];
+
+  DayWeekdayMap();
+
+  DayWeekdayMap.create({
+    required this.dayId,
+    List<int>? weekdays,
+  }) : weekdays = weekdays ?? [];
 }
 
 @embedded
