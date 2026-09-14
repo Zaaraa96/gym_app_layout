@@ -82,7 +82,7 @@ void main() {
     await tester.pump();
     await tester.pump();
 
-    expect(find.text('Day 1'), findsOneWidget);
+    expect(find.byKey(const Key('day-card-day-1')), findsOneWidget);
 
     plans.plan = null;
     plans.emit();
@@ -90,7 +90,7 @@ void main() {
     await tester.pump();
 
     expect(find.text('This plan is no longer here.'), findsOneWidget);
-    expect(find.text('Day 1'), findsNothing);
+    expect(find.byKey(const Key('day-card-day-1')), findsNothing);
     expect(find.text('Try again'), findsNothing);
   });
 }

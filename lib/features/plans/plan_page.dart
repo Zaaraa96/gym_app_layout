@@ -378,54 +378,59 @@ class _PlanPageState extends State<PlanPage> {
   }
 
   Widget _daysBody(BuildContext context, WorkoutPlan plan) {
-    return ListView(
+    // Column (not ListView children) so Schedule/Progress never leave day
+    // cards unbuilt below the fold — widget tests and Semantics need them.
+    return SingleChildScrollView(
       padding: const EdgeInsets.fromLTRB(20, 12, 20, 88),
-      children: [
-        ScheduleEditor(
-          plan: plan,
-          onChanged: () => _save(plan),
-        ),
-        const SizedBox(height: 24),
-        if (_progress != null) ...[
-          PlanProgressSection(
-            progress: _progress!,
-            onRunAgain: _progress!.isFinishedOnce &&
-                    plan.scheduleMode == ScheduleMode.once
-                ? () => _runOnceAgain(plan)
-                : null,
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          ScheduleEditor(
+            plan: plan,
+            onChanged: () => _save(plan),
           ),
           const SizedBox(height: 24),
+          if (_progress != null) ...[
+            PlanProgressSection(
+              progress: _progress!,
+              onRunAgain: _progress!.isFinishedOnce &&
+                      plan.scheduleMode == ScheduleMode.once
+                  ? () => _runOnceAgain(plan)
+                  : null,
+            ),
+            const SizedBox(height: 24),
+          ],
+          const AppText('Days', style: TextStyle(fontWeight: FontWeight.w600)),
+          const SizedBox(height: 8),
+          if (plan.days.isEmpty)
+            Padding(
+              padding: const EdgeInsets.symmetric(vertical: 24),
+              child: Column(
+                children: [
+                  const AppText(
+                    'No days yet. Add a day, then fill it with exercises.',
+                    style: subtitleTextStyle,
+                    textAlign: TextAlign.center,
+                  ),
+                  const SizedBox(height: 16),
+                  FilledButton.icon(
+                    onPressed: _addDay,
+                    icon: const Icon(Icons.add),
+                    label: const Text('Add day'),
+                  ),
+                ],
+              ),
+            )
+          else
+            for (var index = 0; index < plan.days.length; index++)
+              _DayCard(
+                key: Key('day-card-${plan.days[index].dayId}'),
+                day: plan.days[index],
+                onOpen: () => _openDay(plan.days[index]),
+                onDelete: () => _deleteDay(plan.days[index]),
+              ),
         ],
-        const AppText('Days', style: TextStyle(fontWeight: FontWeight.w600)),
-        const SizedBox(height: 8),
-        if (plan.days.isEmpty)
-          Padding(
-            padding: const EdgeInsets.symmetric(vertical: 24),
-            child: Column(
-              children: [
-                const AppText(
-                  'No days yet. Add a day, then fill it with exercises.',
-                  style: subtitleTextStyle,
-                  textAlign: TextAlign.center,
-                ),
-                const SizedBox(height: 16),
-                FilledButton.icon(
-                  onPressed: _addDay,
-                  icon: const Icon(Icons.add),
-                  label: const Text('Add day'),
-                ),
-              ],
-            ),
-          )
-        else
-          for (var index = 0; index < plan.days.length; index++)
-            _DayCard(
-              key: Key('day-card-${plan.days[index].dayId}'),
-              day: plan.days[index],
-              onOpen: () => _openDay(plan.days[index]),
-              onDelete: () => _deleteDay(plan.days[index]),
-            ),
-      ],
+      ),
     );
   }
 }

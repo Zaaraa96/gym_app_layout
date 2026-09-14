@@ -59,7 +59,7 @@ void main() {
     await tester.pump();
 
     expect(find.text('Could not load this plan.'), findsNothing);
-    expect(find.text('Day 1'), findsOneWidget);
+    expect(find.byKey(const Key('day-card-day-1')), findsOneWidget);
   });
 
   testWidgets('day preview retry reloads after a failed byId', (tester) async {

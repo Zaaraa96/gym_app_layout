@@ -516,6 +516,7 @@ class _PlansHomePageState extends State<PlansHomePage> {
       );
     }
     return ListTile(
+      key: Key('plan-tile-${plan.uuid}'),
       contentPadding: EdgeInsets.zero,
       title: AppText(plan.displayTitle, style: dataTextStyle),
       subtitle: AppText(

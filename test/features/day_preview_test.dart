@@ -63,6 +63,9 @@ void main() {
   Future<void> settle(WidgetTester tester) => settleApp(tester);
 
   Future<void> launch(WidgetTester tester, String route) async {
+    tester.view.physicalSize = const Size(800, 1600);
+    tester.view.devicePixelRatio = 1;
+    addTearDown(tester.view.resetPhysicalSize);
     await tester.pumpWidget(MyApp(initialRoute: route));
     await tester.pump(const Duration(milliseconds: 100));
     await settle(tester);
@@ -124,14 +127,14 @@ void main() {
       await db(tester, () => plans.save(samplePlan()));
 
       await launch(tester, AppRoutes.home);
-      expect(find.text('plan 1'), findsOneWidget);
+      expect(planTileOnHome('plan 1'), findsOneWidget);
 
-      await tester.tap(find.text('plan 1'));
+      await openPlanFromHome(tester, 'plan 1');
       await tester.pump();
       await settle(tester);
 
       expect(Get.currentRoute, AppRoutes.plan);
-      expect(find.text('day 1- 4sar'), findsOneWidget);
+      expect(find.byKey(const Key('day-card-day-1')), findsOneWidget);
       expect(find.text('legs'), findsOneWidget);
       expect(find.byKey(const Key('day-card-chip-quads')), findsOneWidget);
       expect(find.text('3 exercises'), findsOneWidget);
@@ -185,7 +188,7 @@ void main() {
       );
 
       await launch(tester, AppRoutes.home);
-      await tester.tap(find.text('empty day plan'));
+      await openPlanFromHome(tester, 'empty day plan');
       await tester.pump();
       await settle(tester);
       await tester.tap(find.byKey(const Key('day-card-day-empty')));
@@ -206,7 +209,7 @@ void main() {
     await db(tester, () => plans.save(samplePlan()));
 
     await launch(tester, AppRoutes.home);
-    await tester.tap(find.text('plan 1'));
+    await openPlanFromHome(tester, 'plan 1');
     await tester.pump();
     await settle(tester);
     await tester.tap(find.byKey(const Key('day-card-day-1')));
@@ -239,7 +242,7 @@ void main() {
     );
 
     await launch(tester, AppRoutes.home);
-    await tester.tap(find.text('A/B'));
+    await openPlanFromHome(tester, 'A/B');
     await tester.pump();
     await settle(tester);
     await tester.tap(find.byKey(const Key('day-card-day-b')));
@@ -279,7 +282,7 @@ void main() {
     );
 
     await launch(tester, AppRoutes.home);
-    await tester.tap(find.text('A/B'));
+    await openPlanFromHome(tester, 'A/B');
     await tester.pump();
     await settle(tester);
     await tester.tap(find.byKey(const Key('day-card-day-b')));
@@ -324,7 +327,7 @@ void main() {
       );
 
       await launch(tester, AppRoutes.home);
-      await tester.tap(find.text('A/B'));
+      await openPlanFromHome(tester, 'A/B');
       await tester.pump();
       await settle(tester);
       await tester.tap(find.byKey(const Key('day-card-day-a')));
@@ -361,7 +364,7 @@ void main() {
     );
 
     await launch(tester, AppRoutes.home);
-    await tester.tap(find.text('A/B'));
+    await openPlanFromHome(tester, 'A/B');
     await tester.pump();
     await settle(tester);
     await tester.tap(find.byKey(const Key('day-card-day-b')));

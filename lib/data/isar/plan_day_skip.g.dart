@@ -13,9 +13,9 @@ extension GetPlanDaySkipCollection on Isar {
   IsarCollection<PlanDaySkip> get planDaySkips => this.collection();
 }
 
-const PlanDaySkipSchema = CollectionSchema(
+final PlanDaySkipSchema = CollectionSchema(
   name: r'PlanDaySkip',
-  id: -7014422667829164899,
+  id: int.parse('-7014422667829164899'),
   properties: {
     r'date': PropertySchema(
       id: 0,
@@ -45,7 +45,7 @@ const PlanDaySkipSchema = CollectionSchema(
   idName: r'id',
   indexes: {
     r'uuid': IndexSchema(
-      id: 2134397340427724972,
+      id: int.parse('2134397340427724972'),
       name: r'uuid',
       unique: false,
       replace: false,
@@ -58,7 +58,7 @@ const PlanDaySkipSchema = CollectionSchema(
       ],
     ),
     r'planId': IndexSchema(
-      id: 7282644713036731817,
+      id: int.parse('7282644713036731817'),
       name: r'planId',
       unique: false,
       replace: false,
@@ -71,7 +71,7 @@ const PlanDaySkipSchema = CollectionSchema(
       ],
     ),
     r'date': IndexSchema(
-      id: -7552997827385218417,
+      id: int.parse('-7552997827385218417'),
       name: r'date',
       unique: false,
       replace: false,

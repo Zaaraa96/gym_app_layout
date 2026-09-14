@@ -1,5 +1,6 @@
 import 'dart:io';
 
+import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:get/get.dart';
 import 'package:gym_app/data/app_ports.dart';
@@ -13,6 +14,7 @@ import 'package:gym_app/domain/plan_repository.dart';
 import 'package:gym_app/domain/session_lifecycle.dart';
 import 'package:gym_app/domain/session_repository.dart';
 import 'package:gym_app/domain/skip_repository.dart';
+import 'package:gym_app/features/plans/plans_home_page.dart';
 import 'package:isar/isar.dart';
 
 /// Host tests download the native binary. Device runs already have it from
@@ -116,4 +118,33 @@ Future<void> settleApp(WidgetTester tester) async {
     );
     await tester.pump();
   }
+}
+
+/// Tap the plan row under Your plans (not the Today card that repeats the title).
+Finder planTileOnHome(String title) {
+  return find.ancestor(
+    of: find.text(title),
+    matching: find.byWidgetPredicate((widget) {
+      if (widget is! ListTile) return false;
+      final key = widget.key;
+      return key is ValueKey<String> && key.value.startsWith('plan-tile-');
+    }),
+  );
+}
+
+Future<void> openPlanFromHome(WidgetTester tester, String title) async {
+  final tile = planTileOnHome(title);
+  expect(tile, findsOneWidget);
+  await tester.scrollUntilVisible(
+    tile,
+    120,
+    scrollable: find
+        .descendant(
+          of: find.byType(PlansHomePage),
+          matching: find.byType(Scrollable),
+        )
+        .first,
+  );
+  await tester.pump();
+  await tester.tap(tile);
 }
